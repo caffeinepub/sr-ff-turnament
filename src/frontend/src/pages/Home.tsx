@@ -18,21 +18,40 @@ import { useState } from "react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAllTournaments, useCallerProfile } from "../hooks/useQueries";
 import type { PromoBanner } from "./admin/AdminBanners";
+import type { PromoLink } from "./admin/AdminHomeContent";
 
 const GAME_MODES = [
-  { name: "BR Per Kill", cls: "game-card-1", emoji: "🎯" },
-  { name: "BR Solo", cls: "game-card-2", emoji: "🛡️" },
-  { name: "BR Squad", cls: "game-card-3", emoji: "🔥" },
-  { name: "Clash Squad 1v1", cls: "game-card-4", emoji: "⚔️" },
-  { name: "Clash Squad 4v4", cls: "game-card-5", emoji: "⚡" },
-  { name: "Lone Wolf 1v1", cls: "game-card-6", emoji: "⭐" },
-  { name: "Lone Wolf 2v2", cls: "game-card-7", emoji: "🏆" },
-  { name: "Free Match", cls: "game-card-8", emoji: "🎮" },
-  { name: "Sunday Special", cls: "game-card-9", emoji: "🌟" },
+  { name: "BR Per Kill", cls: "game-card-1" },
+  { name: "BR Solo", cls: "game-card-2" },
+  { name: "BR Squad", cls: "game-card-3" },
+  { name: "Clash Squad 1v1", cls: "game-card-4" },
+  { name: "Clash Squad 4v4", cls: "game-card-5" },
+  { name: "Lone Wolf 1v1", cls: "game-card-6" },
+  { name: "Lone Wolf 2v2", cls: "game-card-7" },
+  { name: "Free Match", cls: "game-card-8" },
+  { name: "Sunday Special", cls: "game-card-9" },
 ];
 
 const _icons = { Shield, Star, Swords, Target, Zap };
 void _icons;
+
+const DEFAULT_ANNOUNCEMENT =
+  "Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! Top players get exclusive rewards! BR Per Kill tournament starting soon!";
+
+function loadAnnouncement(): string {
+  return localStorage.getItem("srff_announcement") ?? DEFAULT_ANNOUNCEMENT;
+}
+
+function loadPromoLinks(): PromoLink[] {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem("srff_promo_links") ?? "[]",
+    ) as PromoLink[];
+    return data.filter((p) => p.active);
+  } catch {
+    return [];
+  }
+}
 
 function loadPromoBanners(): PromoBanner[] {
   try {
@@ -50,6 +69,8 @@ export default function Home() {
   const { data: profile } = useCallerProfile();
   const [bannerIdx, setBannerIdx] = useState(0);
 
+  const announcement = loadAnnouncement();
+  const promoLinks = loadPromoLinks();
   const promoBanners = loadPromoBanners();
   const activeBanner = promoBanners[bannerIdx] ?? null;
 
@@ -58,9 +79,6 @@ export default function Home() {
     if (contestTab === "upcoming") return t.status === "upcoming";
     return t.status === "complete";
   });
-
-  const announcement =
-    "🔥 Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! 🏆 Top players get exclusive rewards! 🎯 BR Per Kill tournament starting soon!";
 
   return (
     <div className="min-h-screen bg-background">
@@ -108,6 +126,7 @@ export default function Home() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 space-y-5 py-4">
+        {/* Announcement ticker */}
         <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 overflow-hidden">
           <Megaphone className="w-4 h-4 text-primary shrink-0" />
           <div className="overflow-hidden flex-1">
@@ -116,6 +135,39 @@ export default function Home() {
             </p>
           </div>
         </div>
+
+        {/* Promo Photo Links row */}
+        {promoLinks.length > 0 && (
+          <section data-ocid="home.promo-links.panel">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+              {promoLinks.map((item, i) => (
+                <a
+                  key={item.id}
+                  href={item.link}
+                  target={item.link.startsWith("http") ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-xl overflow-hidden border border-border hover:border-primary/60 transition-all hover:scale-105 block"
+                  style={{ width: 140 }}
+                  data-ocid={`home.promo-link.item.${i + 1}`}
+                >
+                  <img
+                    src={item.photoUrl}
+                    alt={item.label}
+                    className="w-full h-24 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.opacity = "0.3";
+                    }}
+                  />
+                  <div className="bg-card px-2 py-1">
+                    <p className="text-xs font-semibold truncate text-foreground">
+                      {item.label}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Promotion Banner from Admin */}
         {activeBanner ? (
@@ -168,15 +220,13 @@ export default function Home() {
             </div>
             {promoBanners.length > 1 && (
               <div className="absolute bottom-2 right-3 flex gap-1">
-                {promoBanners.map((pb) => (
+                {promoBanners.map((pb, di) => (
                   <button
                     key={pb.id}
                     type="button"
-                    onClick={() => setBannerIdx(promoBanners.indexOf(pb))}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                      pb.id === activeBanner.id ? "bg-primary" : "bg-white/40"
-                    }`}
-                    data-ocid={`home.promo-banner-dot.${promoBanners.indexOf(pb) + 1}`}
+                    onClick={() => setBannerIdx(di)}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${pb.id === activeBanner.id ? "bg-primary" : "bg-white/40"}`}
+                    data-ocid={`home.promo-banner-dot.${di + 1}`}
                   />
                 ))}
               </div>
@@ -276,7 +326,7 @@ export default function Home() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-xs text-warning font-semibold">
-                      ₹{Number(t.prizePool)}
+                      Rs.{Number(t.prizePool)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {Number(t.playerCount)}/{Number(t.maxPlayers)}
@@ -290,7 +340,7 @@ export default function Home() {
 
         <section className="pb-2">
           <h3 className="font-display font-bold text-base mb-3">
-            🔥 Free Fire Modes
+            Free Fire Modes
           </h3>
           <div className="grid grid-cols-3 gap-2">
             {GAME_MODES.map((mode, i) => (
@@ -300,8 +350,7 @@ export default function Home() {
                 className={`${mode.cls} rounded-xl aspect-square flex flex-col items-center justify-center gap-1 border border-white/10 hover:border-primary/50 hover:scale-105 transition-all`}
                 data-ocid={`game-mode.item.${i + 1}`}
               >
-                <span className="text-2xl">{mode.emoji}</span>
-                <span className="text-[10px] font-semibold text-white/90 text-center px-1 leading-tight">
+                <span className="text-[11px] font-semibold text-white/90 text-center px-1 leading-tight">
                   {mode.name}
                 </span>
               </Link>
@@ -312,15 +361,7 @@ export default function Home() {
 
       <footer className="text-center py-4 px-4 border-t border-border mt-4">
         <p className="text-xs text-muted-foreground">
-          © {new Date().getFullYear()}. Built with ❤️ using{" "}
-          <a
-            href={`https://caffeine.ai?utm_source=caffeine-footer&utm_medium=referral&utm_content=${encodeURIComponent(window.location.hostname)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary hover:underline"
-          >
-            caffeine.ai
-          </a>
+          {new Date().getFullYear()} SR-FF-TOURNAMENT. Built with caffeine.ai
         </p>
       </footer>
     </div>

@@ -8,10 +8,12 @@ import {
 import {
   Bell,
   Flame,
+  Home,
   ImagePlay,
   LayoutDashboard,
   LogOut,
   Menu,
+  Palette,
   Settings,
   Trophy,
   Users,
@@ -23,10 +25,12 @@ import { useState } from "react";
 const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/admin/tournaments", label: "Tournaments", icon: Trophy },
+  { to: "/admin/home-content", label: "Home Content", icon: Home },
   { to: "/admin/banners", label: "Promo Banners", icon: ImagePlay },
   { to: "/admin/users", label: "Users", icon: Users },
   { to: "/admin/payments", label: "Payments", icon: Wallet },
   { to: "/admin/notifications", label: "Notifications", icon: Bell },
+  { to: "/admin/theme", label: "App Theme", icon: Palette },
   { to: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -64,11 +68,14 @@ export default function AdminLayout() {
           <div className="flex items-center gap-2">
             <Flame className="w-6 h-6 text-primary glow-fire" />
             <span className="font-display font-bold text-lg text-foreground">
-              🔥 FF-ADMIN PANEL
+              FF-ADMIN PANEL
             </span>
           </div>
         </div>
-        <nav className="flex-1 p-4 space-y-1" data-ocid="admin.nav.panel">
+        <nav
+          className="flex-1 p-4 space-y-1 overflow-y-auto"
+          data-ocid="admin.nav.panel"
+        >
           {navItems.map(({ to, label, icon: Icon }) => {
             const isActive = location.pathname === to;
             return (
@@ -81,7 +88,7 @@ export default function AdminLayout() {
                     ? "bg-primary/20 text-primary"
                     : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground"
                 }`}
-                data-ocid={`admin.${label.toLowerCase().replace(" ", "-")}.link`}
+                data-ocid={`admin.${label.toLowerCase().replace(/ /g, "-")}.link`}
               >
                 <Icon className="w-4 h-4" />
                 {label}
@@ -96,8 +103,7 @@ export default function AdminLayout() {
             onClick={handleLogout}
             data-ocid="admin.logout.button"
           >
-            <LogOut className="w-4 h-4" />
-            Logout
+            <LogOut className="w-4 h-4" /> Logout
           </Button>
         </div>
       </aside>
@@ -119,7 +125,7 @@ export default function AdminLayout() {
           </Button>
           <Flame className="w-5 h-5 text-primary" />
           <span className="font-display font-bold text-foreground">
-            🔥 FF-ADMIN PANEL
+            FF-ADMIN PANEL
           </span>
         </header>
         <main className="flex-1 overflow-auto p-4 lg:p-6">

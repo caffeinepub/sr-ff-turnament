@@ -17,10 +17,12 @@ import TournamentDetail from "./pages/TournamentDetail";
 import Tournaments from "./pages/Tournaments";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminHomeContent from "./pages/admin/AdminHomeContent";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminNotifications from "./pages/admin/AdminNotifications";
 import AdminPayments from "./pages/admin/AdminPayments";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminTheme from "./pages/admin/AdminTheme";
 import AdminTournaments from "./pages/admin/AdminTournaments";
 import AdminUsers from "./pages/admin/AdminUsers";
 
@@ -28,7 +30,6 @@ function isAdminAuthenticated() {
   return sessionStorage.getItem("adminAuth") === "true";
 }
 
-// Root
 const rootRoute = createRootRoute({
   component: () => (
     <>
@@ -38,7 +39,6 @@ const rootRoute = createRootRoute({
   ),
 });
 
-// User routes
 const userLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "user",
@@ -70,14 +70,12 @@ const earnRoute = createRoute({
   component: Earn,
 });
 
-// App Links page (no layout)
 const appLinksRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/links",
   component: AppLinks,
 });
 
-// Admin routes
 const adminLoginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/admin",
@@ -88,9 +86,7 @@ const adminLayoutRoute = createRoute({
   id: "adminLayout",
   component: AdminLayout,
   beforeLoad: () => {
-    if (!isAdminAuthenticated()) {
-      throw redirect({ to: "/admin" });
-    }
+    if (!isAdminAuthenticated()) throw redirect({ to: "/admin" });
   },
 });
 const adminDashboardRoute = createRoute({
@@ -112,6 +108,16 @@ const adminSettingsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
   path: "/admin/settings",
   component: AdminSettings,
+});
+const adminThemeRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/theme",
+  component: AdminTheme,
+});
+const adminHomeContentRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/home-content",
+  component: AdminHomeContent,
 });
 const adminNotificationsRoute = createRoute({
   getParentRoute: () => adminLayoutRoute,
@@ -144,6 +150,8 @@ const routeTree = rootRoute.addChildren([
     adminTournamentsRoute,
     adminBannersRoute,
     adminSettingsRoute,
+    adminThemeRoute,
+    adminHomeContentRoute,
     adminNotificationsRoute,
     adminUsersRoute,
     adminPaymentsRoute,

@@ -1,0 +1,264 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ExternalLink,
+  ImagePlus,
+  Megaphone,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const ANNOUNCEMENT_KEY = "srff_announcement";
+const PROMO_LINKS_KEY = "srff_promo_links";
+
+const DEFAULT_ANNOUNCEMENT =
+  "Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! Top players get exclusive rewards! BR Per Kill tournament starting soon!";
+
+export interface PromoLink {
+  id: string;
+  photoUrl: string;
+  link: string;
+  label: string;
+  active: boolean;
+}
+
+function loadAnnouncement(): string {
+  return localStorage.getItem(ANNOUNCEMENT_KEY) ?? DEFAULT_ANNOUNCEMENT;
+}
+
+function loadPromoLinks(): PromoLink[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(PROMO_LINKS_KEY) ?? "[]",
+    ) as PromoLink[];
+  } catch {
+    return [];
+  }
+}
+
+export default function AdminHomeContent() {
+  const [announcement, setAnnouncement] = useState(loadAnnouncement);
+  const [promoLinks, setPromoLinks] = useState<PromoLink[]>(loadPromoLinks);
+  const [newPhoto, setNewPhoto] = useState("");
+  const [newLink, setNewLink] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const saveAnnouncement = () => {
+    localStorage.setItem(ANNOUNCEMENT_KEY, announcement);
+    toast.success("Announcement saved!");
+  };
+
+  const addPromoLink = () => {
+    if (!newPhoto.trim() || !newLink.trim()) {
+      toast.error("Photo URL aur Link dono zaroori hain");
+      return;
+    }
+    const item: PromoLink = {
+      id: Date.now().toString(),
+      photoUrl: newPhoto.trim(),
+      link: newLink.trim(),
+      label: newLabel.trim() || "Promo",
+      active: true,
+    };
+    const updated = [...promoLinks, item];
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+    setNewPhoto("");
+    setNewLink("");
+    setNewLabel("");
+    toast.success("Promo photo added!");
+  };
+
+  const togglePromoLink = (id: string) => {
+    const updated = promoLinks.map((p) =>
+      p.id === id ? { ...p, active: !p.active } : p,
+    );
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+  };
+
+  const deletePromoLink = (id: string) => {
+    const updated = promoLinks.filter((p) => p.id !== id);
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+    toast.success("Promo photo removed");
+  };
+
+  return (
+    <div className="space-y-6" data-ocid="admin-homecontent.page">
+      <h1 className="font-display font-bold text-2xl">Home Content</h1>
+
+      {/* Announcement Ticker */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Megaphone className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Announcement Ticker
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Yah text user panel ke upar scrolling ticker mein dikhega.
+        </p>
+        <div>
+          <Label>Announcement Text</Label>
+          <Textarea
+            value={announcement}
+            onChange={(e) => setAnnouncement(e.target.value)}
+            rows={3}
+            className="mt-1"
+            placeholder="Welcome message, offers, updates..."
+            data-ocid="admin-homecontent.announcement.textarea"
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={saveAnnouncement}
+          className="gap-2 w-full"
+          data-ocid="admin-homecontent.announcement.save.button"
+        >
+          <Save className="w-4 h-4" /> Save Announcement
+        </Button>
+      </div>
+
+      {/* Promo Photo Links */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <ImagePlus className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Promo Photo Links
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Photo add karo aur uska link do. User jab photo click karega to us
+          link par chala jaega.
+        </p>
+
+        {/* Add new */}
+        <div className="space-y-3 border border-dashed border-border rounded-xl p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Naya Promo Add Karo
+          </p>
+          <div>
+            <Label>Photo URL</Label>
+            <Input
+              value={newPhoto}
+              onChange={(e) => setNewPhoto(e.target.value)}
+              placeholder="https://example.com/photo.jpg"
+              className="mt-1"
+              data-ocid="admin-homecontent.photurl.input"
+            />
+          </div>
+          <div>
+            <Label>Link (click karne par kahan jaega)</Label>
+            <Input
+              value={newLink}
+              onChange={(e) => setNewLink(e.target.value)}
+              placeholder="https://example.com ya /tournaments"
+              className="mt-1"
+              data-ocid="admin-homecontent.link.input"
+            />
+          </div>
+          <div>
+            <Label>Label (optional)</Label>
+            <Input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Promo name"
+              className="mt-1"
+              data-ocid="admin-homecontent.label.input"
+            />
+          </div>
+          {newPhoto && (
+            <div className="rounded-xl overflow-hidden border border-border">
+              <img
+                src={newPhoto}
+                alt="Preview"
+                className="w-full h-32 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          )}
+          <Button
+            type="button"
+            onClick={addPromoLink}
+            className="w-full gap-2"
+            data-ocid="admin-homecontent.add.button"
+          >
+            <Plus className="w-4 h-4" /> Add Promo Photo
+          </Button>
+        </div>
+
+        {/* List */}
+        {promoLinks.length === 0 ? (
+          <div
+            className="text-center py-6 text-muted-foreground"
+            data-ocid="admin-homecontent.promolinks.empty_state"
+          >
+            <ImagePlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Koi promo photo nahi hai</p>
+          </div>
+        ) : (
+          <div
+            className="space-y-3"
+            data-ocid="admin-homecontent.promolinks.list"
+          >
+            {promoLinks.map((item, i) => (
+              <div
+                key={item.id}
+                className="flex gap-3 bg-background border border-border rounded-xl p-3"
+                data-ocid={`admin-homecontent.promolink.item.${i + 1}`}
+              >
+                <img
+                  src={item.photoUrl}
+                  alt={item.label}
+                  className="w-16 h-16 rounded-lg object-cover shrink-0 border border-border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.opacity = "0.3";
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{item.label}</p>
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary flex items-center gap-1 truncate mt-0.5"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{item.link}</span>
+                  </a>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Switch
+                      checked={item.active}
+                      onCheckedChange={() => togglePromoLink(item.id)}
+                      data-ocid={`admin-homecontent.promolink.switch.${i + 1}`}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {item.active ? "ON" : "OFF"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deletePromoLink(item.id)}
+                  className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors shrink-0"
+                  data-ocid={`admin-homecontent.promolink.delete.button.${i + 1}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
