@@ -1,0 +1,163 @@
+import { Toaster } from "@/components/ui/sonner";
+import {
+  Outlet,
+  RouterProvider,
+  createRootRoute,
+  createRoute,
+  createRouter,
+  redirect,
+} from "@tanstack/react-router";
+import AdminLayout from "./components/AdminLayout";
+import Layout from "./components/Layout";
+import AppLinks from "./pages/AppLinks";
+import Earn from "./pages/Earn";
+import Home from "./pages/Home";
+import Profile from "./pages/Profile";
+import TournamentDetail from "./pages/TournamentDetail";
+import Tournaments from "./pages/Tournaments";
+import AdminBanners from "./pages/admin/AdminBanners";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminPayments from "./pages/admin/AdminPayments";
+import AdminSettings from "./pages/admin/AdminSettings";
+import AdminTournaments from "./pages/admin/AdminTournaments";
+import AdminUsers from "./pages/admin/AdminUsers";
+
+function isAdminAuthenticated() {
+  return sessionStorage.getItem("adminAuth") === "true";
+}
+
+// Root
+const rootRoute = createRootRoute({
+  component: () => (
+    <>
+      <Outlet />
+      <Toaster />
+    </>
+  ),
+});
+
+// User routes
+const userLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "user",
+  component: Layout,
+});
+const homeRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/",
+  component: Home,
+});
+const tournamentsRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/tournaments",
+  component: Tournaments,
+});
+const tournamentDetailRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/tournament/$id",
+  component: TournamentDetail,
+});
+const profileRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/profile",
+  component: Profile,
+});
+const earnRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/earn",
+  component: Earn,
+});
+
+// App Links page (no layout)
+const appLinksRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/links",
+  component: AppLinks,
+});
+
+// Admin routes
+const adminLoginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/admin",
+  component: AdminLogin,
+});
+const adminLayoutRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  id: "adminLayout",
+  component: AdminLayout,
+  beforeLoad: () => {
+    if (!isAdminAuthenticated()) {
+      throw redirect({ to: "/admin" });
+    }
+  },
+});
+const adminDashboardRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/dashboard",
+  component: AdminDashboard,
+});
+const adminTournamentsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/tournaments",
+  component: AdminTournaments,
+});
+const adminBannersRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/banners",
+  component: AdminBanners,
+});
+const adminSettingsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/settings",
+  component: AdminSettings,
+});
+const adminNotificationsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/notifications",
+  component: AdminNotifications,
+});
+const adminUsersRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/users",
+  component: AdminUsers,
+});
+const adminPaymentsRoute = createRoute({
+  getParentRoute: () => adminLayoutRoute,
+  path: "/admin/payments",
+  component: AdminPayments,
+});
+
+const routeTree = rootRoute.addChildren([
+  userLayoutRoute.addChildren([
+    homeRoute,
+    tournamentsRoute,
+    tournamentDetailRoute,
+    profileRoute,
+    earnRoute,
+  ]),
+  appLinksRoute,
+  adminLoginRoute,
+  adminLayoutRoute.addChildren([
+    adminDashboardRoute,
+    adminTournamentsRoute,
+    adminBannersRoute,
+    adminSettingsRoute,
+    adminNotificationsRoute,
+    adminUsersRoute,
+    adminPaymentsRoute,
+  ]),
+]);
+
+const router = createRouter({ routeTree });
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+export default function App() {
+  return <RouterProvider router={router} />;
+}
