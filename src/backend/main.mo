@@ -34,6 +34,21 @@ actor {
     playerCount : Nat;
   };
 
+  // TournamentView includes minPlayers (stored separately for backwards compat)
+  public type TournamentView = {
+    id : Nat;
+    title : Text;
+    gameMode : Text;
+    startTime : Int;
+    entryFee : Nat;
+    prizePool : Nat;
+    maxPlayers : Nat;
+    minPlayers : Nat;
+    status : TournamentStatus;
+    description : Text;
+    playerCount : Nat;
+  };
+
   module Tournament {
     public func compare(t1 : Tournament, t2 : Tournament) : Order.Order {
       Nat.compare(t1.id, t2.id);
@@ -67,6 +82,12 @@ actor {
     position : Nat;
     prize : Nat;
     playerId : Principal;
+  };
+
+  public type LeaderboardEntry = {
+    position : Nat;
+    playerName : Text;
+    prize : Nat;
   };
 
   public type TransactionType = { #deposit; #withdrawal };
@@ -127,6 +148,13 @@ actor {
   let tournamentPlayers = Map.empty<Nat, List.List<Principal>>();
   type TournamentResults = List.List<TournamentResult>;
   let tournamentResults = Map.empty<Nat, TournamentResults>();
+
+  // Tournament min players (separate map for backwards compat)
+  let tournamentMinPlayers = Map.empty<Nat, Nat>();
+
+  // Tournament Leaderboard (admin-managed winner entries)
+  type LeaderboardEntries = List.List<LeaderboardEntry>;
+  let tournamentLeaderboards = Map.empty<Nat, LeaderboardEntries>();
 
   // Notifications
   let notifications = Map.empty<Nat, Notification>();
@@ -204,7 +232,7 @@ actor {
 
   // ---------------------- Tournament APIs ---------------------------
 
-  public shared ({ caller }) func createTournament(title : Text, gameMode : Text, startTime : Int, entryFee : Nat, prizePool : Nat, maxPlayers : Nat, status : TournamentStatus, description : Text) : async Nat {
+  public shared ({ caller }) func createTournament(title : Text, gameMode : Text, startTime : Int, entryFee : Nat, prizePool : Nat, maxPlayers : Nat, minPlayers : Nat, status : TournamentStatus, description : Text) : async Nat {
     if (not isAdminInternal(caller)) {
       Runtime.trap("Unauthorized: Only admins can create tournaments");
     };
@@ -221,6 +249,7 @@ actor {
       playerCount = 0;
     };
     tournaments.add(tournament.id, tournament);
+    tournamentMinPlayers.add(tournament.id, minPlayers);
     tournamentPlayers.add(tournament.id, List.empty<Principal>());
     nextTournamentId += 1;
     tournament.id;
@@ -308,6 +337,27 @@ actor {
         };
       }
     );
+  };
+
+  // Admin sets leaderboard with player names and prizes
+  public shared ({ caller }) func setLeaderboard(tournamentId : Nat, entries : [(Nat, Text, Nat)]) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can set leaderboard");
+    };
+    let entriesList = List.empty<LeaderboardEntry>();
+    entries.forEach(
+      func((position, playerName, prize)) {
+        entriesList.add({ position; playerName; prize });
+      }
+    );
+    tournamentLeaderboards.add(tournamentId, entriesList);
+  };
+
+  public query ({ caller }) func getLeaderboard(tournamentId : Nat) : async [LeaderboardEntry] {
+    switch (tournamentLeaderboards.get(tournamentId)) {
+      case (null) { [] };
+      case (?entries) { entries.toArray() };
+    };
   };
 
   // ------------------- Wallet and Transaction APIs -----------------------
@@ -484,6 +534,26 @@ actor {
     settings;
   };
 
+
+  // ---------------------- Admin Wallet Management -----------------------
+
+  public shared ({ caller }) func adminAdjustWallet(userId : Principal, amount : Nat, isAdd : Bool) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can adjust wallet");
+    };
+    switch (users.get(userId)) {
+      case (null) { Runtime.trap("User not found") };
+      case (?profile) {
+        let newBalance = if (isAdd) {
+          profile.walletBalance + amount;
+        } else {
+          if (profile.walletBalance >= amount) { profile.walletBalance - amount } else { Runtime.trap("Insufficient balance") };
+        };
+        users.add(userId, { profile with walletBalance = newBalance });
+      };
+    };
+  };
+
   // ---------------------- Helper & State APIs ---------------------------
 
   func isAdminInternal(caller : Principal) : Bool {
@@ -494,8 +564,23 @@ actor {
     AccessControl.hasPermission(accessControlState, caller, role);
   };
 
-  public query ({ caller }) func getAllTournaments() : async [Tournament] {
-    tournaments.values().toArray().sort();
+  public query ({ caller }) func getAllTournaments() : async [TournamentView] {
+    let ts = tournaments.values().toArray().sort();
+    ts.map(func(t : Tournament) : TournamentView {
+      {
+        id = t.id;
+        title = t.title;
+        gameMode = t.gameMode;
+        startTime = t.startTime;
+        entryFee = t.entryFee;
+        prizePool = t.prizePool;
+        maxPlayers = t.maxPlayers;
+        minPlayers = switch (tournamentMinPlayers.get(t.id)) { case (null) { 0 }; case (?v) { v } };
+        status = t.status;
+        description = t.description;
+        playerCount = t.playerCount;
+      }
+    });
   };
 
   public query ({ caller }) func getTournamentParticipants(tournamentId : Nat) : async [Principal] {

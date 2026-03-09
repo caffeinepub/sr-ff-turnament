@@ -28,6 +28,11 @@ export interface Notification {
   'message' : string,
   'timestamp' : bigint,
 }
+export interface LeaderboardEntry {
+  'position' : bigint,
+  'playerName' : string,
+  'prize' : bigint,
+}
 export interface Tournament {
   'id' : bigint,
   'startTime' : bigint,
@@ -38,6 +43,7 @@ export interface Tournament {
   'gameMode' : string,
   'entryFee' : bigint,
   'maxPlayers' : bigint,
+  'minPlayers' : bigint,
   'prizePool' : bigint,
 }
 export interface TournamentResult {
@@ -67,7 +73,7 @@ export interface _SERVICE {
   'blockUser' : ActorMethod<[Principal], undefined>,
   'createNotification' : ActorMethod<[string, string, string], undefined>,
   'createTournament' : ActorMethod<
-    [string, string, bigint, bigint, bigint, bigint, TournamentStatus, string],
+    [string, string, bigint, bigint, bigint, bigint, bigint, TournamentStatus, string],
     bigint
   >,
   'createWalletTransaction' : ActorMethod<
@@ -91,6 +97,9 @@ export interface _SERVICE {
   >,
   'unblockUser' : ActorMethod<[Principal], undefined>,
   'updateSettings' : ActorMethod<[AppSettings], undefined>,
+  'getLeaderboard' : ActorMethod<[bigint], Array<LeaderboardEntry>>,
+  'setLeaderboard' : ActorMethod<[bigint, Array<[bigint, string, bigint]>], undefined>,
+  'adminAdjustWallet' : ActorMethod<[Principal, bigint, boolean], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

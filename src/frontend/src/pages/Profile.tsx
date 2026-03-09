@@ -1,35 +1,157 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Check,
+  CheckCircle,
+  Clock,
   Copy,
   Edit2,
   Loader2,
   LogIn,
   LogOut,
+  MessageCircle,
   Save,
   User,
+  XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useCallerProfile, useSaveProfile } from "../hooks/useQueries";
+import type { PaymentRequest } from "../hooks/useQueries";
+import {
+  useCallerProfile,
+  useMyPaymentRequests,
+  useSaveProfile,
+  useSettings,
+  useSubmitPaymentRequest,
+} from "../hooks/useQueries";
+
+const WHATSAPP_NUMBER = "919104414372";
+const WHATSAPP_DISPLAY = "9104414372";
+const MIN_DEPOSIT_KEY = "srff_min_deposit";
+
+function getMinDeposit(): number {
+  try {
+    return Number(localStorage.getItem(MIN_DEPOSIT_KEY)) || 50;
+  } catch {
+    return 50;
+  }
+}
+
+function getWhatsAppUrl(amount?: string) {
+  const text = amount
+    ? `Deposit%20Request%20-%20Amount%3A%20%E2%82%B9${amount}`
+    : "Support%20ke%20liye%20contact%20kar%20raha%20hoon";
+  return `https://wa.me/${WHATSAPP_NUMBER}?text=${text}`;
+}
+
+function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
+  if ("pending" in status) {
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1 text-xs">
+        <Clock className="w-3 h-3" /> Pending
+      </Badge>
+    );
+  }
+  if ("accepted" in status) {
+    return (
+      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1 text-xs">
+        <CheckCircle className="w-3 h-3" /> Accepted
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 gap-1 text-xs">
+      <XCircle className="w-3 h-3" /> Rejected
+    </Badge>
+  );
+}
 
 const AVATARS = [
-  { id: 1, emoji: "🔥", bg: "from-orange-500 to-red-600", label: "Fire" },
-  { id: 2, emoji: "⚡", bg: "from-yellow-400 to-orange-500", label: "Thunder" },
-  { id: 3, emoji: "🏆", bg: "from-yellow-500 to-amber-600", label: "Champion" },
-  { id: 4, emoji: "🎯", bg: "from-green-500 to-emerald-600", label: "Sniper" },
-  { id: 5, emoji: "⚔️", bg: "from-blue-500 to-indigo-600", label: "Warrior" },
-  { id: 6, emoji: "🛡️", bg: "from-slate-500 to-slate-700", label: "Shield" },
-  { id: 7, emoji: "💀", bg: "from-purple-600 to-violet-700", label: "Skull" },
-  { id: 8, emoji: "🦁", bg: "from-amber-500 to-yellow-600", label: "Lion" },
-  { id: 9, emoji: "🐉", bg: "from-red-600 to-rose-700", label: "Dragon" },
-  { id: 10, emoji: "🌟", bg: "from-cyan-400 to-blue-500", label: "Star" },
-  { id: 11, emoji: "🎮", bg: "from-pink-500 to-rose-600", label: "Gamer" },
-  { id: 12, emoji: "👑", bg: "from-yellow-400 to-yellow-600", label: "King" },
+  {
+    id: 1,
+    emoji: "\uD83D\uDD25",
+    bg: "from-orange-500 to-red-600",
+    label: "Fire",
+  },
+  {
+    id: 2,
+    emoji: "\u26A1",
+    bg: "from-yellow-400 to-orange-500",
+    label: "Thunder",
+  },
+  {
+    id: 3,
+    emoji: "\uD83C\uDFC6",
+    bg: "from-yellow-500 to-amber-600",
+    label: "Champion",
+  },
+  {
+    id: 4,
+    emoji: "\uD83C\uDFAF",
+    bg: "from-green-500 to-emerald-600",
+    label: "Sniper",
+  },
+  {
+    id: 5,
+    emoji: "\u2694\uFE0F",
+    bg: "from-blue-500 to-indigo-600",
+    label: "Warrior",
+  },
+  {
+    id: 6,
+    emoji: "\uD83D\uDEE1\uFE0F",
+    bg: "from-slate-500 to-slate-700",
+    label: "Shield",
+  },
+  {
+    id: 7,
+    emoji: "\uD83D\uDC80",
+    bg: "from-purple-600 to-violet-700",
+    label: "Skull",
+  },
+  {
+    id: 8,
+    emoji: "\uD83E\uDD81",
+    bg: "from-amber-500 to-yellow-600",
+    label: "Lion",
+  },
+  {
+    id: 9,
+    emoji: "\uD83D\uDC09",
+    bg: "from-red-600 to-rose-700",
+    label: "Dragon",
+  },
+  {
+    id: 10,
+    emoji: "\uD83C\uDF1F",
+    bg: "from-cyan-400 to-blue-500",
+    label: "Star",
+  },
+  {
+    id: 11,
+    emoji: "\uD83C\uDFAE",
+    bg: "from-pink-500 to-rose-600",
+    label: "Gamer",
+  },
+  {
+    id: 12,
+    emoji: "\uD83D\uDC51",
+    bg: "from-yellow-400 to-yellow-600",
+    label: "King",
+  },
 ];
 
 const AVATAR_KEY = "srff_avatar";
@@ -45,7 +167,11 @@ function getSavedAvatar(): number {
 export default function Profile() {
   const { identity, login, clear, isLoggingIn } = useInternetIdentity();
   const { data: profile } = useCallerProfile();
+  const { data: settings } = useSettings();
+  const { data: myRequests } = useMyPaymentRequests();
   const saveMutation = useSaveProfile();
+  const submitPayment = useSubmitPaymentRequest();
+
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
   const [ffUid, setFfUid] = useState("");
@@ -54,7 +180,16 @@ export default function Profile() {
     useState<number>(getSavedAvatar);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositNote, setDepositNote] = useState("");
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositDone, setDepositDone] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawUpi, setWithdrawUpi] = useState("");
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+
   const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
+  const minDeposit = getMinDeposit();
 
   const startEdit = () => {
     setUsername(profile?.username ?? "");
@@ -85,6 +220,71 @@ export default function Profile() {
       navigator.clipboard.writeText(profile.referralCode);
       toast.success("Referral code copied!");
     }
+  };
+
+  const handleDepositSubmit = () => {
+    const amt = Number(depositAmount);
+    if (!amt || amt < minDeposit) {
+      toast.error(`Minimum deposit \u20b9${minDeposit} hai`);
+      return;
+    }
+    if (!depositNote.trim()) {
+      toast.error("UTR / Transaction ID daalo");
+      return;
+    }
+    submitPayment.mutate(
+      {
+        amount: BigInt(amt),
+        requestType: { deposit: null },
+        note: depositNote.trim(),
+        upiId: "",
+      },
+      {
+        onSuccess: () => {
+          setDepositDone(true);
+          toast.success("Deposit request submit ho gaya!");
+        },
+        onError: () =>
+          toast.error("Request submit nahi ho saka, dobara try karo"),
+      },
+    );
+  };
+
+  const handleWithdrawSubmit = () => {
+    const amt = Number(withdrawAmount);
+    const min = settings ? Number(settings.minWithdraw) : 100;
+    if (!amt || amt < min) {
+      toast.error(`Minimum withdrawal \u20b9${min} hai`);
+      return;
+    }
+    if (!withdrawUpi.trim()) {
+      toast.error("Apna UPI ID daalo");
+      return;
+    }
+    submitPayment.mutate(
+      {
+        amount: BigInt(amt),
+        requestType: { withdraw: null },
+        note: "",
+        upiId: withdrawUpi.trim(),
+      },
+      {
+        onSuccess: () => {
+          toast.success("Withdrawal request submit ho gaya!");
+          setWithdrawOpen(false);
+          setWithdrawAmount("");
+          setWithdrawUpi("");
+        },
+        onError: () =>
+          toast.error("Request submit nahi ho saka, dobara try karo"),
+      },
+    );
+  };
+
+  const resetDeposit = () => {
+    setDepositAmount("");
+    setDepositNote("");
+    setDepositDone(false);
   };
 
   if (!identity) {
@@ -196,7 +396,6 @@ export default function Profile() {
                 Cancel
               </button>
             </div>
-
             <div className="grid grid-cols-4 gap-3">
               {AVATARS.map((av) => (
                 <button
@@ -226,7 +425,6 @@ export default function Profile() {
                 </button>
               ))}
             </div>
-
             <Button
               className="w-full"
               onClick={handleSetAvatar}
@@ -235,6 +433,243 @@ export default function Profile() {
             >
               Set Avatar
             </Button>
+          </div>
+        )}
+
+        {/* Wallet + Deposit/Withdraw */}
+        <div className="bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 rounded-2xl p-5 glow-orange">
+          <p className="text-sm text-primary/80 font-medium">Wallet Balance</p>
+          <div className="flex items-end gap-2 mt-1 mb-4">
+            <span className="font-display font-bold text-4xl text-foreground">
+              \u20b9{profile ? Number(profile.walletBalance) : 0}
+            </span>
+          </div>
+          <div className="flex gap-3">
+            {/* Deposit Dialog */}
+            <Dialog
+              open={depositOpen}
+              onOpenChange={(open) => {
+                setDepositOpen(open);
+                if (!open) resetDeposit();
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  className="flex-1 gap-2"
+                  data-ocid="profile.deposit.button"
+                >
+                  <ArrowDownToLine className="w-4 h-4" /> Deposit
+                </Button>
+              </DialogTrigger>
+              <DialogContent data-ocid="profile.deposit.dialog">
+                <DialogHeader>
+                  <DialogTitle>Deposit Funds</DialogTitle>
+                </DialogHeader>
+                {depositDone ? (
+                  <div
+                    className="flex flex-col items-center gap-4 py-6 text-center"
+                    data-ocid="profile.deposit.success_state"
+                  >
+                    <CheckCircle className="w-12 h-12 text-green-400" />
+                    <div>
+                      <p className="font-bold text-foreground">
+                        Request Submit Ho Gaya!
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Admin review karega aur aapka balance update karega.
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setDepositOpen(false)}
+                      data-ocid="profile.deposit.close_button"
+                    >
+                      Theek Hai
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 py-2">
+                    <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
+                      <p className="text-xs text-primary font-semibold">
+                        Minimum Deposit: \u20b9{minDeposit}
+                      </p>
+                    </div>
+                    <div>
+                      <Label>
+                        Amount (\u20b9) \u2014 Min: \u20b9{minDeposit}
+                      </Label>
+                      <Input
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        placeholder={`Minimum \u20b9${minDeposit}`}
+                        type="number"
+                        className="mt-1"
+                        data-ocid="profile.deposit.input"
+                      />
+                    </div>
+                    {depositAmount && Number(depositAmount) >= minDeposit && (
+                      <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <MessageCircle className="w-5 h-5 text-green-400" />
+                          <p className="font-semibold text-green-400 text-sm">
+                            Step 1: WhatsApp per Payment Karo
+                          </p>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Pehle{" "}
+                          <span className="text-foreground font-bold">
+                            \u20b9{depositAmount}
+                          </span>{" "}
+                          neeche diye WhatsApp number pe bhejo:
+                        </p>
+                        <div className="bg-background/60 rounded-lg px-3 py-2">
+                          <p className="text-xs text-muted-foreground">
+                            WhatsApp Number
+                          </p>
+                          <p className="font-mono font-bold text-green-400 text-lg">
+                            {WHATSAPP_DISPLAY}
+                          </p>
+                        </div>
+                        <a
+                          href={getWhatsAppUrl(depositAmount)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button
+                            type="button"
+                            className="w-full bg-green-600 hover:bg-green-700 text-white gap-2"
+                            data-ocid="profile.deposit.whatsapp.button"
+                          >
+                            <MessageCircle className="w-4 h-4" /> WhatsApp per
+                            Message Karo
+                          </Button>
+                        </a>
+                      </div>
+                    )}
+                    <div>
+                      <Label>Step 2: UTR / Transaction ID</Label>
+                      <Input
+                        value={depositNote}
+                        onChange={(e) => setDepositNote(e.target.value)}
+                        placeholder="Payment ka UTR ya Transaction ID"
+                        className="mt-1"
+                        data-ocid="profile.deposit.utr.input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Payment bhejne ke baad transaction ID yahan daalo
+                      </p>
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleDepositSubmit}
+                      disabled={submitPayment.isPending}
+                      data-ocid="profile.deposit.submit_button"
+                    >
+                      {submitPayment.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      Deposit Request Submit Karo
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+
+            {/* Withdraw Dialog */}
+            <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="flex-1 gap-2 border-border"
+                  data-ocid="profile.withdraw.button"
+                >
+                  <ArrowUpFromLine className="w-4 h-4" /> Withdraw
+                </Button>
+              </DialogTrigger>
+              <DialogContent data-ocid="profile.withdraw.dialog">
+                <DialogHeader>
+                  <DialogTitle>Withdraw Funds</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div>
+                    <Label>
+                      Amount (\u20b9) \u2014 Min: \u20b9
+                      {settings ? Number(settings.minWithdraw) : 100}
+                    </Label>
+                    <Input
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="Kitna withdraw karna hai?"
+                      type="number"
+                      className="mt-1"
+                      data-ocid="profile.withdraw.input"
+                    />
+                  </div>
+                  <div>
+                    <Label>Aapka UPI ID</Label>
+                    <Input
+                      value={withdrawUpi}
+                      onChange={(e) => setWithdrawUpi(e.target.value)}
+                      placeholder="yourname@upi"
+                      className="mt-1"
+                      data-ocid="profile.withdraw.upi.input"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Admin is UPI ID pe payment karega
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={handleWithdrawSubmit}
+                    disabled={submitPayment.isPending}
+                    data-ocid="profile.withdraw.submit_button"
+                  >
+                    {submitPayment.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
+                    Withdrawal Request Bhejo
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* My Payment Requests */}
+        {myRequests && myRequests.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-4">
+            <h3 className="font-display font-semibold text-sm mb-3">
+              Meri Requests
+            </h3>
+            <div className="space-y-2">
+              {myRequests.slice(0, 5).map((req, i) => (
+                <div
+                  key={req.id.toString()}
+                  className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0"
+                  data-ocid={`profile.requests.item.${i + 1}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {"deposit" in req.requestType ? (
+                      <ArrowDownToLine className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <ArrowUpFromLine className="w-3 h-3 text-red-400" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">
+                        {"deposit" in req.requestType ? "Deposit" : "Withdraw"}{" "}
+                        \u20b9{Number(req.amount)}
+                      </p>
+                      {req.note && (
+                        <p className="text-xs text-muted-foreground">
+                          UTR: {req.note}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <StatusBadge status={req.status} />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

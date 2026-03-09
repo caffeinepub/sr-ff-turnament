@@ -12,7 +12,10 @@ export const APP_THEMES: AppTheme[] = [
     preview: [
       "oklch(0.7 0.22 35)",
       "oklch(0.75 0.18 75)",
+      "oklch(0.85 0.2 65)",
+      "oklch(0.55 0.25 15)",
       "oklch(0.72 0.18 200)",
+      "oklch(0.65 0.2 40)",
     ],
     vars: {
       "--background": "0.1 0.025 15",
@@ -29,6 +32,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 20",
       "--accent": "0.72 0.18 200",
       "--accent-foreground": "0.1 0.01 15",
+      "--accent2": "0.85 0.2 65",
+      "--accent3": "0.55 0.25 15",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.22 0.04 20",
@@ -53,6 +58,9 @@ export const APP_THEMES: AppTheme[] = [
       "oklch(0.6 0.22 240)",
       "oklch(0.55 0.2 260)",
       "oklch(0.72 0.18 200)",
+      "oklch(0.5 0.2 220)",
+      "oklch(0.75 0.15 185)",
+      "oklch(0.65 0.18 270)",
     ],
     vars: {
       "--background": "0.08 0.025 240",
@@ -69,6 +77,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 220",
       "--accent": "0.72 0.18 200",
       "--accent-foreground": "0.1 0.01 240",
+      "--accent2": "0.75 0.15 185",
+      "--accent3": "0.5 0.2 220",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.22 0.04 240",
@@ -93,6 +103,9 @@ export const APP_THEMES: AppTheme[] = [
       "oklch(0.65 0.25 295)",
       "oklch(0.6 0.22 315)",
       "oklch(0.7 0.2 270)",
+      "oklch(0.75 0.2 330)",
+      "oklch(0.55 0.28 305)",
+      "oklch(0.68 0.18 280)",
     ],
     vars: {
       "--background": "0.08 0.025 295",
@@ -109,6 +122,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 280",
       "--accent": "0.7 0.2 270",
       "--accent-foreground": "0.1 0.01 295",
+      "--accent2": "0.75 0.2 330",
+      "--accent3": "0.55 0.28 305",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.22 0.04 295",
@@ -133,6 +148,9 @@ export const APP_THEMES: AppTheme[] = [
       "oklch(0.65 0.22 145)",
       "oklch(0.6 0.2 165)",
       "oklch(0.7 0.18 120)",
+      "oklch(0.75 0.2 155)",
+      "oklch(0.55 0.24 135)",
+      "oklch(0.68 0.16 100)",
     ],
     vars: {
       "--background": "0.08 0.025 145",
@@ -149,6 +167,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 130",
       "--accent": "0.7 0.18 120",
       "--accent-foreground": "0.1 0.01 145",
+      "--accent2": "0.75 0.2 155",
+      "--accent3": "0.68 0.16 100",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.22 0.04 145",
@@ -173,6 +193,9 @@ export const APP_THEMES: AppTheme[] = [
       "oklch(0.6 0.25 20)",
       "oklch(0.55 0.22 10)",
       "oklch(0.65 0.2 35)",
+      "oklch(0.45 0.28 15)",
+      "oklch(0.7 0.18 45)",
+      "oklch(0.58 0.24 5)",
     ],
     vars: {
       "--background": "0.08 0.025 20",
@@ -189,6 +212,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 20",
       "--accent": "0.65 0.2 35",
       "--accent-foreground": "0.1 0.01 20",
+      "--accent2": "0.7 0.18 45",
+      "--accent3": "0.45 0.28 15",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.22 0.05 20",
@@ -213,6 +238,9 @@ export const APP_THEMES: AppTheme[] = [
       "oklch(0.78 0.2 80)",
       "oklch(0.82 0.18 75)",
       "oklch(0.7 0.22 55)",
+      "oklch(0.88 0.16 90)",
+      "oklch(0.65 0.24 50)",
+      "oklch(0.75 0.2 100)",
     ],
     vars: {
       "--background": "0.08 0.02 60",
@@ -229,6 +257,8 @@ export const APP_THEMES: AppTheme[] = [
       "--muted-foreground": "0.55 0.04 70",
       "--accent": "0.7 0.22 55",
       "--accent-foreground": "0.1 0.01 60",
+      "--accent2": "0.88 0.16 90",
+      "--accent3": "0.65 0.24 50",
       "--destructive": "0.55 0.22 20",
       "--destructive-foreground": "0.97 0.005 100",
       "--border": "0.24 0.04 70",
@@ -249,6 +279,7 @@ export const APP_THEMES: AppTheme[] = [
 ];
 
 export const THEME_STORAGE_KEY = "srff_app_theme";
+export const FONT_COLOR_KEY = "srff_font_color";
 
 export function applyTheme(themeId: string) {
   const theme = APP_THEMES.find((t) => t.id === themeId) ?? APP_THEMES[0];

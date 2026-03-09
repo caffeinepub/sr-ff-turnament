@@ -30,6 +30,11 @@ export interface TournamentResult {
     prize: bigint;
     position: bigint;
 }
+export interface LeaderboardEntry {
+    position: bigint;
+    playerName: string;
+    prize: bigint;
+}
 export interface Tournament {
     id: bigint;
     startTime: bigint;
@@ -40,6 +45,7 @@ export interface Tournament {
     gameMode: string;
     entryFee: bigint;
     maxPlayers: bigint;
+    minPlayers: bigint;
     prizePool: bigint;
 }
 export interface UserProfile {
@@ -68,7 +74,7 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     blockUser(userId: Principal): Promise<void>;
     createNotification(title: string, message: string, imageUrl: string): Promise<void>;
-    createTournament(title: string, gameMode: string, startTime: bigint, entryFee: bigint, prizePool: bigint, maxPlayers: bigint, status: TournamentStatus, description: string): Promise<bigint>;
+    createTournament(title: string, gameMode: string, startTime: bigint, entryFee: bigint, prizePool: bigint, maxPlayers: bigint, minPlayers: bigint, status: TournamentStatus, description: string): Promise<bigint>;
     createWalletTransaction(userId: Principal, amount: bigint, transactionType: TransactionType): Promise<bigint>;
     getAllNotifications(): Promise<Array<Notification>>;
     getAllTournaments(): Promise<Array<Tournament>>;
@@ -77,6 +83,8 @@ export interface backendInterface {
     getSettings(): Promise<AppSettings | null>;
     getTournamentParticipants(tournamentId: bigint): Promise<Array<Principal>>;
     getTournamentResults(tournamentId: bigint): Promise<Array<TournamentResult>>;
+    getLeaderboard(tournamentId: bigint): Promise<Array<LeaderboardEntry>>;
+    setLeaderboard(tournamentId: bigint, entries: Array<[bigint, string, bigint]>): Promise<void>;
     getUserProfile(userPrincipal: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
     joinTournament(tournamentId: bigint): Promise<void>;
@@ -84,4 +92,8 @@ export interface backendInterface {
     setTournamentResults(tournamentId: bigint, positions: Array<[bigint, bigint, Principal]>): Promise<void>;
     unblockUser(userId: Principal): Promise<void>;
     updateSettings(newSettings: AppSettings): Promise<void>;
+    getLeaderboard(tournamentId: bigint): Promise<Array<LeaderboardEntry>>;
+    setLeaderboard(tournamentId: bigint, entries: Array<[bigint, string, bigint]>): Promise<void>;
+    adminAdjustWallet(userId: Principal, amount: bigint, isAdd: boolean): Promise<void>;
+    getAllUsers(): Promise<Array<UserProfile>>;
 }

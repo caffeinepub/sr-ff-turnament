@@ -12,9 +12,10 @@ import {
   Swords,
   Target,
   Trophy,
+  X,
   Zap,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAllTournaments, useCallerProfile } from "../hooks/useQueries";
 import type { PromoBanner } from "./admin/AdminBanners";
@@ -62,12 +63,286 @@ function loadPromoBanners(): PromoBanner[] {
   }
 }
 
+// Each line has text + color gradient for the typing box
+const WELCOME_LINES: { text: string; gradient: string }[] = [
+  {
+    text: "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
+    gradient: "linear-gradient(90deg, #f97316, #fbbf24)",
+  },
+  {
+    text: "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
+    gradient: "linear-gradient(90deg, #f43f5e, #fb923c)",
+  },
+  {
+    text: "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
+    gradient: "linear-gradient(90deg, #22d3ee, #6366f1)",
+  },
+  {
+    text: "🏆 Roz naye tournaments join karo... 🏆",
+    gradient: "linear-gradient(90deg, #a3e635, #16a34a)",
+  },
+  {
+    text: "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
+    gradient: "linear-gradient(90deg, #facc15, #f97316)",
+  },
+  {
+    text: "🤝 Apni team banao. Apna naam banao. 👑",
+    gradient: "linear-gradient(90deg, #c084fc, #818cf8)",
+  },
+  {
+    text: "💥 The Battle Begins NOW! 🚀",
+    gradient: "linear-gradient(90deg, #f43f5e, #a855f7, #3b82f6)",
+  },
+];
+
+function WelcomeModal({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [charIdx, setCharIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (done) return;
+    const currentLine = WELCOME_LINES[lineIdx].text;
+    if (charIdx < currentLine.length) {
+      timerRef.current = setTimeout(() => {
+        setDisplayed((prev) => prev + currentLine[charIdx]);
+        setCharIdx((c) => c + 1);
+      }, 38);
+    } else {
+      timerRef.current = setTimeout(() => {
+        if (lineIdx < WELCOME_LINES.length - 1) {
+          setLineIdx((l) => l + 1);
+          setDisplayed("");
+          setCharIdx(0);
+        } else {
+          setDone(true);
+        }
+      }, 900);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [charIdx, lineIdx, done]);
+
+  const currentGradient = WELCOME_LINES[lineIdx].gradient;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
+      data-ocid="welcome.modal"
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl p-6 text-center overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, #0f0a1a 0%, #14091f 50%, #0a1020 100%)",
+          border: "1.5px solid rgba(249,115,22,0.5)",
+          boxShadow:
+            "0 0 60px rgba(249,115,22,0.25), 0 0 120px rgba(139,92,246,0.15), inset 0 0 60px rgba(0,0,0,0.5)",
+        }}
+      >
+        {/* Animated glow orbs */}
+        <div
+          className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(249,115,22,0.12)" }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(139,92,246,0.12)", animationDelay: "1s" }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+          style={{ background: "rgba(34,211,238,0.04)" }}
+        />
+
+        {/* Logo with fire ring */}
+        <div className="flex items-center justify-center mb-3 relative">
+          <div
+            className="absolute w-28 h-28 rounded-full animate-spin"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #f97316, #fbbf24, #a855f7, #3b82f6, #f97316)",
+              padding: "2px",
+              animationDuration: "4s",
+            }}
+          />
+          <div
+            className="relative w-24 h-24 rounded-full overflow-hidden"
+            style={{
+              border: "3px solid #0f0a1a",
+              boxShadow: "0 0 30px rgba(249,115,22,0.7)",
+            }}
+          >
+            <img
+              src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+              alt="SR-FF Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        {/* Subtitle badge */}
+        <div className="flex items-center justify-center mb-1">
+          <span
+            className="text-[10px] font-black uppercase tracking-[0.25em] px-3 py-0.5 rounded-full"
+            style={{
+              background: "rgba(249,115,22,0.15)",
+              border: "1px solid rgba(249,115,22,0.4)",
+              color: "#fbbf24",
+            }}
+          >
+            🎉 New Player Registered
+          </span>
+        </div>
+
+        {/* Username greeting */}
+        <h2
+          className="font-display font-black text-2xl mb-4 mt-1"
+          style={{
+            background:
+              "linear-gradient(90deg, #f97316, #fbbf24, #a855f7, #3b82f6)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "none",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {username ? `Welcome, ${username}! 👋` : "Welcome, Player! 👋"}
+        </h2>
+
+        {/* Typing box with dynamic gradient text */}
+        <div
+          className="rounded-2xl px-4 py-4 mb-5 min-h-[80px] flex items-center justify-center relative overflow-hidden"
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "inset 0 0 30px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* Subtle glow behind text that matches line color */}
+          <div
+            className="absolute inset-0 opacity-10 transition-all duration-500"
+            style={{ background: currentGradient }}
+          />
+          <p
+            className="text-base font-bold leading-relaxed relative z-10 transition-all duration-300"
+            style={{
+              background: currentGradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+            }}
+          >
+            {displayed}
+            <span
+              className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse rounded-full"
+              style={{
+                background: "#f97316",
+                display: done ? "none" : "inline-block",
+              }}
+            />
+          </p>
+        </div>
+
+        {/* Colorful line dots */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {WELCOME_LINES.map((line, i) => (
+            <div
+              key={line.text}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === lineIdx ? "20px" : "7px",
+                height: "7px",
+                background:
+                  i < lineIdx
+                    ? "#22c55e"
+                    : i === lineIdx
+                      ? "#f97316"
+                      : "rgba(255,255,255,0.15)",
+                boxShadow:
+                  i === lineIdx
+                    ? "0 0 8px rgba(249,115,22,0.8)"
+                    : i < lineIdx
+                      ? "0 0 6px rgba(34,197,94,0.5)"
+                      : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(90deg, #f97316, #fbbf24, #f97316)",
+              backgroundSize: "200% 100%",
+              color: "#0a0a0a",
+              boxShadow:
+                "0 0 25px rgba(249,115,22,0.5), 0 4px 15px rgba(0,0,0,0.3)",
+              letterSpacing: "0.05em",
+            }}
+            data-ocid="welcome.start.button"
+          >
+            🚀 Chalte Hain!
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+            data-ocid="welcome.close.button"
+          >
+            <X className="w-4 h-4" style={{ color: "rgba(255,255,255,0.4)" }} />
+          </button>
+        </div>
+
+        {/* Bottom tagline */}
+        <p
+          className="text-[10px] mt-3 font-semibold uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.25)" }}
+        >
+          SR-FF-TOURNAMENT • Play. Win. Dominate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [contestTab, setContestTab] = useState("ongoing");
   const { data: tournaments = [] } = useAllTournaments();
   const { identity, login } = useInternetIdentity();
   const { data: profile } = useCallerProfile();
   const [bannerIdx, setBannerIdx] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeUsername, setWelcomeUsername] = useState("");
+
+  useEffect(() => {
+    const flag = localStorage.getItem("srff_new_user_welcome");
+    if (flag) {
+      const data = JSON.parse(flag);
+      setWelcomeUsername(data.username || "");
+      setShowWelcome(true);
+      localStorage.removeItem("srff_new_user_welcome");
+    }
+  }, []);
+
+  const handleCloseWelcome = () => setShowWelcome(false);
 
   const announcement = loadAnnouncement();
   const promoLinks = loadPromoLinks();
@@ -82,6 +357,10 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background">
+      {showWelcome && (
+        <WelcomeModal username={welcomeUsername} onClose={handleCloseWelcome} />
+      )}
+
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-2">
@@ -127,10 +406,17 @@ export default function Home() {
 
       <div className="max-w-lg mx-auto px-4 space-y-5 py-4">
         {/* Announcement ticker */}
-        <div className="flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2 overflow-hidden">
-          <Megaphone className="w-4 h-4 text-primary shrink-0" />
+        <div
+          className="flex items-center gap-2 rounded-lg px-3 py-2 overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(90deg, #f97316, #f59e0b, #fbbf24, #eab308)",
+            boxShadow: "0 2px 12px rgba(249,115,22,0.35)",
+          }}
+        >
+          <Megaphone className="w-4 h-4 text-black shrink-0" />
           <div className="overflow-hidden flex-1">
-            <p className="animate-ticker text-sm text-primary font-medium">
+            <p className="animate-ticker text-sm text-black font-semibold">
               {announcement}
             </p>
           </div>
@@ -225,7 +511,9 @@ export default function Home() {
                     key={pb.id}
                     type="button"
                     onClick={() => setBannerIdx(di)}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors ${pb.id === activeBanner.id ? "bg-primary" : "bg-white/40"}`}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                      pb.id === activeBanner.id ? "bg-primary" : "bg-white/40"
+                    }`}
                     data-ocid={`home.promo-banner-dot.${di + 1}`}
                   />
                 ))}

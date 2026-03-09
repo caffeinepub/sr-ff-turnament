@@ -8,6 +8,8 @@ import { toast } from "sonner";
 import type { AppSettings } from "../../backend.d";
 import { useSettings, useUpdateSettings } from "../../hooks/useQueries";
 
+const MIN_DEPOSIT_KEY = "srff_min_deposit";
+
 const DEFAULT_SETTINGS: AppSettings = {
   appName: "SR-FF-TOURNAMENT",
   minWithdraw: BigInt(100),
@@ -20,10 +22,19 @@ const DEFAULT_SETTINGS: AppSettings = {
   announcementText: "Welcome to SR-FF-TOURNAMENT!",
 };
 
+function getStoredMinDeposit(): number {
+  try {
+    return Number(localStorage.getItem(MIN_DEPOSIT_KEY)) || 50;
+  } catch {
+    return 50;
+  }
+}
+
 export default function AdminSettings() {
   const { data: settings } = useSettings();
   const updateMutation = useUpdateSettings();
   const [form, setForm] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [minDeposit, setMinDeposit] = useState<number>(getStoredMinDeposit);
 
   useEffect(() => {
     if (settings) setForm(settings);
@@ -33,6 +44,7 @@ export default function AdminSettings() {
     e.preventDefault();
     try {
       await updateMutation.mutateAsync(form);
+      localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
       toast.success("Settings saved!");
     } catch {
       toast.error("Failed to save settings");
@@ -69,7 +81,18 @@ export default function AdminSettings() {
               data-ocid="admin-settings.appname.input"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Min Deposit (₹)</Label>
+              <Input
+                type="number"
+                value={minDeposit}
+                onChange={(e) => setMinDeposit(Number(e.target.value) || 0)}
+                className="mt-1"
+                placeholder="50"
+                data-ocid="admin-settings.mindeposit.input"
+              />
+            </div>
             <div>
               <Label>Min Withdrawal (₹)</Label>
               <Input

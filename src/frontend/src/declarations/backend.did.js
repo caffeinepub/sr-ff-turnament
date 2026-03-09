@@ -29,6 +29,11 @@ export const Notification = IDL.Record({
   'message' : IDL.Text,
   'timestamp' : IDL.Int,
 });
+export const LeaderboardEntry = IDL.Record({
+  'position' : IDL.Nat,
+  'playerName' : IDL.Text,
+  'prize' : IDL.Nat,
+});
 export const Tournament = IDL.Record({
   'id' : IDL.Nat,
   'startTime' : IDL.Int,
@@ -39,6 +44,7 @@ export const Tournament = IDL.Record({
   'gameMode' : IDL.Text,
   'entryFee' : IDL.Nat,
   'maxPlayers' : IDL.Nat,
+  'minPlayers' : IDL.Nat,
   'prizePool' : IDL.Nat,
 });
 export const UserProfile = IDL.Record({
@@ -76,6 +82,7 @@ export const idlService = IDL.Service({
         IDL.Text,
         IDL.Text,
         IDL.Int,
+        IDL.Nat,
         IDL.Nat,
         IDL.Nat,
         IDL.Nat,
@@ -120,6 +127,9 @@ export const idlService = IDL.Service({
     ),
   'unblockUser' : IDL.Func([IDL.Principal], [], []),
   'updateSettings' : IDL.Func([AppSettings], [], []),
+  'getLeaderboard' : IDL.Func([IDL.Nat], [IDL.Vec(LeaderboardEntry)], ['query']),
+  'setLeaderboard' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))], [], []),
+  'adminAdjustWallet' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Bool], [], []),
 });
 
 export const idlInitArgs = [];
@@ -146,6 +156,11 @@ export const idlFactory = ({ IDL }) => {
     'message' : IDL.Text,
     'timestamp' : IDL.Int,
   });
+  const LeaderboardEntry = IDL.Record({
+    'position' : IDL.Nat,
+    'playerName' : IDL.Text,
+    'prize' : IDL.Nat,
+  });
   const Tournament = IDL.Record({
     'id' : IDL.Nat,
     'startTime' : IDL.Int,
@@ -156,6 +171,7 @@ export const idlFactory = ({ IDL }) => {
     'gameMode' : IDL.Text,
     'entryFee' : IDL.Nat,
     'maxPlayers' : IDL.Nat,
+    'minPlayers' : IDL.Nat,
     'prizePool' : IDL.Nat,
   });
   const UserProfile = IDL.Record({
@@ -193,6 +209,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Text,
           IDL.Text,
           IDL.Int,
+          IDL.Nat,
           IDL.Nat,
           IDL.Nat,
           IDL.Nat,
@@ -237,6 +254,9 @@ export const idlFactory = ({ IDL }) => {
       ),
     'unblockUser' : IDL.Func([IDL.Principal], [], []),
     'updateSettings' : IDL.Func([AppSettings], [], []),
+    'getLeaderboard' : IDL.Func([IDL.Nat], [IDL.Vec(LeaderboardEntry)], ['query']),
+    'setLeaderboard' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))], [], []),
+    'adminAdjustWallet' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Bool], [], []),
   });
 };
 

@@ -112,6 +112,11 @@ export interface TournamentResult {
     prize: bigint;
     position: bigint;
 }
+export interface LeaderboardEntry {
+    position: bigint;
+    playerName: string;
+    prize: bigint;
+}
 export interface Tournament {
     id: bigint;
     startTime: bigint;
@@ -122,6 +127,7 @@ export interface Tournament {
     gameMode: string;
     entryFee: bigint;
     maxPlayers: bigint;
+    minPlayers: bigint;
     prizePool: bigint;
 }
 export interface UserProfile {
@@ -151,7 +157,7 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     blockUser(userId: Principal): Promise<void>;
     createNotification(title: string, message: string, imageUrl: string): Promise<void>;
-    createTournament(title: string, gameMode: string, startTime: bigint, entryFee: bigint, prizePool: bigint, maxPlayers: bigint, status: TournamentStatus, description: string): Promise<bigint>;
+    createTournament(title: string, gameMode: string, startTime: bigint, entryFee: bigint, prizePool: bigint, maxPlayers: bigint, minPlayers: bigint, status: TournamentStatus, description: string): Promise<bigint>;
     createWalletTransaction(userId: Principal, amount: bigint, transactionType: TransactionType): Promise<bigint>;
     getAllNotifications(): Promise<Array<Notification>>;
     getAllTournaments(): Promise<Array<Tournament>>;
@@ -167,6 +173,9 @@ export interface backendInterface {
     setTournamentResults(tournamentId: bigint, positions: Array<[bigint, bigint, Principal]>): Promise<void>;
     unblockUser(userId: Principal): Promise<void>;
     updateSettings(newSettings: AppSettings): Promise<void>;
+    getLeaderboard(tournamentId: bigint): Promise<Array<LeaderboardEntry>>;
+    setLeaderboard(tournamentId: bigint, entries: Array<[bigint, string, bigint]>): Promise<void>;
+    adminAdjustWallet(userId: Principal, amount: bigint, isAdd: boolean): Promise<void>;
 }
 import type { AppSettings as _AppSettings, Tournament as _Tournament, TournamentStatus as _TournamentStatus, TransactionType as _TransactionType, UserProfile as _UserProfile, UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -227,17 +236,17 @@ export class Backend implements backendInterface {
             return result;
         }
     }
-    async createTournament(arg0: string, arg1: string, arg2: bigint, arg3: bigint, arg4: bigint, arg5: bigint, arg6: TournamentStatus, arg7: string): Promise<bigint> {
+    async createTournament(arg0: string, arg1: string, arg2: bigint, arg3: bigint, arg4: bigint, arg5: bigint, arg6: bigint, arg7: TournamentStatus, arg8: string): Promise<bigint> {
         if (this.processError) {
             try {
-                const result = await this.actor.createTournament(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_TournamentStatus_n3(this._uploadFile, this._downloadFile, arg6), arg7);
+                const result = await (this.actor as any).createTournament(arg0, arg1, arg2, arg3, arg4, arg5, arg6, to_candid_TournamentStatus_n3(this._uploadFile, this._downloadFile, arg7), arg8);
                 return result;
             } catch (e) {
                 this.processError(e);
                 throw new Error("unreachable");
             }
         } else {
-            const result = await this.actor.createTournament(arg0, arg1, arg2, arg3, arg4, arg5, to_candid_TournamentStatus_n3(this._uploadFile, this._downloadFile, arg6), arg7);
+            const result = await (this.actor as any).createTournament(arg0, arg1, arg2, arg3, arg4, arg5, arg6, to_candid_TournamentStatus_n3(this._uploadFile, this._downloadFile, arg7), arg8);
             return result;
         }
     }
@@ -437,6 +446,38 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getLeaderboard(arg0: bigint): Promise<Array<LeaderboardEntry>> {
+        try {
+            const result = await (this.actor as any).getLeaderboard(arg0);
+            return result as Array<LeaderboardEntry>;
+        } catch {
+            return [];
+        }
+    }
+    async setLeaderboard(arg0: bigint, arg1: Array<[bigint, string, bigint]>): Promise<void> {
+        if (this.processError) {
+            try {
+                return await (this.actor as any).setLeaderboard(arg0, arg1);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            return await (this.actor as any).setLeaderboard(arg0, arg1);
+        }
+    }
+    async adminAdjustWallet(arg0: Principal, arg1: bigint, arg2: boolean): Promise<void> {
+        if (this.processError) {
+            try {
+                return await (this.actor as any).adminAdjustWallet(arg0, arg1, arg2);
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            return await (this.actor as any).adminAdjustWallet(arg0, arg1, arg2);
+        }
+    }
     async updateSettings(arg0: AppSettings): Promise<void> {
         if (this.processError) {
             try {
@@ -477,6 +518,7 @@ function from_candid_record_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint
     gameMode: string;
     entryFee: bigint;
     maxPlayers: bigint;
+    minPlayers: bigint;
     prizePool: bigint;
 }): {
     id: bigint;
@@ -488,6 +530,7 @@ function from_candid_record_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint
     gameMode: string;
     entryFee: bigint;
     maxPlayers: bigint;
+    minPlayers: bigint;
     prizePool: bigint;
 } {
     return {
@@ -500,6 +543,7 @@ function from_candid_record_n9(_uploadFile: (file: ExternalBlob) => Promise<Uint
         gameMode: value.gameMode,
         entryFee: value.entryFee,
         maxPlayers: value.maxPlayers,
+        minPlayers: value.minPlayers ?? BigInt(0),
         prizePool: value.prizePool
     };
 }

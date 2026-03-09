@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { TransactionType } from "../backend";
 import type {
   AppSettings,
+  LeaderboardEntry,
   Tournament,
   TournamentStatus,
   UserProfile,
@@ -105,6 +106,37 @@ export function useTournamentResults(tournamentId: bigint) {
   });
 }
 
+export function useLeaderboard(tournamentId: bigint) {
+  const { actor, isFetching } = useActor();
+  return useQuery<LeaderboardEntry[]>({
+    queryKey: ["leaderboard", tournamentId.toString()],
+    queryFn: async () => {
+      if (!actor) return [];
+      return actor.getLeaderboard(tournamentId);
+    },
+    enabled: !!actor && !isFetching,
+  });
+}
+
+export function useSetLeaderboard() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      tournamentId: bigint;
+      entries: Array<[bigint, string, bigint]>;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.setLeaderboard(args.tournamentId, args.entries);
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({
+        queryKey: ["leaderboard", vars.tournamentId.toString()],
+      });
+    },
+  });
+}
+
 export function useJoinTournament() {
   const { actor } = useActor();
   const qc = useQueryClient();
@@ -143,6 +175,7 @@ export function useCreateTournament() {
       entryFee: bigint;
       prizePool: bigint;
       maxPlayers: bigint;
+      minPlayers: bigint;
       status: TournamentStatus;
       description: string;
     }) => {
@@ -154,6 +187,7 @@ export function useCreateTournament() {
         args.entryFee,
         args.prizePool,
         args.maxPlayers,
+        args.minPlayers,
         args.status,
         args.description,
       );
@@ -323,6 +357,28 @@ export function useUpdatePaymentRequestStatus() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
+    },
+  });
+}
+
+export function useAdminAdjustWallet() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      userId: Principal;
+      amount: bigint;
+      isAdd: boolean;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).adminAdjustWallet(
+        args.userId,
+        args.amount,
+        args.isAdd,
+      ) as Promise<void>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allUsers"] });
     },
   });
 }

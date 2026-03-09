@@ -17,12 +17,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Edit2, Loader2, Plus, Trash2, Trophy, Users } from "lucide-react";
+import {
+  Edit2,
+  Loader2,
+  Medal,
+  Plus,
+  Trash2,
+  Trophy,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { TournamentStatus } from "../../backend";
 import type { Tournament } from "../../backend.d";
-import { useAllTournaments, useCreateTournament } from "../../hooks/useQueries";
+import {
+  useAllTournaments,
+  useCreateTournament,
+  useLeaderboard,
+  useSetLeaderboard,
+} from "../../hooks/useQueries";
 
 const GAME_MODES = [
   "Solo",
@@ -36,6 +49,7 @@ const GAME_MODES = [
   "Lone Wolf 1v1",
   "Lone Wolf 2v2",
   "Sunday Special",
+  "1 vs 1 Custom",
   "4 vs 4 Custom",
   "BR Full Map",
 ];
@@ -47,6 +61,7 @@ interface TournamentForm {
   entryFee: string;
   prizePool: string;
   maxPlayers: string;
+  minPlayers: string;
   status: string;
   description: string;
 }
@@ -58,6 +73,7 @@ const EMPTY_FORM: TournamentForm = {
   entryFee: "",
   prizePool: "",
   maxPlayers: "100",
+  minPlayers: "10",
   status: "upcoming",
   description: "",
 };
@@ -77,6 +93,7 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         entryFee: BigInt(Number(form.entryFee)),
         prizePool: BigInt(Number(form.prizePool)),
         maxPlayers: BigInt(Number(form.maxPlayers)),
+        minPlayers: BigInt(Number(form.minPlayers)),
         status: form.status as TournamentStatus,
         description: form.description,
       });
@@ -152,7 +169,7 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Entry Fee (₹)</Label>
+              <Label>Entry Fee (\u20b9)</Label>
               <Input
                 type="number"
                 value={form.entryFee}
@@ -164,7 +181,7 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
               />
             </div>
             <div>
-              <Label>Prize Pool (₹)</Label>
+              <Label>Prize Pool (\u20b9)</Label>
               <Input
                 type="number"
                 value={form.prizePool}
@@ -192,24 +209,37 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
               />
             </div>
             <div>
-              <Label>Status</Label>
-              <Select
-                value={form.status}
-                onValueChange={(v) => setForm({ ...form, status: v })}
-              >
-                <SelectTrigger
-                  className="mt-1"
-                  data-ocid="admin-tournaments.status.select"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upcoming">Upcoming</SelectItem>
-                  <SelectItem value="ongoing">Ongoing</SelectItem>
-                  <SelectItem value="complete">Complete</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Min Players</Label>
+              <Input
+                type="number"
+                value={form.minPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, minPlayers: e.target.value })
+                }
+                placeholder="10"
+                className="mt-1"
+                data-ocid="admin-tournaments.minplayers.input"
+              />
             </div>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.status.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>Description</Label>
@@ -235,6 +265,169 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
             Create Tournament
           </Button>
         </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface LeaderboardRow {
+  id: number;
+  position: string;
+  playerName: string;
+  prize: string;
+}
+
+function ResultsModal({ tournament }: { tournament: Tournament }) {
+  const [open, setOpen] = useState(false);
+  const { data: leaderboard = [], refetch } = useLeaderboard(tournament.id);
+  const setLeaderboardMutation = useSetLeaderboard();
+
+  const [rows, setRows] = useState<LeaderboardRow[]>([
+    { id: 1, position: "1", playerName: "", prize: "" },
+    { id: 2, position: "2", playerName: "", prize: "" },
+    { id: 3, position: "3", playerName: "", prize: "" },
+  ]);
+
+  const handleOpen = () => {
+    if (leaderboard.length > 0) {
+      setRows(
+        leaderboard.map((e, idx) => ({
+          id: idx + 1,
+          position: String(Number(e.position)),
+          playerName: e.playerName,
+          prize: String(Number(e.prize)),
+        })),
+      );
+    }
+    setOpen(true);
+  };
+
+  const addRow = () =>
+    setRows((r) => [
+      ...r,
+      {
+        id: Date.now(),
+        position: String(r.length + 1),
+        playerName: "",
+        prize: "",
+      },
+    ]);
+  const removeRow = (i: number) =>
+    setRows((r) => r.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: keyof LeaderboardRow, val: string) =>
+    setRows((r) =>
+      r.map((row, idx) => (idx === i ? { ...row, [field]: val } : row)),
+    );
+
+  const handleSave = async () => {
+    const entries = rows
+      .filter((r) => r.playerName.trim() && r.prize)
+      .map(
+        (r) =>
+          [
+            BigInt(Number(r.position)),
+            r.playerName.trim(),
+            BigInt(Number(r.prize)),
+          ] as [bigint, string, bigint],
+      );
+    try {
+      await setLeaderboardMutation.mutateAsync({
+        tournamentId: tournament.id,
+        entries,
+      });
+      toast.success("Leaderboard save ho gaya!");
+      refetch();
+      setOpen(false);
+    } catch {
+      toast.error("Save nahi ho saka");
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 gap-1 text-xs"
+          onClick={handleOpen}
+          data-ocid="admin-tournaments.results.open_modal_button"
+        >
+          <Trophy className="w-3 h-3" /> Results
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="admin-tournaments.results.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Medal className="w-4 h-4 text-warning" /> Winner Leaderboard
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground mb-2">{tournament.title}</p>
+        <div className="space-y-3">
+          {rows.map((row, i) => (
+            <div
+              key={row.id}
+              className="flex items-center gap-2"
+              data-ocid={`admin-tournaments.results.item.${i + 1}`}
+            >
+              <Input
+                type="number"
+                value={row.position}
+                onChange={(e) => updateRow(i, "position", e.target.value)}
+                className="w-16 text-center"
+                placeholder="#"
+                data-ocid={`admin-tournaments.results.position.input.${i + 1}`}
+              />
+              <Input
+                value={row.playerName}
+                onChange={(e) => updateRow(i, "playerName", e.target.value)}
+                placeholder="Player name"
+                className="flex-1"
+                data-ocid={`admin-tournaments.results.playername.input.${i + 1}`}
+              />
+              <Input
+                type="number"
+                value={row.prize}
+                onChange={(e) => updateRow(i, "prize", e.target.value)}
+                placeholder="\u20b9 Prize"
+                className="w-24"
+                data-ocid={`admin-tournaments.results.prize.input.${i + 1}`}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="px-1.5 text-destructive hover:text-destructive"
+                onClick={() => removeRow(i)}
+                data-ocid={`admin-tournaments.results.delete_button.${i + 1}`}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-1"
+            onClick={addRow}
+            data-ocid="admin-tournaments.results.add.button"
+          >
+            <Plus className="w-3 h-3" /> Add Player
+          </Button>
+          <Button
+            className="w-full"
+            onClick={handleSave}
+            disabled={setLeaderboardMutation.isPending}
+            data-ocid="admin-tournaments.results.save.button"
+          >
+            {setLeaderboardMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : null}
+            Leaderboard Save Karo
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -287,21 +480,29 @@ export default function AdminTournaments() {
                   {t.status as string}
                 </Badge>
               </div>
-              <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="grid grid-cols-4 gap-2 mb-3">
                 <div className="text-center bg-background rounded-lg p-2">
                   <p className="text-xs text-muted-foreground">Entry</p>
-                  <p className="text-sm font-bold">₹{Number(t.entryFee)}</p>
+                  <p className="text-sm font-bold">
+                    \u20b9{Number(t.entryFee)}
+                  </p>
                 </div>
                 <div className="text-center bg-background rounded-lg p-2">
                   <p className="text-xs text-muted-foreground">Prize</p>
                   <p className="text-sm font-bold text-warning">
-                    ₹{Number(t.prizePool)}
+                    \u20b9{Number(t.prizePool)}
                   </p>
                 </div>
                 <div className="text-center bg-background rounded-lg p-2">
                   <p className="text-xs text-muted-foreground">Players</p>
                   <p className="text-sm font-bold">
                     {Number(t.playerCount)}/{Number(t.maxPlayers)}
+                  </p>
+                </div>
+                <div className="text-center bg-background rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">Min</p>
+                  <p className="text-sm font-bold text-warning">
+                    {Number(t.minPlayers) > 0 ? Number(t.minPlayers) : "--"}
                   </p>
                 </div>
               </div>
@@ -312,16 +513,9 @@ export default function AdminTournaments() {
                   className="flex-1 gap-1 text-xs"
                   data-ocid={`admin-tournaments.verify.button.${i + 1}`}
                 >
-                  <Users className="w-3 h-3" /> Verify Players
+                  <Users className="w-3 h-3" /> Players
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1 text-xs"
-                  data-ocid={`admin-tournaments.results.button.${i + 1}`}
-                >
-                  <Trophy className="w-3 h-3" /> Results
-                </Button>
+                <ResultsModal tournament={t} />
                 <Button
                   variant="outline"
                   size="sm"

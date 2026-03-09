@@ -9,10 +9,14 @@ import {
 } from "@tanstack/react-router";
 import AdminLayout from "./components/AdminLayout";
 import Layout from "./components/Layout";
+import { UserAuthProvider } from "./context/UserAuthContext";
 import AppLinks from "./pages/AppLinks";
 import Earn from "./pages/Earn";
+import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
 import Profile from "./pages/Profile";
+import Register from "./pages/Register";
 import TournamentDetail from "./pages/TournamentDetail";
 import Tournaments from "./pages/Tournaments";
 import AdminBanners from "./pages/admin/AdminBanners";
@@ -30,19 +34,44 @@ function isAdminAuthenticated() {
   return sessionStorage.getItem("adminAuth") === "true";
 }
 
+function isUserAuthenticated() {
+  return !!localStorage.getItem("srff_current_user");
+}
+
 const rootRoute = createRootRoute({
   component: () => (
-    <>
+    <UserAuthProvider>
       <Outlet />
       <Toaster />
-    </>
+    </UserAuthProvider>
   ),
 });
 
+// Auth pages (no layout)
+const loginRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/login",
+  component: Login,
+});
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/register",
+  component: Register,
+});
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/forgot-password",
+  component: ForgotPassword,
+});
+
+// User layout (protected)
 const userLayoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   id: "user",
   component: Layout,
+  beforeLoad: () => {
+    if (!isUserAuthenticated()) throw redirect({ to: "/login" });
+  },
 });
 const homeRoute = createRoute({
   getParentRoute: () => userLayoutRoute,
@@ -136,6 +165,9 @@ const adminPaymentsRoute = createRoute({
 });
 
 const routeTree = rootRoute.addChildren([
+  loginRoute,
+  registerRoute,
+  forgotPasswordRoute,
   userLayoutRoute.addChildren([
     homeRoute,
     tournamentsRoute,
