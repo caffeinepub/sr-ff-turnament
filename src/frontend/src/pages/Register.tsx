@@ -10,6 +10,29 @@ function getSupportNumber(): string {
 
 export default function Register() {
   const { register } = useUserAuth();
+  const formSize = localStorage.getItem("srff_form_size") || "large";
+  const sizeClasses = {
+    small: {
+      wrapper: "max-w-sm",
+      card: "p-4",
+      input: "py-2 text-sm",
+      btn: "py-2",
+    },
+    medium: {
+      wrapper: "max-w-md",
+      card: "p-5",
+      input: "py-2.5 text-sm",
+      btn: "py-2.5",
+    },
+    large: {
+      wrapper: "max-w-lg",
+      card: "p-7",
+      input: "py-3 text-base",
+      btn: "py-3",
+    },
+  };
+  const sz =
+    sizeClasses[formSize as keyof typeof sizeClasses] || sizeClasses.large;
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [username, setUsername] = useState("");
@@ -62,7 +85,7 @@ export default function Register() {
         />
       </div>
 
-      <div className="w-full max-w-md relative">
+      <div className={`w-full ${sz.wrapper} relative`}>
         {/* Logo & Title */}
         <div className="text-center mb-6">
           <div className="flex flex-col items-center gap-2">
@@ -102,7 +125,7 @@ export default function Register() {
         </div>
 
         <div
-          className="rounded-2xl border p-6"
+          className={`rounded-2xl border ${sz.card}`}
           style={{
             background: "oklch(0.12 0.028 15)",
             borderColor: "oklch(0.68 0.22 145 / 0.3)",
@@ -132,7 +155,7 @@ export default function Register() {
                 onChange={(e) => setPhone(e.target.value)}
                 required
                 placeholder="+91 XXXXXXXXXX"
-                className="w-full rounded-lg px-3 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
               />
             </div>
 
@@ -151,7 +174,7 @@ export default function Register() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 placeholder="Apna username likho"
-                className="w-full rounded-lg px-3 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
               />
             </div>
 
@@ -170,7 +193,7 @@ export default function Register() {
                 onChange={(e) => setFfName(e.target.value)}
                 required
                 placeholder="Apna Free Fire in-game name"
-                className="w-full rounded-lg px-3 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
               />
             </div>
 
@@ -190,7 +213,7 @@ export default function Register() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full rounded-lg px-3 py-2.5 pr-10 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
                 />
                 <button
                   data-ocid="register.password.toggle"
@@ -211,7 +234,7 @@ export default function Register() {
               data-ocid="register.submit_button"
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-60 mt-2"
+              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60 mt-2`}
               style={{
                 background:
                   "linear-gradient(90deg, oklch(0.68 0.22 145), oklch(0.72 0.18 200))",

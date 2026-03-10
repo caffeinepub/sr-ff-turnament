@@ -67,6 +67,43 @@ const GAME_MODES = [
 
 const DELETED_KEY = "srff_deleted_tournaments";
 const OVERRIDES_KEY = "srff_tournament_overrides";
+const CREATED_KEY = "srff_created_tournaments";
+
+interface LocalTournament {
+  id: string;
+  title: string;
+  gameMode: string;
+  entryFee: number;
+  prizePool: number;
+  maxPlayers: number;
+  minPlayers: number;
+  status: string;
+  description: string;
+  startTime: number;
+  playerCount: number;
+  bannerUrl?: string;
+}
+
+function getLocalTournaments(): LocalTournament[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(CREATED_KEY) ?? "[]",
+    ) as LocalTournament[];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTournament(t: LocalTournament) {
+  const arr = getLocalTournaments();
+  arr.unshift(t);
+  localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
+}
+
+function deleteLocalTournament(id: string) {
+  const arr = getLocalTournaments().filter((t) => t.id !== id);
+  localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
+}
 
 function getDeleted(): string[] {
   try {
@@ -126,6 +163,25 @@ interface TournamentForm {
   minPlayers: string;
   status: string;
   description: string;
+  bannerUrl: string;
+}
+
+const TOURNAMENT_BANNERS_KEY = "srff_tournament_banners";
+
+function getTournamentBanners(): Record<string, string> {
+  try {
+    return JSON.parse(
+      localStorage.getItem(TOURNAMENT_BANNERS_KEY) ?? "{}",
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function saveTournamentBanner(id: string, url: string) {
+  const banners = getTournamentBanners();
+  banners[id] = url;
+  localStorage.setItem(TOURNAMENT_BANNERS_KEY, JSON.stringify(banners));
 }
 
 const EMPTY_FORM: TournamentForm = {
@@ -138,6 +194,7 @@ const EMPTY_FORM: TournamentForm = {
   minPlayers: "10",
   status: "upcoming",
   description: "",
+  bannerUrl: "",
 };
 
 function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
@@ -160,12 +217,27 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         description: form.description,
       });
       toast.success("Tournament created!");
-      setForm(EMPTY_FORM);
-      setOpen(false);
-      onCreated();
     } catch {
-      toast.error("Failed to create tournament");
+      // Backend failed — save locally so it appears in list
+      const localT: LocalTournament = {
+        id: `local_${Date.now()}`,
+        title: form.title,
+        gameMode: form.gameMode,
+        entryFee: Number(form.entryFee),
+        prizePool: Number(form.prizePool),
+        maxPlayers: Number(form.maxPlayers),
+        minPlayers: Number(form.minPlayers),
+        status: form.status,
+        description: form.description,
+        startTime: new Date(form.startTime).getTime(),
+        playerCount: 0,
+      };
+      saveLocalTournament(localT);
+      toast.success("Tournament created (locally)!");
     }
+    setForm(EMPTY_FORM);
+    setOpen(false);
+    onCreated();
   };
 
   return (
@@ -315,6 +387,23 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
               data-ocid="admin-tournaments.description.textarea"
             />
           </div>
+          <div>
+            <Label>Tournament Banner Image URL</Label>
+            <Input
+              value={form.bannerUrl}
+              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+              placeholder="https://...image.jpg"
+              className="mt-1"
+              data-ocid="admin-tournaments.banner.input"
+            />
+            {form.bannerUrl && (
+              <img
+                src={form.bannerUrl}
+                alt="banner preview"
+                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+              />
+            )}
+          </div>
           <Button
             type="submit"
             className="w-full"
@@ -354,6 +443,7 @@ function EditTournamentModal({
     minPlayers: override?.minPlayers ?? String(Number(tournament.minPlayers)),
     status: override?.status ?? (tournament.status as string),
     description: override?.description ?? tournament.description,
+    bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
   });
 
   const handleOpen = () => {
@@ -368,6 +458,7 @@ function EditTournamentModal({
       minPlayers: ov?.minPlayers ?? String(Number(tournament.minPlayers)),
       status: ov?.status ?? (tournament.status as string),
       description: ov?.description ?? tournament.description,
+      bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
     });
     setOpen(true);
   };
@@ -384,6 +475,7 @@ function EditTournamentModal({
       status: form.status,
       description: form.description,
     });
+    saveTournamentBanner(tournament.id.toString(), form.bannerUrl);
     toast.success("Tournament updated!");
     setOpen(false);
     onSaved();
@@ -522,6 +614,23 @@ function EditTournamentModal({
               className="mt-1"
               data-ocid="admin-tournaments.edit.description.textarea"
             />
+          </div>
+          <div>
+            <Label>Tournament Banner Image URL</Label>
+            <Input
+              value={form.bannerUrl}
+              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+              placeholder="https://...image.jpg"
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.banner.input"
+            />
+            {form.bannerUrl && (
+              <img
+                src={form.bannerUrl}
+                alt="banner preview"
+                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+              />
+            )}
           </div>
           <Button
             type="submit"
@@ -703,19 +812,33 @@ export default function AdminTournaments() {
   const { data: allTournaments = [], refetch } = useAllTournaments();
   const [localDeleted, setLocalDeleted] = useState<string[]>(getDeleted);
   const [, forceUpdate] = useState(0);
+  const [localCreated, setLocalCreated] =
+    useState<LocalTournament[]>(getLocalTournaments);
 
   const tournaments = allTournaments.filter(
     (t) => !localDeleted.includes(t.id.toString()),
   );
 
   const handleDelete = (id: string) => {
-    addDeleted(id);
-    setLocalDeleted(getDeleted());
+    if (id.startsWith("local_")) {
+      deleteLocalTournament(id);
+      setLocalCreated(getLocalTournaments());
+    } else {
+      addDeleted(id);
+      setLocalDeleted(getDeleted());
+    }
     toast.success("Tournament delete ho gaya!");
   };
 
-  // Apply local overrides to display
-  const displayTournaments = tournaments.map((t) => {
+  // Refresh local state on refetch
+  const handleRefetch = () => {
+    refetch();
+    setLocalCreated(getLocalTournaments());
+    forceUpdate((n) => n + 1);
+  };
+
+  // Apply local overrides to backend tournaments
+  const displayBackend = tournaments.map((t) => {
     const ov = getOverride(t.id.toString());
     if (!ov) return t;
     return {
@@ -731,13 +854,30 @@ export default function AdminTournaments() {
     };
   });
 
+  // Merge local tournaments (shown first) with backend tournaments
+  const localAsDisplay = localCreated.map((lt) => ({
+    id: lt.id as unknown as bigint,
+    title: lt.title,
+    gameMode: lt.gameMode,
+    entryFee: BigInt(lt.entryFee),
+    prizePool: BigInt(lt.prizePool),
+    maxPlayers: BigInt(lt.maxPlayers),
+    minPlayers: BigInt(lt.minPlayers),
+    status: lt.status as Tournament["status"],
+    description: lt.description,
+    startTime: BigInt(lt.startTime * 1_000_000),
+    playerCount: BigInt(lt.playerCount),
+  }));
+
+  const displayTournaments = [...localAsDisplay, ...displayBackend];
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <h1 className="font-display font-bold text-2xl">
           Free Fire Tournaments
         </h1>
-        <TournamentFormModal onCreated={refetch} />
+        <TournamentFormModal onCreated={handleRefetch} />
       </div>
 
       {displayTournaments.length === 0 ? (
@@ -759,9 +899,25 @@ export default function AdminTournaments() {
               data-ocid={`admin-tournaments.item.${i + 1}`}
             >
               <div className="flex items-start justify-between gap-2 mb-3">
-                <div>
-                  <h3 className="font-display font-bold text-sm">{t.title}</h3>
-                  <p className="text-xs text-muted-foreground">{t.gameMode}</p>
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const b = getTournamentBanners()[t.id.toString()];
+                    return b ? (
+                      <img
+                        src={b}
+                        alt="banner"
+                        className="w-8 h-8 rounded object-cover border border-border shrink-0"
+                      />
+                    ) : null;
+                  })()}
+                  <div>
+                    <h3 className="font-display font-bold text-sm">
+                      {t.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {t.gameMode}
+                    </p>
+                  </div>
                 </div>
                 <Badge
                   className={`text-xs shrink-0 ${

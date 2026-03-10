@@ -15,7 +15,6 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAllTournaments, useCallerProfile } from "../hooks/useQueries";
 import type { PromoBanner } from "./admin/AdminBanners";
 import type { PromoLink } from "./admin/AdminHomeContent";
@@ -121,17 +120,27 @@ function loadWelcomeLines(
 
 // Dynamic lines read from localStorage (admin-editable)
 const WELCOME_LINES = loadWelcomeLines(
-  "srff_welcome_new_lines",
+  "srff_new_welcome_lines",
   DEFAULT_NEW_WELCOME_TEXTS,
   NEW_WELCOME_GRADIENTS,
 );
 
 // Welcome BACK lines shown on every login/app open
 const WELCOME_BACK_LINES = loadWelcomeLines(
-  "srff_welcome_returning_lines",
+  "srff_login_welcome_lines",
   DEFAULT_BACK_WELCOME_TEXTS,
   BACK_WELCOME_GRADIENTS,
 );
+
+function getModalSizeClass(): string {
+  const size = localStorage.getItem("srff_modal_size") || "medium";
+  const map: Record<string, string> = {
+    small: "max-w-xs",
+    medium: "max-w-sm",
+    large: "max-w-md",
+  };
+  return map[size] || "max-w-sm";
+}
 
 function WelcomeModal({
   username,
@@ -179,7 +188,7 @@ function WelcomeModal({
       data-ocid="welcome.modal"
     >
       <div
-        className="relative w-full max-w-sm rounded-3xl p-6 text-center overflow-hidden"
+        className={`relative w-full ${getModalSizeClass()} rounded-3xl p-6 text-center overflow-hidden`}
         style={{
           background:
             "linear-gradient(135deg, #0f0a1a 0%, #14091f 50%, #0a1020 100%)",
@@ -393,7 +402,7 @@ function WelcomeBackModal({
       data-ocid="welcome-back.modal"
     >
       <div
-        className="relative w-full max-w-sm rounded-3xl p-6 text-center overflow-hidden"
+        className={`relative w-full ${getModalSizeClass()} rounded-3xl p-6 text-center overflow-hidden`}
         style={{
           background:
             "linear-gradient(135deg, #060b1a 0%, #0a1020 50%, #0d0a18 100%)",
@@ -591,7 +600,7 @@ function WelcomeBackModal({
 export default function Home() {
   const [contestTab, setContestTab] = useState("ongoing");
   const { data: tournaments = [] } = useAllTournaments();
-  const { identity, login } = useInternetIdentity();
+
   const { data: profile } = useCallerProfile();
   const [bannerIdx, setBannerIdx] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -671,16 +680,6 @@ export default function Home() {
               <Bell className="w-4 h-4 text-muted-foreground" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-destructive rounded-full" />
             </button>
-            {!identity && (
-              <button
-                type="button"
-                onClick={login}
-                className="text-xs bg-primary/90 hover:bg-primary text-primary-foreground font-semibold px-3 py-1.5 rounded-full transition-colors"
-                data-ocid="home.login.button"
-              >
-                Login
-              </button>
-            )}
           </div>
         </div>
       </header>

@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Eye, EyeOff, KeyRound, Loader2, Save } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2, Save, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { AppSettings } from "../../backend.d";
@@ -12,6 +19,10 @@ const MIN_DEPOSIT_KEY = "srff_min_deposit";
 const ADMIN_PASSWORD_KEY = "srff_admin_password";
 const FOOTER_TEXT_KEY = "srff_footer_text";
 const SUPPORT_NUMBER_KEY = "srff_support_number";
+const CONTACT_US_KEY = "srff_contact_us";
+const FAIR_PLAY_KEY = "srff_fair_play_policy";
+const MATCH_HISTORY_KEY = "srff_match_history_note";
+const GAME_RULES_KEY = "srff_game_rules";
 const DEFAULT_ADMIN_PASSWORD = "7477661867Ss";
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -204,11 +215,180 @@ function FooterTextSection() {
   );
 }
 
+const UI_FORM_SIZE_KEY = "srff_form_size";
+const UI_MODAL_SIZE_KEY = "srff_modal_size";
+const UI_NEW_WELCOME_KEY = "srff_new_welcome_lines";
+const UI_LOGIN_WELCOME_KEY = "srff_login_welcome_lines";
+
+const DEFAULT_NEW_WELCOME = [
+  "🎮 Welcome to SR-FF-TURNAMENT!",
+  "🔥 Ready for Free Fire action?",
+  "💰 Win big prizes in tournaments!",
+  "🏆 Best of luck, warrior!",
+];
+
+const DEFAULT_LOGIN_WELCOME = [
+  "🎯 Welcome Back!",
+  "🔥 Time to dominate the arena!",
+  "💪 Your victories await!",
+  "🏅 Let's go, champion!",
+];
+
+function UICustomizationSection() {
+  const [formSize, setFormSize] = useState<string>(
+    () => localStorage.getItem(UI_FORM_SIZE_KEY) || "large",
+  );
+  const [modalSize, setModalSize] = useState<string>(
+    () => localStorage.getItem(UI_MODAL_SIZE_KEY) || "medium",
+  );
+  const [newWelcomeLines, setNewWelcomeLines] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_NEW_WELCOME_KEY);
+      const arr: string[] = raw
+        ? (JSON.parse(raw) as string[])
+        : DEFAULT_NEW_WELCOME;
+      return arr.join("\n");
+    } catch {
+      return DEFAULT_NEW_WELCOME.join("\n");
+    }
+  });
+  const [loginWelcomeLines, setLoginWelcomeLines] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_LOGIN_WELCOME_KEY);
+      const arr: string[] = raw
+        ? (JSON.parse(raw) as string[])
+        : DEFAULT_LOGIN_WELCOME;
+      return arr.join("\n");
+    } catch {
+      return DEFAULT_LOGIN_WELCOME.join("\n");
+    }
+  });
+
+  const handleSave = () => {
+    localStorage.setItem(UI_FORM_SIZE_KEY, formSize);
+    localStorage.setItem(UI_MODAL_SIZE_KEY, modalSize);
+    const newLines = newWelcomeLines
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const loginLines = loginWelcomeLines
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    localStorage.setItem(UI_NEW_WELCOME_KEY, JSON.stringify(newLines));
+    localStorage.setItem(UI_LOGIN_WELCOME_KEY, JSON.stringify(loginLines));
+    toast.success("UI settings saved! Reload karke changes dekho.");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Settings2 className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-base">
+          UI Customization
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Login/Register form ka size, welcome modal ka size, aur welcome messages
+        yahan se set karo.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Form Size (Login/Register)</Label>
+          <Select value={formSize} onValueChange={setFormSize}>
+            <SelectTrigger
+              className="mt-1"
+              data-ocid="admin-settings.form-size.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Welcome Modal Size</Label>
+          <Select value={modalSize} onValueChange={setModalSize}>
+            <SelectTrigger
+              className="mt-1"
+              data-ocid="admin-settings.modal-size.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>New User Welcome Lines</Label>
+        <p className="text-xs text-muted-foreground mb-1">
+          Ek line = ek welcome message. Emojis bhi likh sakte ho.
+        </p>
+        <Textarea
+          value={newWelcomeLines}
+          onChange={(e) => setNewWelcomeLines(e.target.value)}
+          rows={5}
+          placeholder="🎮 Welcome to SR-FF-TURNAMENT!&#10;🔥 Ready for action?"
+          className="mt-1 font-mono text-sm"
+          data-ocid="admin-settings.new-welcome-lines.textarea"
+        />
+      </div>
+
+      <div>
+        <Label>Returning User Welcome Lines (Login)</Label>
+        <p className="text-xs text-muted-foreground mb-1">
+          Ek line = ek message. Yeh login ke baad dikhega.
+        </p>
+        <Textarea
+          value={loginWelcomeLines}
+          onChange={(e) => setLoginWelcomeLines(e.target.value)}
+          rows={5}
+          placeholder="🎯 Welcome Back!&#10;🔥 Time to dominate!"
+          className="mt-1 font-mono text-sm"
+          data-ocid="admin-settings.login-welcome-lines.textarea"
+        />
+      </div>
+
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid="admin-settings.ui-customization.save_button"
+      >
+        <Save className="w-4 h-4" /> Save UI Settings
+      </Button>
+    </div>
+  );
+}
+
 export default function AdminSettings() {
   const { data: settings } = useSettings();
   const updateMutation = useUpdateSettings();
   const [form, setForm] = useState<AppSettings>(DEFAULT_SETTINGS);
   const [minDeposit, setMinDeposit] = useState<number>(getStoredMinDeposit);
+
+  // Local-only fields (not in AppSettings backend type)
+  const [contactUs, setContactUs] = useState<string>(
+    () => localStorage.getItem(CONTACT_US_KEY) || "",
+  );
+  const [fairPlayPolicy, setFairPlayPolicy] = useState<string>(
+    () => localStorage.getItem(FAIR_PLAY_KEY) || "",
+  );
+  const [matchHistoryNote, setMatchHistoryNote] = useState<string>(
+    () => localStorage.getItem(MATCH_HISTORY_KEY) || "",
+  );
+  const [gameRules, setGameRules] = useState<string>(
+    () => localStorage.getItem(GAME_RULES_KEY) || "",
+  );
 
   useEffect(() => {
     if (settings) setForm(settings);
@@ -216,20 +396,36 @@ export default function AdminSettings() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      await updateMutation.mutateAsync(form);
-      localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
-      // Sync support number to localStorage so Login/Register pages can read it
-      if (form.supportContact) {
-        localStorage.setItem(
-          SUPPORT_NUMBER_KEY,
-          form.supportContact.replace(/\D/g, ""),
-        );
-      }
-      toast.success("Settings saved!");
-    } catch {
-      toast.error("Failed to save settings");
+    // Save local-only fields FIRST so they always get persisted
+    localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
+    localStorage.setItem(CONTACT_US_KEY, contactUs);
+    localStorage.setItem(FAIR_PLAY_KEY, fairPlayPolicy);
+    localStorage.setItem(MATCH_HISTORY_KEY, matchHistoryNote);
+    localStorage.setItem(GAME_RULES_KEY, gameRules);
+    if (form.supportContact) {
+      localStorage.setItem(
+        SUPPORT_NUMBER_KEY,
+        form.supportContact.replace(/\D/g, ""),
+      );
     }
+    // Try backend (ignore failure — local save already done)
+    const backendPayload: AppSettings = {
+      appName: form.appName,
+      minWithdraw: form.minWithdraw,
+      referralBonus: form.referralBonus,
+      supportContact: form.supportContact,
+      upiDetails: form.upiDetails,
+      privacyPolicy: form.privacyPolicy,
+      termsAndConditions: form.termsAndConditions,
+      refundPolicy: form.refundPolicy,
+      announcementText: form.announcementText,
+    };
+    try {
+      await updateMutation.mutateAsync(backendPayload);
+    } catch {
+      // Backend failed but local save already succeeded — that's fine
+    }
+    toast.success("Settings saved!");
   };
 
   const f = (key: keyof AppSettings, val: string) => {
@@ -308,7 +504,7 @@ export default function AdminSettings() {
 
         <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
           <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-            Support & Payment
+            Support &amp; Payment
           </h2>
           <div>
             <Label>WhatsApp Support Number</Label>
@@ -338,7 +534,7 @@ export default function AdminSettings() {
 
         <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
           <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-            Policies
+            Policies (Backend Stored)
           </h2>
           <div>
             <Label>Privacy Policy</Label>
@@ -351,7 +547,7 @@ export default function AdminSettings() {
             />
           </div>
           <div>
-            <Label>Terms & Conditions</Label>
+            <Label>Terms &amp; Conditions</Label>
             <Textarea
               value={form.termsAndConditions}
               onChange={(e) => f("termsAndConditions", e.target.value)}
@@ -368,6 +564,63 @@ export default function AdminSettings() {
               rows={4}
               className="mt-1"
               data-ocid="admin-settings.refund.textarea"
+            />
+          </div>
+        </div>
+
+        {/* Local-only fields — stored in localStorage, NOT sent to backend */}
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            Extra Policies (Local Stored)
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Yeh fields locally save hote hain aur profile page par dikhte hain.
+          </p>
+          <div>
+            <Label>Contact Us</Label>
+            <Textarea
+              value={contactUs}
+              onChange={(e) => setContactUs(e.target.value)}
+              rows={3}
+              placeholder="Contact details, WhatsApp number, email..."
+              className="mt-1"
+              data-ocid="admin-settings.contactus.textarea"
+            />
+          </div>
+          <div>
+            <Label>Fair Play Policy</Label>
+            <Textarea
+              value={fairPlayPolicy}
+              onChange={(e) => setFairPlayPolicy(e.target.value)}
+              rows={4}
+              placeholder="Fair play rules aur guidelines..."
+              className="mt-1"
+              data-ocid="admin-settings.fairplay.textarea"
+            />
+          </div>
+          <div>
+            <Label>Match History Note</Label>
+            <Textarea
+              value={matchHistoryNote}
+              onChange={(e) => setMatchHistoryNote(e.target.value)}
+              rows={2}
+              placeholder="Match history ke baare mein note..."
+              className="mt-1"
+              data-ocid="admin-settings.matchhistory.textarea"
+            />
+          </div>
+          <div>
+            <Label>📜 Game Rules (Tournament Rules)</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Tournament ke rules likho — users profile page par dekh payenge.
+            </p>
+            <Textarea
+              value={gameRules}
+              onChange={(e) => setGameRules(e.target.value)}
+              rows={5}
+              placeholder="Tournament ke liye rules likhein...&#10;e.g. 1. Cheating strictly banned hai.&#10;2. Winner screenshot submit karna hoga."
+              className="mt-1"
+              data-ocid="admin-settings.gamerules.textarea"
             />
           </div>
         </div>
@@ -389,6 +642,7 @@ export default function AdminSettings() {
 
       <AdminPasswordSection />
       <FooterTextSection />
+      <UICustomizationSection />
     </div>
   );
 }

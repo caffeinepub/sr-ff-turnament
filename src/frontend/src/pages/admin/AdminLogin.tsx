@@ -16,7 +16,9 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
-    if (password === "7477661867Ss") {
+    const storedPw =
+      localStorage.getItem("srff_admin_password") || "7477661867Ss";
+    if (password === storedPw) {
       sessionStorage.setItem("adminAuth", "true");
       navigate({ to: "/admin/dashboard" });
     } else {

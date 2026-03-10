@@ -10,6 +10,29 @@ function getSupportNumber(): string {
 
 export default function Login() {
   const { login } = useUserAuth();
+  const formSize = localStorage.getItem("srff_form_size") || "large";
+  const sizeClasses = {
+    small: {
+      wrapper: "max-w-sm",
+      card: "p-4",
+      input: "py-2 text-sm",
+      btn: "py-2",
+    },
+    medium: {
+      wrapper: "max-w-md",
+      card: "p-5",
+      input: "py-2.5 text-sm",
+      btn: "py-2.5",
+    },
+    large: {
+      wrapper: "max-w-lg",
+      card: "p-7",
+      input: "py-3 text-base",
+      btn: "py-3",
+    },
+  };
+  const sz =
+    sizeClasses[formSize as keyof typeof sizeClasses] || sizeClasses.large;
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -47,7 +70,7 @@ export default function Login() {
         />
       </div>
 
-      <div className="w-full max-w-md relative">
+      <div className={`w-full ${sz.wrapper} relative`}>
         {/* Logo & Brand */}
         <div className="text-center mb-8">
           <div className="flex flex-col items-center gap-2">
@@ -87,7 +110,7 @@ export default function Login() {
         </div>
 
         <div
-          className="rounded-2xl border p-6"
+          className={`rounded-2xl border ${sz.card}`}
           style={{
             background: "oklch(0.12 0.028 15)",
             borderColor: "oklch(0.7 0.22 35 / 0.3)",
@@ -117,7 +140,7 @@ export default function Login() {
                 onChange={(e) => setPhone(e.target.value)}
                 required
                 placeholder="+91 XXXXXXXXXX"
-                className="w-full rounded-lg px-3 py-2.5 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
               />
             </div>
 
@@ -137,7 +160,7 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="••••••••"
-                  className="w-full rounded-lg px-3 py-2.5 pr-10 text-sm bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all"
+                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
                 />
                 <button
                   data-ocid="login.password.toggle"
@@ -169,7 +192,7 @@ export default function Login() {
               data-ocid="login.submit_button"
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 rounded-lg font-semibold text-sm transition-all active:scale-95 disabled:opacity-60"
+              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60`}
               style={{
                 background:
                   "linear-gradient(90deg, oklch(0.7 0.22 35), oklch(0.75 0.18 75))",

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
-import { Gift, Loader2, LogIn, TrendingUp } from "lucide-react";
+import { Gift, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useUserAuth } from "../context/UserAuthContext";
 import { useCallerProfile, useSettings } from "../hooks/useQueries";
 
 const EARNING_TIPS = [
@@ -12,7 +12,7 @@ const EARNING_TIPS = [
 ];
 
 export default function Earn() {
-  const { identity, login, isLoggingIn } = useInternetIdentity();
+  const { currentUser } = useUserAuth();
   const { data: profile } = useCallerProfile();
   const { data: settings } = useSettings();
 
@@ -22,33 +22,6 @@ export default function Earn() {
       toast.success("Referral code copied!");
     }
   };
-
-  if (!identity) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
-        <Gift className="w-16 h-16 text-primary/30" />
-        <div className="text-center">
-          <h2 className="font-display font-bold text-xl">Refer &amp; Earn</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Login to view your referral link
-          </p>
-        </div>
-        <Button
-          onClick={login}
-          disabled={isLoggingIn}
-          className="glow-orange"
-          data-ocid="earn.login.button"
-        >
-          {isLoggingIn ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <LogIn className="w-4 h-4 mr-2" />
-          )}
-          Login
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -72,7 +45,7 @@ export default function Earn() {
             </span>{" "}
             bonus kamao har refer pe!
           </p>
-          {profile?.referralCode && (
+          {currentUser && profile?.referralCode && (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
                 Tera referral code:

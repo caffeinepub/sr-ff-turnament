@@ -16,14 +16,22 @@ import {
   ArrowUpFromLine,
   Check,
   CheckCircle,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Copy,
   Edit2,
+  FileText,
   Loader2,
-  LogIn,
+  Lock,
   LogOut,
   MessageCircle,
+  Phone,
+  RefreshCw,
   Save,
+  ScrollText,
+  Shield,
+  ShieldCheck,
   Trophy,
   User,
   XCircle,
@@ -31,7 +39,6 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import type { PaymentRequest } from "../hooks/useQueries";
 import {
   useCallerProfile,
@@ -44,12 +51,24 @@ import {
 const WHATSAPP_NUMBER = "919104414372";
 const WHATSAPP_DISPLAY = "9104414372";
 const MIN_DEPOSIT_KEY = "srff_min_deposit";
+const CONTACT_US_KEY = "srff_contact_us";
+const FAIR_PLAY_KEY = "srff_fair_play_policy";
+const MATCH_HISTORY_KEY = "srff_match_history_note";
+const GAME_RULES_KEY = "srff_game_rules";
 
 function getMinDeposit(): number {
   try {
     return Number(localStorage.getItem(MIN_DEPOSIT_KEY)) || 50;
   } catch {
     return 50;
+  }
+}
+
+function getLocalString(key: string): string {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch {
+    return "";
   }
 }
 
@@ -167,9 +186,50 @@ function getSavedAvatar(): number {
   }
 }
 
+function PolicySection({
+  icon,
+  title,
+  content,
+  ocid,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  content: string;
+  ocid: string;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!content) return null;
+  return (
+    <div className="bg-card border border-border rounded-2xl overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+        onClick={() => setOpen((v) => !v)}
+        data-ocid={ocid}
+      >
+        <div className="flex items-center gap-2">
+          {icon}
+          <span className="font-display font-semibold text-sm">{title}</span>
+        </div>
+        {open ? (
+          <ChevronUp className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+        )}
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+            {content}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Profile() {
-  const { identity, login, isLoggingIn } = useInternetIdentity();
-  const { logout } = useUserAuth();
+  const { currentUser, logout } = useUserAuth();
   const navigate = useNavigate();
   const { data: profile } = useCallerProfile();
   const { data: settings } = useSettings();
@@ -194,10 +254,10 @@ export default function Profile() {
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
   const [convertAmount, setConvertAmount] = useState("");
+  const [rulesOpen, setRulesOpen] = useState(false);
 
-  const principalSlice =
-    identity?.getPrincipal().toString().slice(0, 8) ?? "guest";
-  const WINNING_CASH_KEY = `srff_winning_cash_${principalSlice}`;
+  const userKey = currentUser?.phone ?? "guest";
+  const WINNING_CASH_KEY = `srff_winning_cash_${userKey}`;
 
   const getWinningCash = (): number => {
     try {
@@ -207,6 +267,12 @@ export default function Profile() {
     }
   };
   const [winningCash, setWinningCash] = useState<number>(getWinningCash);
+
+  // Local-only policy fields from localStorage (set by admin)
+  const contactUs = getLocalString(CONTACT_US_KEY);
+  const fairPlayPolicy = getLocalString(FAIR_PLAY_KEY);
+  const matchHistoryNote = getLocalString(MATCH_HISTORY_KEY);
+  const gameRules = getLocalString(GAME_RULES_KEY);
 
   const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
   const minDeposit = getMinDeposit();
@@ -323,7 +389,7 @@ export default function Profile() {
       return;
     }
     if (amt > regularBalance) {
-      toast.error(`Sirf ₹${regularBalance} regular balance available hai`);
+      toast.error(`Sirf \u20b9${regularBalance} regular balance available hai`);
       return;
     }
     const newWinningCash = winningCash + amt;
@@ -331,32 +397,15 @@ export default function Profile() {
     setWinningCash(newWinningCash);
     setConvertAmount("");
     setConvertOpen(false);
-    toast.success(`₹${amt} Winning Cash mein convert ho gaya!`);
+    toast.success(`\u20b9${amt} Winning Cash mein convert ho gaya!`);
   };
 
-  if (!identity) {
+  if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-6 px-4">
-        <User className="w-16 h-16 text-muted-foreground/30" />
-        <div className="text-center">
-          <h2 className="font-display font-bold text-xl">Your Profile</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Login to view and edit your profile
-          </p>
-        </div>
-        <Button
-          onClick={login}
-          disabled={isLoggingIn}
-          className="glow-orange"
-          data-ocid="profile.login.button"
-        >
-          {isLoggingIn ? (
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-          ) : (
-            <LogIn className="w-4 h-4 mr-2" />
-          )}
-          {isLoggingIn ? "Connecting..." : "Login"}
-        </Button>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-muted-foreground text-sm">
+          Please login to view your profile.
+        </p>
       </div>
     );
   }
@@ -402,7 +451,7 @@ export default function Profile() {
               >
                 {currentAvatar
                   ? currentAvatar.emoji
-                  : (profile?.username?.charAt(0)?.toUpperCase() ?? "?")}
+                  : (currentUser.username?.charAt(0)?.toUpperCase() ?? "?")}
               </AvatarFallback>
             </Avatar>
             <button
@@ -419,10 +468,10 @@ export default function Profile() {
           </div>
           <div className="text-center">
             <p className="font-display font-bold text-lg">
-              {profile?.username || "Player"}
+              {currentUser.username || "Player"}
             </p>
-            <p className="text-xs text-muted-foreground font-mono">
-              {identity.getPrincipal().toString().slice(0, 16)}...
+            <p className="text-xs text-muted-foreground">
+              📱 {currentUser.phone}
             </p>
           </div>
         </div>
@@ -476,6 +525,7 @@ export default function Profile() {
               ))}
             </div>
             <Button
+              type="button"
               className="w-full"
               onClick={handleSetAvatar}
               disabled={selectedAvatarId === 0}
@@ -501,10 +551,10 @@ export default function Profile() {
                   (profile ? Number(profile.walletBalance) : 0) - winningCash,
                 )}
               </span>
-              {/* Convert to Winning Cash Dialog */}
               <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
                 <DialogTrigger asChild>
                   <Button
+                    type="button"
                     size="sm"
                     className="gap-1.5 text-xs"
                     data-ocid="profile.convert.button"
@@ -541,6 +591,7 @@ export default function Profile() {
                       />
                     </div>
                     <Button
+                      type="button"
                       className="w-full"
                       onClick={handleConvertSubmit}
                       data-ocid="profile.convert.submit_button"
@@ -565,10 +616,10 @@ export default function Profile() {
               <span className="font-display font-bold text-3xl text-yellow-300">
                 ₹{winningCash}
               </span>
-              {/* Withdraw Dialog */}
               <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
                 <DialogTrigger asChild>
                   <Button
+                    type="button"
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10"
@@ -627,6 +678,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <Button
+                          type="button"
                           className="w-full"
                           onClick={handleWithdrawSubmit}
                           disabled={submitPayment.isPending}
@@ -647,7 +699,6 @@ export default function Profile() {
 
           {/* Deposit Button */}
           <div className="flex gap-3">
-            {/* Deposit Dialog */}
             <Dialog
               open={depositOpen}
               onOpenChange={(open) => {
@@ -657,6 +708,7 @@ export default function Profile() {
             >
               <DialogTrigger asChild>
                 <Button
+                  type="button"
                   className="w-full gap-2"
                   data-ocid="profile.deposit.button"
                 >
@@ -682,6 +734,7 @@ export default function Profile() {
                       </p>
                     </div>
                     <Button
+                      type="button"
                       variant="outline"
                       onClick={() => setDepositOpen(false)}
                       data-ocid="profile.deposit.close_button"
@@ -760,6 +813,7 @@ export default function Profile() {
                       </p>
                     </div>
                     <Button
+                      type="button"
                       className="w-full"
                       onClick={handleDepositSubmit}
                       disabled={submitPayment.isPending}
@@ -776,6 +830,7 @@ export default function Profile() {
             </Dialog>
           </div>
         </div>
+
         {/* My Payment Requests */}
         {myRequests && myRequests.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-4">
@@ -820,6 +875,7 @@ export default function Profile() {
             <h3 className="font-display font-semibold text-sm">Player Info</h3>
             {!editing ? (
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={startEdit}
@@ -829,6 +885,7 @@ export default function Profile() {
               </Button>
             ) : (
               <Button
+                type="button"
                 size="sm"
                 onClick={handleSave}
                 disabled={saveMutation.isPending}
@@ -856,9 +913,25 @@ export default function Profile() {
                 />
               ) : (
                 <p className="mt-1 text-sm font-medium">
-                  {profile?.username || "Not set"}
+                  {currentUser.username || "Not set"}
                 </p>
               )}
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Free Fire Name
+              </Label>
+              <p className="mt-1 text-sm font-medium">
+                {currentUser.ffName || "Not set"}
+              </p>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">
+                Mobile Number
+              </Label>
+              <p className="mt-1 text-sm font-medium font-mono">
+                {currentUser.phone}
+              </p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">
@@ -891,6 +964,7 @@ export default function Profile() {
                 {profile.referralCode}
               </code>
               <Button
+                type="button"
                 variant="outline"
                 size="sm"
                 onClick={copyReferral}
@@ -899,6 +973,102 @@ export default function Profile() {
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Rules, Privacy, T&C, Refund, Contact Us, Fair Play — Admin controlled */}
+        <div className="space-y-2">
+          <h3 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide px-1">
+            📋 App Rules &amp; Policies
+          </h3>
+
+          {matchHistoryNote ? (
+            <div className="bg-card border border-border rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Trophy className="w-4 h-4 text-primary" />
+                <h4 className="font-display font-semibold text-sm">
+                  Match History
+                </h4>
+              </div>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {matchHistoryNote}
+              </p>
+            </div>
+          ) : null}
+
+          <PolicySection
+            icon={<Shield className="w-4 h-4 text-blue-400" />}
+            title="Privacy Policy"
+            content={settings?.privacyPolicy ?? ""}
+            ocid="profile.privacy.toggle"
+          />
+          <PolicySection
+            icon={<FileText className="w-4 h-4 text-green-400" />}
+            title="Terms &amp; Conditions"
+            content={settings?.termsAndConditions ?? ""}
+            ocid="profile.terms.toggle"
+          />
+          <PolicySection
+            icon={<RefreshCw className="w-4 h-4 text-orange-400" />}
+            title="Refund Policy"
+            content={settings?.refundPolicy ?? ""}
+            ocid="profile.refund.toggle"
+          />
+          <PolicySection
+            icon={<ShieldCheck className="w-4 h-4 text-purple-400" />}
+            title="Fair Play Policy"
+            content={fairPlayPolicy}
+            ocid="profile.fairplay.toggle"
+          />
+          <PolicySection
+            icon={<Phone className="w-4 h-4 text-cyan-400" />}
+            title="Contact Us"
+            content={contactUs}
+            ocid="profile.contactus.toggle"
+          />
+
+          {/* 📜 Rules Button */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setRulesOpen((v) => !v)}
+              data-ocid="profile.rules.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <ScrollText className="w-4 h-4 text-amber-400" />
+                <span className="font-display font-semibold text-sm">
+                  📜 Rules
+                </span>
+              </div>
+              {rulesOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {rulesOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {gameRules || "Admin ne abhi rules set nahi kiye hain."}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* App Rules section (if admin has set rules separately) */}
+        {settings?.upiDetails && (
+          <div className="bg-card border border-border rounded-2xl p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-primary" />
+              <h3 className="font-display font-semibold text-sm">
+                Payment / UPI Details
+              </h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {settings.upiDetails}
+            </p>
           </div>
         )}
       </div>
