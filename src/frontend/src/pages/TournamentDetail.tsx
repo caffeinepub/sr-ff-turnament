@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAllTournaments,
@@ -29,6 +30,113 @@ const RANK_BG = [
   "bg-amber-600/20 border-amber-600/40",
 ];
 
+const AVATARS = [
+  {
+    id: 1,
+    emoji: "\uD83D\uDD25",
+    label: "Fire",
+    bg: "from-orange-500 to-red-600",
+  },
+  {
+    id: 2,
+    emoji: "\u26A1",
+    label: "Thunder",
+    bg: "from-yellow-400 to-orange-500",
+  },
+  {
+    id: 3,
+    emoji: "\uD83C\uDFC6",
+    label: "Champion",
+    bg: "from-yellow-500 to-amber-600",
+  },
+  {
+    id: 4,
+    emoji: "\uD83C\uDFAF",
+    label: "Sniper",
+    bg: "from-green-500 to-emerald-600",
+  },
+  {
+    id: 5,
+    emoji: "\u2694\uFE0F",
+    label: "Warrior",
+    bg: "from-blue-500 to-indigo-600",
+  },
+  {
+    id: 6,
+    emoji: "\uD83D\uDEE1\uFE0F",
+    label: "Shield",
+    bg: "from-slate-500 to-slate-600",
+  },
+  {
+    id: 7,
+    emoji: "\uD83D\uDC80",
+    label: "Skull",
+    bg: "from-purple-500 to-violet-600",
+  },
+  {
+    id: 8,
+    emoji: "\uD83E\uDD81",
+    label: "Lion",
+    bg: "from-amber-500 to-yellow-600",
+  },
+  {
+    id: 9,
+    emoji: "\uD83D\uDC09",
+    label: "Dragon",
+    bg: "from-red-500 to-rose-600",
+  },
+  {
+    id: 10,
+    emoji: "\uD83C\uDF1F",
+    label: "Star",
+    bg: "from-cyan-500 to-blue-600",
+  },
+  {
+    id: 11,
+    emoji: "\uD83C\uDFAE",
+    label: "Gamer",
+    bg: "from-pink-500 to-rose-600",
+  },
+  {
+    id: 12,
+    emoji: "\uD83D\uDC51",
+    label: "King",
+    bg: "from-yellow-400 to-yellow-600",
+  },
+];
+
+interface TournamentPlayer {
+  phone: string;
+  username: string;
+  avatarId: number;
+  joinedAt: string;
+  winningAmount?: number;
+}
+
+function maskPhone(phone: string): string {
+  if (phone.length < 4) return phone;
+  return `${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+}
+
+function getTournamentPlayers(tournamentId: string): TournamentPlayer[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(`srff_tp_${tournamentId}`) ?? "[]",
+    ) as TournamentPlayer[];
+  } catch {
+    return [];
+  }
+}
+
+function getAvatarById(avatarId: number) {
+  return (
+    AVATARS.find((a) => a.id === avatarId) ?? {
+      emoji: "\uD83C\uDFAE",
+      bg: "from-pink-500 to-rose-600",
+    }
+  );
+}
+
 export default function TournamentDetail() {
   const params = useParams({ strict: false });
   const id = (params as Record<string, string>).id ?? "";
@@ -36,6 +144,7 @@ export default function TournamentDetail() {
   const { data: tournaments = [] } = useAllTournaments();
   const { data: profile } = useCallerProfile();
   const { identity, login } = useInternetIdentity();
+  const { currentUser } = useUserAuth();
   const joinMutation = useJoinTournament();
   const tournament = tournaments.find((t) => t.id.toString() === id);
   const { data: leaderboard = [] } = useLeaderboard(
@@ -65,6 +174,8 @@ export default function TournamentDetail() {
   const joinPercent =
     maxPlayers > 0 ? Math.min((playerCount / maxPlayers) * 100, 100) : 0;
 
+  const joinedPlayers = getTournamentPlayers(tournament.id.toString());
+
   const handleJoin = async () => {
     if (!identity) {
       login();
@@ -73,6 +184,54 @@ export default function TournamentDetail() {
     try {
       await joinMutation.mutateAsync(tournament.id);
       toast.success("Joined tournament!");
+
+      // Save to match history in localStorage
+      const userKey = profile?.principal?.toString() ?? "guest";
+      const JOINED_KEY = `srff_joined_matches_${userKey}`;
+      try {
+        const existing = JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
+        const already = existing.find(
+          (m: { id: string }) => m.id === tournament.id.toString(),
+        );
+        if (!already) {
+          existing.push({
+            id: tournament.id.toString(),
+            title: tournament.title,
+            gameMode: tournament.gameMode,
+            entryFee: Number(tournament.entryFee),
+            prizePool: Number(tournament.prizePool),
+            joinedAt: new Date().toISOString(),
+            winningAmount: 0,
+          });
+          localStorage.setItem(JOINED_KEY, JSON.stringify(existing));
+        }
+      } catch {}
+
+      // Save player to tournament players list
+      if (currentUser) {
+        const tpKey = `srff_tp_${tournament.id.toString()}`;
+        try {
+          const players: TournamentPlayer[] = JSON.parse(
+            localStorage.getItem(tpKey) ?? "[]",
+          );
+          const alreadyJoined = players.find(
+            (p) => p.phone === currentUser.phone,
+          );
+          if (!alreadyJoined) {
+            const savedAvatarId = Number.parseInt(
+              localStorage.getItem("srff_avatar") || "0",
+            );
+            players.push({
+              phone: currentUser.phone,
+              username: currentUser.username,
+              avatarId: savedAvatarId,
+              joinedAt: new Date().toISOString(),
+              winningAmount: 0,
+            });
+            localStorage.setItem(tpKey, JSON.stringify(players));
+          }
+        } catch {}
+      }
     } catch {
       toast.error("Failed to join. Check wallet balance.");
     }
@@ -176,9 +335,16 @@ export default function TournamentDetail() {
 
         {/* Player Join Leaderboard / Status */}
         <div className="bg-card border border-border rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-primary" />
-            <h3 className="font-display font-bold text-sm">Players Joined</h3>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <h3 className="font-display font-bold text-sm">Players Joined</h3>
+            </div>
+            {joinedPlayers.length > 0 && (
+              <span className="text-xs bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">
+                {joinedPlayers.length} Players
+              </span>
+            )}
           </div>
 
           {/* Progress Bar */}
@@ -189,7 +355,7 @@ export default function TournamentDetail() {
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="grid grid-cols-3 gap-2 text-center mb-3">
             <div className="bg-background rounded-xl p-2">
               <p className="text-xs text-muted-foreground">Joined</p>
               <p className="font-bold text-lg text-primary">{playerCount}</p>
@@ -209,11 +375,63 @@ export default function TournamentDetail() {
           {minPlayers > 0 &&
             playerCount < minPlayers &&
             tournament.status !== "complete" && (
-              <p className="text-xs text-warning mt-2 text-center">
+              <p className="text-xs text-warning mb-3 text-center">
                 Tournament start hone ke liye {minPlayers - playerCount} aur
                 players chahiye
               </p>
             )}
+
+          {/* Joined Players List */}
+          {joinedPlayers.length > 0 ? (
+            <div
+              className="space-y-2 max-h-60 overflow-y-auto pr-1"
+              data-ocid="tournament-detail.joined-players.list"
+            >
+              {joinedPlayers.map((player, i) => {
+                const av = getAvatarById(player.avatarId);
+                return (
+                  <div
+                    key={`${player.phone}-${i}`}
+                    className="flex items-center gap-3 bg-background rounded-xl px-3 py-2"
+                    data-ocid={`tournament-detail.joined-players.item.${i + 1}`}
+                  >
+                    {/* Avatar */}
+                    <div
+                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}
+                    >
+                      {av.emoji}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate">
+                        {player.username}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {maskPhone(player.phone)}
+                      </p>
+                    </div>
+                    {/* Winning badge if tournament complete */}
+                    {tournament.status === "complete" &&
+                      player.winningAmount != null &&
+                      player.winningAmount > 0 && (
+                        <span className="text-xs font-bold bg-success/20 text-success border border-success/30 rounded-full px-2 py-0.5 shrink-0">
+                          \u2705 \u20b9{player.winningAmount}
+                        </span>
+                      )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              className="text-center py-4"
+              data-ocid="tournament-detail.joined-players.empty_state"
+            >
+              <p className="text-xs text-muted-foreground">
+                Abhi koi player join nahi kiya
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Wallet Balance */}

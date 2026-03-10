@@ -14,6 +14,7 @@ import AppLinks from "./pages/AppLinks";
 import Earn from "./pages/Earn";
 import ForgotPassword from "./pages/ForgotPassword";
 import Home from "./pages/Home";
+import Leaderboard from "./pages/Leaderboard";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import Register from "./pages/Register";
@@ -98,6 +99,11 @@ const earnRoute = createRoute({
   path: "/earn",
   component: Earn,
 });
+const leaderboardRoute = createRoute({
+  getParentRoute: () => userLayoutRoute,
+  path: "/leaderboard",
+  component: Leaderboard,
+});
 
 const appLinksRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -174,6 +180,7 @@ const routeTree = rootRoute.addChildren([
     tournamentDetailRoute,
     profileRoute,
     earnRoute,
+    leaderboardRoute,
   ]),
   appLinksRoute,
   adminLoginRoute,

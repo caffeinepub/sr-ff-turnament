@@ -1,8 +1,11 @@
 import {
   Check,
+  Code2,
   Copy,
+  Download,
   ExternalLink,
   FileText,
+  Loader2,
   Shield,
   Users,
 } from "lucide-react";
@@ -230,6 +233,7 @@ LINKS PAGE (/links):
 - User Panel link with copy button
 - Admin Panel link with copy button
 - Full App Prompt with one-click copy button
+- Full App Code download button
 
 ===============================================
 IMPORTANT RULES:
@@ -267,6 +271,73 @@ function CopyButton({
     >
       {copied ? <Check size={16} /> : <Copy size={16} />}
       {copied ? "Copied!" : label}
+    </button>
+  );
+}
+
+function DownloadCodeButton() {
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">(
+    "idle",
+  );
+
+  const handleDownload = async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch("/assets/full-app-code.txt");
+      if (!res.ok) throw new Error("fetch failed");
+      const text = await res.text();
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "SR-FF-TOURNAMENT-FullCode.txt";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setStatus("done");
+      setTimeout(() => setStatus("idle"), 3000);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleDownload}
+      disabled={status === "loading"}
+      data-ocid="applinks.download_code_button"
+      className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 active:scale-95 disabled:opacity-60"
+      style={{
+        background:
+          status === "done"
+            ? "linear-gradient(135deg,#22c55e,#16a34a)"
+            : status === "error"
+              ? "linear-gradient(135deg,#ef4444,#dc2626)"
+              : "linear-gradient(135deg,#6366f1,#a855f7)",
+        color: "#fff",
+      }}
+    >
+      {status === "loading" ? (
+        <>
+          <Loader2 size={16} className="animate-spin" />
+          Downloading...
+        </>
+      ) : status === "done" ? (
+        <>
+          <Check size={16} /> Downloaded!
+        </>
+      ) : status === "error" ? (
+        <>
+          <span>⚠</span> Error — Try Again
+        </>
+      ) : (
+        <>
+          <Download size={16} /> Download Full App Code
+        </>
+      )}
     </button>
   );
 }
@@ -366,6 +437,30 @@ export default function AppLinks() {
             </p>
           </div>
           <CopyButton text={FULL_PROMPT} label="Copy Full Prompt" />
+        </div>
+
+        {/* Full App Code Download */}
+        <div className="bg-gray-900 border border-indigo-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-500/20 p-2 rounded-lg">
+              <Code2 size={20} className="text-indigo-400" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold">Full App Code</h2>
+              <p className="text-gray-400 text-xs">
+                Poora source code — backup ke liye download karo
+              </p>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-lg px-3 py-2">
+            <p className="text-gray-400 text-xs leading-relaxed">
+              App ke saare pages, components, context aur admin panel ka source
+              code ek single{" "}
+              <span className="text-indigo-300 font-mono">.txt</span> file mein.
+              Download karke safe jagah save karo — yeh aapka backup hai.
+            </p>
+          </div>
+          <DownloadCodeButton />
         </div>
 
         <p className="text-center text-gray-600 text-xs">

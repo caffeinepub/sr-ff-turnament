@@ -1,12 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Coins, Gamepad2, User } from "lucide-react";
+import { Gamepad2, Trophy, User } from "lucide-react";
 
 export default function BottomNav() {
   const { location } = useRouterState();
   const path = location.pathname;
 
   const links = [
-    { to: "/earn", label: "Earn", icon: Coins },
+    { to: "/leaderboard", label: "Board", icon: Trophy },
     { to: "/", label: "Play", icon: Gamepad2 },
     { to: "/profile", label: "Profile", icon: User },
   ];

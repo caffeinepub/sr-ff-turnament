@@ -61,24 +61,9 @@ const BANK_NAME_KEY = "srff_bank_name";
 
 function getMinDeposit(): number {
   try {
-    const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 50;
-    const val = Number(raw);
-    return Number.isNaN(val) ? 50 : val;
+    return Number(localStorage.getItem(MIN_DEPOSIT_KEY)) || 50;
   } catch {
     return 50;
-  }
-}
-
-function getLocalWalletBalance(): number {
-  try {
-    const cu = JSON.parse(localStorage.getItem("srff_current_user") || "null");
-    if (!cu?.phone) return 0;
-    const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
-    const u = users.find((u: any) => u.phone === cu.phone);
-    return u?.walletBalance || 0;
-  } catch {
-    return 0;
   }
 }
 
@@ -304,32 +289,20 @@ export default function Profile() {
   const bankHolder = getLocalString(BANK_HOLDER_KEY) || "SK SAHIL";
   const bankName = getLocalString(BANK_NAME_KEY) || "Airtel Payment Bank";
 
+  const startEdit = () => {
+    setUsername(profile?.username ?? "");
+    setFfUid(profile?.ffUid ?? "");
+    setEditing(true);
+  };
+
   const handleSave = async () => {
     if (!profile) return;
     try {
       await saveMutation.mutateAsync({ ...profile, username, ffUid });
       toast.success("Profile saved!");
       setEditing(false);
-      setShowPlayerInfo(false);
     } catch {
       toast.error("Failed to save profile");
-    }
-  };
-
-  const handleClearInfo = async () => {
-    if (!profile) return;
-    try {
-      await saveMutation.mutateAsync({
-        ...profile,
-        username: profile.username ?? "",
-        ffUid: "",
-      });
-      setFfUid("");
-      toast.success("Player info cleared!");
-      setEditing(false);
-      setShowPlayerInfo(false);
-    } catch {
-      toast.error("Failed to clear info");
     }
   };
 
@@ -337,8 +310,6 @@ export default function Profile() {
     localStorage.setItem(AVATAR_KEY, String(selectedAvatarId));
     setSavedAvatarId(selectedAvatarId);
     setShowAvatarPicker(false);
-    setShowPlayerInfo(false);
-    setEditing(false);
     toast.success("Avatar updated!");
   };
 
@@ -365,7 +336,7 @@ export default function Profile() {
     }
     submitPayment.mutate(
       {
-        amount: amt,
+        amount: BigInt(amt),
         requestType: { deposit: null },
         note: depositNote.trim(),
         upiId: "",
@@ -398,7 +369,7 @@ export default function Profile() {
     }
     submitPayment.mutate(
       {
-        amount: amt,
+        amount: BigInt(amt),
         requestType: { withdraw: null },
         note: "",
         upiId: withdrawUpi.trim(),
@@ -494,13 +465,6 @@ export default function Profile() {
                 setSelectedAvatarId(savedAvatarId);
                 setShowAvatarPicker(next);
                 setShowPlayerInfo(next);
-                if (next) {
-                  setUsername(profile?.username ?? "");
-                  setFfUid(profile?.ffUid ?? "");
-                  setEditing(true);
-                } else {
-                  setEditing(false);
-                }
               }}
               className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-background hover:bg-primary/90 transition-colors"
               data-ocid="profile.avatar-change.button"
@@ -588,18 +552,17 @@ export default function Profile() {
               <h3 className="font-display font-semibold text-sm">
                 Player Info
               </h3>
-              <div className="flex items-center gap-2">
+              {!editing ? (
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                   size="sm"
-                  onClick={handleClearInfo}
-                  disabled={saveMutation.isPending}
-                  className="text-xs border-destructive/50 text-destructive hover:bg-destructive/10"
-                  data-ocid="profile.clear-info.button"
+                  onClick={startEdit}
+                  data-ocid="profile.edit.button"
                 >
-                  Clear Info
+                  <Edit2 className="w-3.5 h-3.5 mr-1" /> Edit
                 </Button>
+              ) : (
                 <Button
                   type="button"
                   size="sm"
@@ -614,7 +577,7 @@ export default function Profile() {
                   )}
                   Save
                 </Button>
-              </div>
+              )}
             </div>
             <div className="space-y-3">
               <div>
@@ -682,7 +645,11 @@ export default function Profile() {
             </p>
             <div className="flex items-center justify-between mt-1">
               <span className="font-display font-bold text-3xl text-foreground">
-                ₹{Math.max(0, getLocalWalletBalance() - winningCash)}
+                ₹
+                {Math.max(
+                  0,
+                  (profile ? Number(profile.walletBalance) : 0) - winningCash,
+                )}
               </span>
               <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
                 <DialogTrigger asChild>
@@ -708,7 +675,11 @@ export default function Profile() {
                     <div>
                       <Label>
                         Amount (₹) — Available: ₹
-                        {Math.max(0, getLocalWalletBalance() - winningCash)}
+                        {Math.max(
+                          0,
+                          (profile ? Number(profile.walletBalance) : 0) -
+                            winningCash,
+                        )}
                       </Label>
                       <Input
                         value={convertAmount}

@@ -17,8 +17,8 @@ import {
   useUpdatePaymentRequestStatus,
 } from "../../hooks/useQueries";
 
-function formatDate(timestamp: bigint) {
-  const ms = Number(timestamp) / 1_000_000;
+function formatDate(timestamp: number) {
+  const ms = timestamp;
   return new Date(ms).toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
@@ -162,7 +162,7 @@ function RequestList({
     );
   }
 
-  const handleAccept = (id: bigint) => {
+  const handleAccept = (id: number) => {
     updateStatus(
       { requestId: id, status: { accepted: null } },
       {
@@ -172,7 +172,7 @@ function RequestList({
     );
   };
 
-  const handleReject = (id: bigint) => {
+  const handleReject = (id: number) => {
     updateStatus(
       { requestId: id, status: { rejected: null } },
       {

@@ -24,6 +24,10 @@ const FAIR_PLAY_KEY = "srff_fair_play_policy";
 const MATCH_HISTORY_KEY = "srff_match_history_note";
 const GAME_RULES_KEY = "srff_game_rules";
 const DEFAULT_ADMIN_PASSWORD = "7477661867Ss";
+const UPI_ID_KEY = "srff_upi_id";
+const BANK_ACCOUNT_KEY = "srff_bank_account";
+const BANK_HOLDER_KEY = "srff_bank_holder";
+const BANK_NAME_KEY = "srff_bank_name";
 
 const DEFAULT_SETTINGS: AppSettings = {
   appName: "SR-FF-TOURNAMENT",
@@ -39,7 +43,10 @@ const DEFAULT_SETTINGS: AppSettings = {
 
 function getStoredMinDeposit(): number {
   try {
-    return Number(localStorage.getItem(MIN_DEPOSIT_KEY)) || 50;
+    const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
+    if (raw === null) return 50;
+    const val = Number(raw);
+    return Number.isNaN(val) ? 50 : val;
   } catch {
     return 50;
   }
@@ -521,13 +528,59 @@ export default function AdminSettings() {
             />
           </div>
           <div>
-            <Label>UPI Payment Details</Label>
+            <Label>UPI ID</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Users deposit page par UPI ID copy karenge is se payment karenge.
+            </p>
             <Input
-              value={form.upiDetails}
-              onChange={(e) => f("upiDetails", e.target.value)}
+              value={localStorage.getItem(UPI_ID_KEY) ?? "sk190rihan@mvhdfc"}
+              onChange={(e) => {
+                localStorage.setItem(UPI_ID_KEY, e.target.value);
+                f("upiDetails", e.target.value);
+              }}
               placeholder="yourname@upi"
               className="mt-1"
               data-ocid="admin-settings.upi.input"
+            />
+          </div>
+          <div>
+            <Label>Bank Account Number</Label>
+            <Input
+              defaultValue={
+                localStorage.getItem(BANK_ACCOUNT_KEY) ?? "7477661867"
+              }
+              onChange={(e) =>
+                localStorage.setItem(BANK_ACCOUNT_KEY, e.target.value)
+              }
+              placeholder="Bank account number"
+              className="mt-1"
+              data-ocid="admin-settings.bank_account.input"
+            />
+          </div>
+          <div>
+            <Label>Account Holder Name</Label>
+            <Input
+              defaultValue={localStorage.getItem(BANK_HOLDER_KEY) ?? "SK SAHIL"}
+              onChange={(e) =>
+                localStorage.setItem(BANK_HOLDER_KEY, e.target.value)
+              }
+              placeholder="Account holder ka naam"
+              className="mt-1"
+              data-ocid="admin-settings.bank_holder.input"
+            />
+          </div>
+          <div>
+            <Label>Bank Name</Label>
+            <Input
+              defaultValue={
+                localStorage.getItem(BANK_NAME_KEY) ?? "Airtel Payment Bank"
+              }
+              onChange={(e) =>
+                localStorage.setItem(BANK_NAME_KEY, e.target.value)
+              }
+              placeholder="e.g. Airtel Payment Bank, SBI"
+              className="mt-1"
+              data-ocid="admin-settings.bank_name.input"
             />
           </div>
         </div>

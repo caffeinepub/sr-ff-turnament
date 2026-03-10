@@ -10,14 +10,16 @@ import type {
 } from "../backend.d";
 import { useActor } from "./useActor";
 
+const PAYMENTS_KEY = "srff_payment_requests";
+
 export interface PaymentRequest {
-  id: bigint;
-  userId: Principal;
+  id: number;
+  userPhone: string;
   username: string;
-  amount: bigint;
+  amount: number;
   requestType: { deposit: null } | { withdraw: null };
   status: { pending: null } | { accepted: null } | { rejected: null };
-  timestamp: bigint;
+  timestamp: number;
   note: string;
   upiId: string;
 }
@@ -282,22 +284,37 @@ export function useCreateTransaction() {
 
 // Payment request hooks
 export function useSubmitPaymentRequest() {
-  const { actor } = useActor();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
-      amount: bigint;
+      amount: number;
       requestType: { deposit: null } | { withdraw: null };
       note: string;
       upiId: string;
     }) => {
-      if (!actor) throw new Error("Not connected");
-      return (actor as any).submitPaymentRequest(
-        args.amount,
-        args.requestType,
-        args.note,
-        args.upiId,
-      ) as Promise<bigint>;
+      const currentUser = JSON.parse(
+        localStorage.getItem("srff_current_user") || "null",
+      );
+      if (!currentUser?.phone) throw new Error("Not logged in");
+      const requests: PaymentRequest[] = JSON.parse(
+        localStorage.getItem(PAYMENTS_KEY) || "[]",
+      );
+      const newId =
+        requests.length > 0 ? Math.max(...requests.map((r) => r.id)) + 1 : 1;
+      const newReq: PaymentRequest = {
+        id: newId,
+        userPhone: currentUser.phone,
+        username: currentUser.username || currentUser.phone,
+        amount: args.amount,
+        requestType: args.requestType,
+        status: { pending: null },
+        timestamp: Date.now(),
+        note: args.note,
+        upiId: args.upiId,
+      };
+      requests.push(newReq);
+      localStorage.setItem(PAYMENTS_KEY, JSON.stringify(requests));
+      return newId;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
@@ -306,57 +323,74 @@ export function useSubmitPaymentRequest() {
 }
 
 export function useMyPaymentRequests() {
-  const { actor, isFetching } = useActor();
   return useQuery<PaymentRequest[]>({
     queryKey: ["myPaymentRequests"],
     queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return (await (
-          actor as any
-        ).getMyPaymentRequests()) as PaymentRequest[];
-      } catch {
-        return [];
-      }
+      const currentUser = JSON.parse(
+        localStorage.getItem("srff_current_user") || "null",
+      );
+      if (!currentUser?.phone) return [];
+      const requests: PaymentRequest[] = JSON.parse(
+        localStorage.getItem(PAYMENTS_KEY) || "[]",
+      );
+      return requests.filter((r) => r.userPhone === currentUser.phone);
     },
-    enabled: !!actor && !isFetching,
   });
 }
 
 export function useAllPaymentRequests() {
-  const { actor, isFetching } = useActor();
   return useQuery<PaymentRequest[]>({
     queryKey: ["allPaymentRequests"],
     queryFn: async () => {
-      if (!actor) return [];
-      try {
-        return (await (
-          actor as any
-        ).getAllPaymentRequests()) as PaymentRequest[];
-      } catch {
-        return [];
-      }
+      return JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
     },
-    enabled: !!actor && !isFetching,
   });
 }
 
 export function useUpdatePaymentRequestStatus() {
-  const { actor } = useActor();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
-      requestId: bigint;
+      requestId: number;
       status: { accepted: null } | { rejected: null };
     }) => {
-      if (!actor) throw new Error("Not connected");
-      return (actor as any).updatePaymentRequestStatus(
-        args.requestId,
-        args.status,
-      ) as Promise<void>;
+      const requests: PaymentRequest[] = JSON.parse(
+        localStorage.getItem(PAYMENTS_KEY) || "[]",
+      );
+      const idx = requests.findIndex((r) => r.id === args.requestId);
+      if (idx === -1) throw new Error("Request not found");
+      const req = requests[idx];
+      requests[idx] = { ...req, status: args.status };
+      localStorage.setItem(PAYMENTS_KEY, JSON.stringify(requests));
+
+      // When deposit accepted: add to user walletBalance
+      if ("accepted" in args.status && "deposit" in req.requestType) {
+        const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
+        const userIdx = users.findIndex((u: any) => u.phone === req.userPhone);
+        if (userIdx !== -1) {
+          users[userIdx].walletBalance =
+            (users[userIdx].walletBalance || 0) + req.amount;
+          localStorage.setItem("srff_users", JSON.stringify(users));
+          const cu = JSON.parse(
+            localStorage.getItem("srff_current_user") || "null",
+          );
+          if (cu?.phone === req.userPhone) {
+            cu.walletBalance = users[userIdx].walletBalance;
+            localStorage.setItem("srff_current_user", JSON.stringify(cu));
+          }
+        }
+      }
+
+      // When withdrawal accepted: deduct from winningCash
+      if ("accepted" in args.status && "withdraw" in req.requestType) {
+        const cashKey = `srff_winning_cash_${req.userPhone}`;
+        const cur = Number(localStorage.getItem(cashKey) || "0");
+        localStorage.setItem(cashKey, String(Math.max(0, cur - req.amount)));
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
+      qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
     },
   });
 }

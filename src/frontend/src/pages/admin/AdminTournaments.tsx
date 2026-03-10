@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  CheckCircle2,
   Edit2,
   Loader2,
   Medal,
@@ -68,6 +69,120 @@ const GAME_MODES = [
 const DELETED_KEY = "srff_deleted_tournaments";
 const OVERRIDES_KEY = "srff_tournament_overrides";
 const CREATED_KEY = "srff_created_tournaments";
+
+const AVATARS = [
+  { id: 1, emoji: "\uD83D\uDD25", bg: "from-orange-500 to-red-600" },
+  { id: 2, emoji: "\u26A1", bg: "from-yellow-400 to-orange-500" },
+  { id: 3, emoji: "\uD83C\uDFC6", bg: "from-yellow-500 to-amber-600" },
+  { id: 4, emoji: "\uD83C\uDFAF", bg: "from-green-500 to-emerald-600" },
+  { id: 5, emoji: "\u2694\uFE0F", bg: "from-blue-500 to-indigo-600" },
+  { id: 6, emoji: "\uD83D\uDEE1\uFE0F", bg: "from-slate-500 to-slate-600" },
+  { id: 7, emoji: "\uD83D\uDC80", bg: "from-purple-500 to-violet-600" },
+  { id: 8, emoji: "\uD83E\uDD81", bg: "from-amber-500 to-yellow-600" },
+  { id: 9, emoji: "\uD83D\uDC09", bg: "from-red-500 to-rose-600" },
+  { id: 10, emoji: "\uD83C\uDF1F", bg: "from-cyan-500 to-blue-600" },
+  { id: 11, emoji: "\uD83C\uDFAE", bg: "from-pink-500 to-rose-600" },
+  { id: 12, emoji: "\uD83D\uDC51", bg: "from-yellow-400 to-yellow-600" },
+];
+
+interface TournamentPlayer {
+  phone: string;
+  username: string;
+  avatarId: number;
+  joinedAt: string;
+  winningAmount?: number;
+}
+
+function maskPhone(phone: string): string {
+  if (phone.length < 4) return phone;
+  return `${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+}
+
+function getTournamentPlayers(tournamentId: string): TournamentPlayer[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(`srff_tp_${tournamentId}`) ?? "[]",
+    ) as TournamentPlayer[];
+  } catch {
+    return [];
+  }
+}
+
+function saveTournamentPlayerWinnings(
+  tournamentId: string,
+  players: TournamentPlayer[],
+) {
+  localStorage.setItem(`srff_tp_${tournamentId}`, JSON.stringify(players));
+}
+
+function getAvatarById(avatarId: number) {
+  return (
+    AVATARS.find((a) => a.id === avatarId) ?? {
+      emoji: "\uD83C\uDFAE",
+      bg: "from-pink-500 to-rose-600",
+    }
+  );
+}
+
+/**
+ * Automatically credit winning amount to a player's Winning Cash wallet.
+ * Uses srff_winning_cash_{phone} key — same key that Profile.tsx reads.
+ * Tracks credited tournaments per phone to avoid double-crediting.
+ */
+function creditWinningCash(
+  phone: string,
+  amount: number,
+  tournamentId: string,
+  tournamentTitle: string,
+) {
+  if (amount <= 0) return;
+
+  // Prevent double-crediting: check if this tournament already credited for this phone
+  const creditedKey = `srff_credited_${phone}`;
+  let credited: string[] = [];
+  try {
+    credited = JSON.parse(
+      localStorage.getItem(creditedKey) ?? "[]",
+    ) as string[];
+  } catch {
+    credited = [];
+  }
+  if (credited.includes(tournamentId)) return; // Already credited
+
+  // Add to winning cash
+  const cashKey = `srff_winning_cash_${phone}`;
+  const current = Number(localStorage.getItem(cashKey) ?? "0");
+  localStorage.setItem(cashKey, String(current + amount));
+
+  // Mark this tournament as credited for this phone
+  credited.push(tournamentId);
+  localStorage.setItem(creditedKey, JSON.stringify(credited));
+
+  // Send in-app notification to the user
+  const notifKey = `srff_user_notifs_${phone}`;
+  let notifs: {
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+  }[] = [];
+  try {
+    notifs = JSON.parse(
+      localStorage.getItem(notifKey) ?? "[]",
+    ) as typeof notifs;
+  } catch {
+    notifs = [];
+  }
+  notifs.unshift({
+    id: `win_${tournamentId}_${Date.now()}`,
+    title: "🏆 Tournament Winning!",
+    message: `Congratulations! ₹${amount} winning amount has been credited to your Winning Cash wallet from "${tournamentTitle}". You can now withdraw it!`,
+    time: new Date().toISOString(),
+    read: false,
+  });
+  localStorage.setItem(notifKey, JSON.stringify(notifs));
+}
 
 interface LocalTournament {
   id: string;
@@ -218,7 +333,6 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
       });
       toast.success("Tournament created!");
     } catch {
-      // Backend failed — save locally so it appears in list
       const localT: LocalTournament = {
         id: `local_${Date.now()}`,
         title: form.title,
@@ -656,15 +770,33 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
   const [open, setOpen] = useState(false);
   const { data: leaderboard = [], refetch } = useLeaderboard(tournament.id);
   const setLeaderboardMutation = useSetLeaderboard();
+  const [creditedCount, setCreditedCount] = useState(0);
 
+  // Player-based prizes (when players have joined)
+  const [playerPrizes, setPlayerPrizes] = useState<Record<string, string>>({});
+  // Fallback manual rows (when no players joined yet)
   const [rows, setRows] = useState<LeaderboardRow[]>([
     { id: 1, position: "1", playerName: "", prize: "" },
     { id: 2, position: "2", playerName: "", prize: "" },
     { id: 3, position: "3", playerName: "", prize: "" },
   ]);
 
+  const [joinedPlayers, setJoinedPlayers] = useState<TournamentPlayer[]>([]);
+
   const handleOpen = () => {
-    if (leaderboard.length > 0) {
+    const players = getTournamentPlayers(tournament.id.toString());
+    setJoinedPlayers(players);
+    setCreditedCount(0);
+
+    // Pre-fill prizes from stored winning amounts
+    const prizes: Record<string, string> = {};
+    for (const p of players) {
+      prizes[p.phone] = p.winningAmount ? String(p.winningAmount) : "";
+    }
+    setPlayerPrizes(prizes);
+
+    // Also populate fallback rows from leaderboard (when no joined players)
+    if (players.length === 0 && leaderboard.length > 0) {
       setRows(
         leaderboard.map((e, idx) => ({
           id: idx + 1,
@@ -695,28 +827,103 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
     );
 
   const handleSave = async () => {
-    const entries = rows
-      .filter((r) => r.playerName.trim() && r.prize)
-      .map(
-        (r) =>
-          [
-            BigInt(Number(r.position)),
-            r.playerName.trim(),
-            BigInt(Number(r.prize)),
-          ] as [bigint, string, bigint],
-      );
+    const tournamentId = tournament.id.toString();
+    const tournamentTitle = tournament.title;
+    let entries: [bigint, string, bigint][];
+    let newlyCredited = 0;
+
+    if (joinedPlayers.length > 0) {
+      // Build leaderboard from joined players + their prizes
+      entries = joinedPlayers
+        .map((p, idx) => {
+          const prize = Number(playerPrizes[p.phone] ?? "0");
+          return [BigInt(idx + 1), p.username, BigInt(prize)] as [
+            bigint,
+            string,
+            bigint,
+          ];
+        })
+        .filter(([, , prize]) => prize > BigInt(0));
+
+      // Save winning amounts back to tournament players localStorage
+      const updatedPlayers = joinedPlayers.map((p) => ({
+        ...p,
+        winningAmount: Number(playerPrizes[p.phone] ?? 0),
+      }));
+      saveTournamentPlayerWinnings(tournamentId, updatedPlayers);
+
+      // AUTO-CREDIT: add winning amount to each player's Winning Cash wallet
+      for (const p of joinedPlayers) {
+        const amount = Number(playerPrizes[p.phone] ?? 0);
+        if (amount > 0) {
+          const creditedKey = `srff_credited_${p.phone}`;
+          let credited: string[] = [];
+          try {
+            credited = JSON.parse(
+              localStorage.getItem(creditedKey) ?? "[]",
+            ) as string[];
+          } catch {
+            credited = [];
+          }
+          if (!credited.includes(tournamentId)) {
+            creditWinningCash(p.phone, amount, tournamentId, tournamentTitle);
+            newlyCredited++;
+          }
+        }
+      }
+    } else {
+      // Fallback: use manual rows
+      entries = rows
+        .filter((r) => r.playerName.trim() && r.prize)
+        .map(
+          (r) =>
+            [
+              BigInt(Number(r.position)),
+              r.playerName.trim(),
+              BigInt(Number(r.prize)),
+            ] as [bigint, string, bigint],
+        );
+    }
+
     try {
       await setLeaderboardMutation.mutateAsync({
         tournamentId: tournament.id,
         entries,
       });
-      toast.success("Leaderboard save ho gaya!");
+      if (newlyCredited > 0) {
+        toast.success(
+          `\u2705 Leaderboard save ho gaya! ${newlyCredited} players ke Winning Cash wallet mein amount automatically credit ho gaya.`,
+        );
+      } else {
+        toast.success("Leaderboard save ho gaya!");
+      }
+      setCreditedCount(newlyCredited);
       refetch();
       setOpen(false);
     } catch {
-      toast.error("Save nahi ho saka");
+      // Even if backend fails, localStorage credits are already done
+      if (newlyCredited > 0) {
+        toast.success(
+          `\u2705 ${newlyCredited} players ke wallets mein amount credit ho gaya!`,
+        );
+      } else {
+        toast.error("Save nahi ho saka");
+      }
+      setOpen(false);
     }
   };
+
+  // Check if already credited for any player
+  const alreadyCreditedPhones = joinedPlayers.filter((p) => {
+    try {
+      const credited = JSON.parse(
+        localStorage.getItem(`srff_credited_${p.phone}`) ?? "[]",
+      ) as string[];
+      return credited.includes(tournament.id.toString());
+    } catch {
+      return false;
+    }
+  });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -740,69 +947,178 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
             <Medal className="w-4 h-4 text-warning" /> Winner Leaderboard
           </DialogTitle>
         </DialogHeader>
-        <p className="text-xs text-muted-foreground mb-2">{tournament.title}</p>
-        <div className="space-y-3">
-          {rows.map((row, i) => (
-            <div
-              key={row.id}
-              className="flex items-center gap-2"
-              data-ocid={`admin-tournaments.results.item.${i + 1}`}
-            >
-              <Input
-                type="number"
-                value={row.position}
-                onChange={(e) => updateRow(i, "position", e.target.value)}
-                className="w-16 text-center"
-                placeholder="#"
-                data-ocid={`admin-tournaments.results.position.input.${i + 1}`}
-              />
-              <Input
-                value={row.playerName}
-                onChange={(e) => updateRow(i, "playerName", e.target.value)}
-                placeholder="Player name"
-                className="flex-1"
-                data-ocid={`admin-tournaments.results.playername.input.${i + 1}`}
-              />
-              <Input
-                type="number"
-                value={row.prize}
-                onChange={(e) => updateRow(i, "prize", e.target.value)}
-                placeholder="\u20b9 Prize"
-                className="w-24"
-                data-ocid={`admin-tournaments.results.prize.input.${i + 1}`}
-              />
-              <Button
-                variant="ghost"
-                size="sm"
-                className="px-1.5 text-destructive hover:text-destructive"
-                onClick={() => removeRow(i)}
-                data-ocid={`admin-tournaments.results.delete_button.${i + 1}`}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ))}
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-1"
-            onClick={addRow}
-            data-ocid="admin-tournaments.results.add.button"
-          >
-            <Plus className="w-3 h-3" /> Add Player
-          </Button>
-          <Button
-            className="w-full"
-            onClick={handleSave}
-            disabled={setLeaderboardMutation.isPending}
-            data-ocid="admin-tournaments.results.save.button"
-          >
-            {setLeaderboardMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : null}
-            Leaderboard Save Karo
-          </Button>
+        <p className="text-xs text-muted-foreground mb-1">{tournament.title}</p>
+
+        {/* Auto-credit info banner */}
+        <div className="flex items-start gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-3 py-2 mb-3">
+          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-green-600 dark:text-green-400">
+            <span className="font-bold">Auto Credit ON:</span> Jab aap prize
+            save karoge, system automatically us player ke Winning Cash wallet
+            mein amount transfer kar dega. Admin ko alag se kuch karne ki
+            zarurat nahi.
+          </p>
         </div>
+
+        {alreadyCreditedPhones.length > 0 && (
+          <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-xl px-3 py-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {alreadyCreditedPhones.length} player(s) ko already credit ho
+              chuka hai is tournament se.
+            </p>
+          </div>
+        )}
+
+        {creditedCount > 0 && (
+          <div className="flex items-center gap-2 bg-green-500/15 border border-green-500/40 rounded-xl px-3 py-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              \u2705 {creditedCount} players ke Winning Cash wallets mein amount
+              credit ho gaya!
+            </p>
+          </div>
+        )}
+
+        {joinedPlayers.length > 0 ? (
+          /* Players joined — show each with prize input */
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              {joinedPlayers.length} players ne join kiya — inhe prize set karo:
+            </p>
+            {joinedPlayers.map((player, i) => {
+              const av = getAvatarById(player.avatarId);
+              const alreadyCredited = alreadyCreditedPhones.some(
+                (p) => p.phone === player.phone,
+              );
+              return (
+                <div
+                  key={player.phone}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                    alreadyCredited
+                      ? "bg-green-500/10 border border-green-500/20"
+                      : "bg-muted/30"
+                  }`}
+                  data-ocid={`admin-tournaments.results.item.${i + 1}`}
+                >
+                  {/* Avatar */}
+                  <div
+                    className={`w-9 h-9 rounded-full bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}
+                  >
+                    {av.emoji}
+                  </div>
+                  {/* Player info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">
+                      {player.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      {maskPhone(player.phone)}
+                      {alreadyCredited && (
+                        <span className="text-green-500 font-medium">
+                          \u2022 Credited \u2713
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {/* Prize input */}
+                  <Input
+                    type="number"
+                    value={playerPrizes[player.phone] ?? ""}
+                    onChange={(e) =>
+                      setPlayerPrizes((prev) => ({
+                        ...prev,
+                        [player.phone]: e.target.value,
+                      }))
+                    }
+                    placeholder="\u20b9 Prize"
+                    className="w-24 text-sm"
+                    disabled={alreadyCredited}
+                    data-ocid={`admin-tournaments.results.player-prize.input.${i + 1}`}
+                  />
+                </div>
+              );
+            })}
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={setLeaderboardMutation.isPending}
+              data-ocid="admin-tournaments.results.save.button"
+            >
+              {setLeaderboardMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              \uD83D\uDCB8 Prizes Save Karo & Wallets Credit Karo
+            </Button>
+          </div>
+        ) : (
+          /* No players joined — fallback manual entry */
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Abhi koi player join nahi kiya. Manually enter karo:
+            </p>
+            {rows.map((row, i) => (
+              <div
+                key={row.id}
+                className="flex items-center gap-2"
+                data-ocid={`admin-tournaments.results.item.${i + 1}`}
+              >
+                <Input
+                  type="number"
+                  value={row.position}
+                  onChange={(e) => updateRow(i, "position", e.target.value)}
+                  className="w-16 text-center"
+                  placeholder="#"
+                  data-ocid={`admin-tournaments.results.position.input.${i + 1}`}
+                />
+                <Input
+                  value={row.playerName}
+                  onChange={(e) => updateRow(i, "playerName", e.target.value)}
+                  placeholder="Player name"
+                  className="flex-1"
+                  data-ocid={`admin-tournaments.results.playername.input.${i + 1}`}
+                />
+                <Input
+                  type="number"
+                  value={row.prize}
+                  onChange={(e) => updateRow(i, "prize", e.target.value)}
+                  placeholder="\u20b9 Prize"
+                  className="w-24"
+                  data-ocid={`admin-tournaments.results.prize.input.${i + 1}`}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-destructive hover:text-destructive"
+                  onClick={() => removeRow(i)}
+                  data-ocid={`admin-tournaments.results.delete_button.${i + 1}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1"
+              onClick={addRow}
+              data-ocid="admin-tournaments.results.add.button"
+            >
+              <Plus className="w-3 h-3" /> Add Player
+            </Button>
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={setLeaderboardMutation.isPending}
+              data-ocid="admin-tournaments.results.save.button"
+            >
+              {setLeaderboardMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Leaderboard Save Karo
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
