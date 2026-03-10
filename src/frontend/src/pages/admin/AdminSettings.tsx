@@ -2,19 +2,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Save } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Loader2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { AppSettings } from "../../backend.d";
 import { useSettings, useUpdateSettings } from "../../hooks/useQueries";
 
 const MIN_DEPOSIT_KEY = "srff_min_deposit";
+const ADMIN_PASSWORD_KEY = "srff_admin_password";
+const FOOTER_TEXT_KEY = "srff_footer_text";
+const SUPPORT_NUMBER_KEY = "srff_support_number";
+const DEFAULT_ADMIN_PASSWORD = "7477661867Ss";
 
 const DEFAULT_SETTINGS: AppSettings = {
   appName: "SR-FF-TOURNAMENT",
   minWithdraw: BigInt(100),
   referralBonus: BigInt(50),
-  supportContact: "",
+  supportContact: "9104414372",
   upiDetails: "",
   privacyPolicy: "",
   termsAndConditions: "",
@@ -28,6 +32,176 @@ function getStoredMinDeposit(): number {
   } catch {
     return 50;
   }
+}
+
+function getAdminPassword(): string {
+  return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+}
+
+function getFooterText(): string {
+  return (
+    localStorage.getItem(FOOTER_TEXT_KEY) ||
+    "SR-FF-TURNAMENT — Free Fire Tournament Platform"
+  );
+}
+
+function AdminPasswordSection() {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleChange = () => {
+    const stored = getAdminPassword();
+    if (currentPw !== stored) {
+      toast.error("Current password galat hai");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("New password minimum 6 characters ka hona chahiye");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("New password aur Confirm password match nahi karte");
+      return;
+    }
+    localStorage.setItem(ADMIN_PASSWORD_KEY, newPw);
+    toast.success("Admin password change ho gaya!");
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmPw("");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-base">
+          Admin Password Change
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Admin panel ka password yahan se change karo.
+      </p>
+      <div>
+        <Label>Current Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showCurrent ? "text" : "password"}
+            value={currentPw}
+            onChange={(e) => setCurrentPw(e.target.value)}
+            placeholder="Current password"
+            className="pr-10"
+            data-ocid="admin-settings.current-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrent((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showCurrent ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>New Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showNew ? "text" : "password"}
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+            placeholder="New password (min 6 chars)"
+            className="pr-10"
+            data-ocid="admin-settings.new-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowNew((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showNew ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>Confirm New Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showConfirm ? "text" : "password"}
+            value={confirmPw}
+            onChange={(e) => setConfirmPw(e.target.value)}
+            placeholder="Repeat new password"
+            className="pr-10"
+            data-ocid="admin-settings.confirm-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showConfirm ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <Button
+        type="button"
+        onClick={handleChange}
+        className="w-full gap-2"
+        data-ocid="admin-settings.change-password.button"
+      >
+        <KeyRound className="w-4 h-4" /> Change Password
+      </Button>
+    </div>
+  );
+}
+
+function FooterTextSection() {
+  const [footerText, setFooterText] = useState(getFooterText);
+
+  const handleSave = () => {
+    localStorage.setItem(FOOTER_TEXT_KEY, footerText);
+    toast.success("Footer text saved!");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+        Footer Text
+      </h2>
+      <div>
+        <Label>Footer Text</Label>
+        <Input
+          value={footerText}
+          onChange={(e) => setFooterText(e.target.value)}
+          className="mt-1"
+          placeholder="SR-FF-TURNAMENT — Free Fire Tournament Platform"
+          data-ocid="admin-settings.footer-text.input"
+        />
+      </div>
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid="admin-settings.footer-text.save_button"
+      >
+        <Save className="w-4 h-4" /> Save Footer Text
+      </Button>
+    </div>
+  );
 }
 
 export default function AdminSettings() {
@@ -45,6 +219,13 @@ export default function AdminSettings() {
     try {
       await updateMutation.mutateAsync(form);
       localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
+      // Sync support number to localStorage so Login/Register pages can read it
+      if (form.supportContact) {
+        localStorage.setItem(
+          SUPPORT_NUMBER_KEY,
+          form.supportContact.replace(/\D/g, ""),
+        );
+      }
       toast.success("Settings saved!");
     } catch {
       toast.error("Failed to save settings");
@@ -130,11 +311,15 @@ export default function AdminSettings() {
             Support & Payment
           </h2>
           <div>
-            <Label>Support Contact</Label>
+            <Label>WhatsApp Support Number</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Yeh number Login/Register page par WhatsApp support button mein
+              dikhega. Sirf digits daalo (e.g. 9104414372).
+            </p>
             <Input
               value={form.supportContact}
               onChange={(e) => f("supportContact", e.target.value)}
-              placeholder="+91 XXXXX XXXXX"
+              placeholder="9104414372"
               className="mt-1"
               data-ocid="admin-settings.support.input"
             />
@@ -201,6 +386,9 @@ export default function AdminSettings() {
           Save Settings
         </Button>
       </form>
+
+      <AdminPasswordSection />
+      <FooterTextSection />
     </div>
   );
 }

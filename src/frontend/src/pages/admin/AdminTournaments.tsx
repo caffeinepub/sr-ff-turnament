@@ -1,3 +1,14 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +64,57 @@ const GAME_MODES = [
   "4 vs 4 Custom",
   "BR Full Map",
 ];
+
+const DELETED_KEY = "srff_deleted_tournaments";
+const OVERRIDES_KEY = "srff_tournament_overrides";
+
+function getDeleted(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function addDeleted(id: string) {
+  const arr = getDeleted();
+  if (!arr.includes(id)) arr.push(id);
+  localStorage.setItem(DELETED_KEY, JSON.stringify(arr));
+}
+
+interface TournamentOverride {
+  title?: string;
+  gameMode?: string;
+  entryFee?: string;
+  prizePool?: string;
+  maxPlayers?: string;
+  minPlayers?: string;
+  status?: string;
+  description?: string;
+}
+
+function getOverride(id: string): TournamentOverride | null {
+  try {
+    const all = JSON.parse(
+      localStorage.getItem(OVERRIDES_KEY) ?? "{}",
+    ) as Record<string, TournamentOverride>;
+    return all[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveOverride(id: string, data: TournamentOverride) {
+  try {
+    const all = JSON.parse(
+      localStorage.getItem(OVERRIDES_KEY) ?? "{}",
+    ) as Record<string, TournamentOverride>;
+    all[id] = { ...all[id], ...data };
+    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
 
 interface TournamentForm {
   title: string;
@@ -270,6 +332,210 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
   );
 }
 
+// Edit Tournament Modal
+function EditTournamentModal({
+  tournament,
+  onSaved,
+}: {
+  tournament: Tournament;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const override = getOverride(tournament.id.toString());
+
+  const [form, setForm] = useState<TournamentForm>({
+    title: override?.title ?? tournament.title,
+    gameMode: override?.gameMode ?? tournament.gameMode,
+    startTime: "",
+    entryFee: override?.entryFee ?? String(Number(tournament.entryFee)),
+    prizePool: override?.prizePool ?? String(Number(tournament.prizePool)),
+    maxPlayers: override?.maxPlayers ?? String(Number(tournament.maxPlayers)),
+    minPlayers: override?.minPlayers ?? String(Number(tournament.minPlayers)),
+    status: override?.status ?? (tournament.status as string),
+    description: override?.description ?? tournament.description,
+  });
+
+  const handleOpen = () => {
+    const ov = getOverride(tournament.id.toString());
+    setForm({
+      title: ov?.title ?? tournament.title,
+      gameMode: ov?.gameMode ?? tournament.gameMode,
+      startTime: "",
+      entryFee: ov?.entryFee ?? String(Number(tournament.entryFee)),
+      prizePool: ov?.prizePool ?? String(Number(tournament.prizePool)),
+      maxPlayers: ov?.maxPlayers ?? String(Number(tournament.maxPlayers)),
+      minPlayers: ov?.minPlayers ?? String(Number(tournament.minPlayers)),
+      status: ov?.status ?? (tournament.status as string),
+      description: ov?.description ?? tournament.description,
+    });
+    setOpen(true);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveOverride(tournament.id.toString(), {
+      title: form.title,
+      gameMode: form.gameMode,
+      entryFee: form.entryFee,
+      prizePool: form.prizePool,
+      maxPlayers: form.maxPlayers,
+      minPlayers: form.minPlayers,
+      status: form.status,
+      description: form.description,
+    });
+    toast.success("Tournament updated!");
+    setOpen(false);
+    onSaved();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="px-2"
+          onClick={handleOpen}
+          data-ocid="admin-tournaments.edit.open_modal_button"
+        >
+          <Edit2 className="w-3 h-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="admin-tournaments.edit.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>Edit Tournament</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSave} className="space-y-3 py-2">
+          <div>
+            <Label>Title</Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Tournament title"
+              required
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.title.input"
+            />
+          </div>
+          <div>
+            <Label>Game Mode</Label>
+            <Select
+              value={form.gameMode}
+              onValueChange={(v) => setForm({ ...form, gameMode: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.gamemode.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GAME_MODES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Entry Fee (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.entryFee}
+                onChange={(e) => setForm({ ...form, entryFee: e.target.value })}
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.entryfee.input"
+              />
+            </div>
+            <div>
+              <Label>Prize Pool (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.prizePool}
+                onChange={(e) =>
+                  setForm({ ...form, prizePool: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.prizepool.input"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Max Players</Label>
+              <Input
+                type="number"
+                value={form.maxPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, maxPlayers: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.maxplayers.input"
+              />
+            </div>
+            <div>
+              <Label>Min Players</Label>
+              <Input
+                type="number"
+                value={form.minPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, minPlayers: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.minplayers.input"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.status.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Tournament details..."
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.description.textarea"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            data-ocid="admin-tournaments.edit.save_button"
+          >
+            Save Changes
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 interface LeaderboardRow {
   id: number;
   position: string;
@@ -434,7 +700,36 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
 }
 
 export default function AdminTournaments() {
-  const { data: tournaments = [], refetch } = useAllTournaments();
+  const { data: allTournaments = [], refetch } = useAllTournaments();
+  const [localDeleted, setLocalDeleted] = useState<string[]>(getDeleted);
+  const [, forceUpdate] = useState(0);
+
+  const tournaments = allTournaments.filter(
+    (t) => !localDeleted.includes(t.id.toString()),
+  );
+
+  const handleDelete = (id: string) => {
+    addDeleted(id);
+    setLocalDeleted(getDeleted());
+    toast.success("Tournament delete ho gaya!");
+  };
+
+  // Apply local overrides to display
+  const displayTournaments = tournaments.map((t) => {
+    const ov = getOverride(t.id.toString());
+    if (!ov) return t;
+    return {
+      ...t,
+      title: ov.title ?? t.title,
+      gameMode: ov.gameMode ?? t.gameMode,
+      entryFee: ov.entryFee ? BigInt(Number(ov.entryFee)) : t.entryFee,
+      prizePool: ov.prizePool ? BigInt(Number(ov.prizePool)) : t.prizePool,
+      maxPlayers: ov.maxPlayers ? BigInt(Number(ov.maxPlayers)) : t.maxPlayers,
+      minPlayers: ov.minPlayers ? BigInt(Number(ov.minPlayers)) : t.minPlayers,
+      status: (ov.status ?? t.status) as Tournament["status"],
+      description: ov.description ?? t.description,
+    };
+  });
 
   return (
     <div className="space-y-5">
@@ -445,7 +740,7 @@ export default function AdminTournaments() {
         <TournamentFormModal onCreated={refetch} />
       </div>
 
-      {tournaments.length === 0 ? (
+      {displayTournaments.length === 0 ? (
         <div
           className="text-center py-20"
           data-ocid="admin-tournaments.empty_state"
@@ -457,7 +752,7 @@ export default function AdminTournaments() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {tournaments.map((t: Tournament, i: number) => (
+          {displayTournaments.map((t: Tournament, i: number) => (
             <div
               key={t.id.toString()}
               className="bg-card border border-border rounded-2xl p-4"
@@ -516,22 +811,45 @@ export default function AdminTournaments() {
                   <Users className="w-3 h-3" /> Players
                 </Button>
                 <ResultsModal tournament={t} />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="px-2"
-                  data-ocid={`admin-tournaments.edit.button.${i + 1}`}
-                >
-                  <Edit2 className="w-3 h-3" />
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="px-2"
-                  data-ocid={`admin-tournaments.delete.button.${i + 1}`}
-                >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
+                <EditTournamentModal
+                  tournament={t}
+                  onSaved={() => forceUpdate((n) => n + 1)}
+                />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="px-2"
+                      data-ocid={`admin-tournaments.delete.button.${i + 1}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent data-ocid="admin-tournaments.delete.dialog">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Tournament Delete Karo?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        &ldquo;{t.title}&rdquo; ko delete karne par woh list se
+                        hat jaega. Kya aap sure hain?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel data-ocid="admin-tournaments.delete.cancel_button">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(t.id.toString())}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        data-ocid="admin-tournaments.delete.confirm_button"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           ))}

@@ -7,6 +7,7 @@ import {
   ExternalLink,
   ImagePlus,
   Megaphone,
+  MessageSquare,
   Plus,
   Save,
   Trash2,
@@ -16,9 +17,29 @@ import { toast } from "sonner";
 
 const ANNOUNCEMENT_KEY = "srff_announcement";
 const PROMO_LINKS_KEY = "srff_promo_links";
+const WELCOME_NEW_KEY = "srff_welcome_new_lines";
+const WELCOME_RETURNING_KEY = "srff_welcome_returning_lines";
 
 const DEFAULT_ANNOUNCEMENT =
   "Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! Top players get exclusive rewards! BR Per Kill tournament starting soon!";
+
+const DEFAULT_NEW_WELCOME_LINES = [
+  "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
+  "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
+  "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
+  "🏆 Roz naye tournaments join karo... 🏆",
+  "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
+  "🤝 Apni team banao. Apna naam banao. 👑",
+  "💥 The Battle Begins NOW! 🚀",
+];
+
+const DEFAULT_RETURNING_WELCOME_LINES = [
+  "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
+  "☀️ WISH YOU A VERY GOOD DAY! ☀️",
+  "🍀 BEST OF LUCK, CHAMPION! 🍀",
+  "🔥 Go Dominate The Battlefield! 🔥",
+  "🏆 Today Is YOUR Victory Day! 🏆",
+];
 
 export interface PromoLink {
   id: string;
@@ -40,6 +61,97 @@ function loadPromoLinks(): PromoLink[] {
   } catch {
     return [];
   }
+}
+
+// Welcome Lines Editor
+function WelcomeLinesEditor({
+  storageKey,
+  title,
+  defaultLines,
+  saveLabel,
+  ocidPrefix,
+}: {
+  storageKey: string;
+  title: string;
+  defaultLines: string[];
+  saveLabel: string;
+  ocidPrefix: string;
+}) {
+  const [lines, setLines] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return [...defaultLines];
+      return JSON.parse(raw) as string[];
+    } catch {
+      return [...defaultLines];
+    }
+  });
+
+  const updateLine = (i: number, val: string) =>
+    setLines((prev) => prev.map((l, idx) => (idx === i ? val : l)));
+
+  const addLine = () => setLines((prev) => [...prev, ""]);
+
+  const removeLine = (i: number) =>
+    setLines((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleSave = () => {
+    localStorage.setItem(storageKey, JSON.stringify(lines));
+    toast.success(`${title} saved!`);
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Har line ek alag message hai jo typing effect ke saath dikhega. Emoji
+        bhi add kar sakte ho.
+      </p>
+      {lines.map((line, i) => (
+        <div
+          key={`${ocidPrefix}-${i}-${line.slice(0, 8)}`}
+          className="flex gap-2 items-start"
+          data-ocid={`${ocidPrefix}.item.${i + 1}`}
+        >
+          <div className="flex-1">
+            <Textarea
+              value={line}
+              onChange={(e) => updateLine(i, e.target.value)}
+              rows={2}
+              placeholder={`Line ${i + 1}...`}
+              className="resize-none"
+              data-ocid={`${ocidPrefix}.textarea.${i + 1}`}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => removeLine(i)}
+            className="mt-1 text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
+            data-ocid={`${ocidPrefix}.delete_button.${i + 1}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addLine}
+        className="w-full gap-1"
+        data-ocid={`${ocidPrefix}.add.button`}
+      >
+        <Plus className="w-3 h-3" /> Add Line
+      </Button>
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid={`${ocidPrefix}.save_button`}
+      >
+        <Save className="w-4 h-4" /> {saveLabel}
+      </Button>
+    </div>
+  );
 }
 
 export default function AdminHomeContent() {
@@ -258,6 +370,50 @@ export default function AdminHomeContent() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Welcome Messages Editor */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-6">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Welcome Messages
+          </h2>
+        </div>
+
+        {/* New User Welcome */}
+        <div className="space-y-3">
+          <div>
+            <h3 className="font-semibold text-sm">New User Welcome</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jab koi naya user register karta hai tab dikhne wala welcome
+              message.
+            </p>
+          </div>
+          <WelcomeLinesEditor
+            storageKey={WELCOME_NEW_KEY}
+            title="New User Welcome"
+            defaultLines={DEFAULT_NEW_WELCOME_LINES}
+            saveLabel="Save New User Welcome"
+            ocidPrefix="admin-homecontent.new-welcome"
+          />
+        </div>
+
+        <div className="border-t border-border pt-4 space-y-3">
+          <div>
+            <h3 className="font-semibold text-sm">Returning User Welcome</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jab koi user login karta hai tab dikhne wala welcome back message.
+            </p>
+          </div>
+          <WelcomeLinesEditor
+            storageKey={WELCOME_RETURNING_KEY}
+            title="Returning User Welcome"
+            defaultLines={DEFAULT_RETURNING_WELCOME_LINES}
+            saveLabel="Save Returning Welcome"
+            ocidPrefix="admin-homecontent.returning-welcome"
+          />
+        </div>
       </div>
     </div>
   );

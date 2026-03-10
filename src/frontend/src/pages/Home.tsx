@@ -62,61 +62,76 @@ function loadPromoBanners(): PromoBanner[] {
   }
 }
 
-// Each line has text + color gradient for the typing box
-const WELCOME_LINES: { text: string; gradient: string }[] = [
-  {
-    text: "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
-    gradient: "linear-gradient(90deg, #f97316, #fbbf24)",
-  },
-  {
-    text: "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
-    gradient: "linear-gradient(90deg, #f43f5e, #fb923c)",
-  },
-  {
-    text: "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
-    gradient: "linear-gradient(90deg, #22d3ee, #6366f1)",
-  },
-  {
-    text: "🏆 Roz naye tournaments join karo... 🏆",
-    gradient: "linear-gradient(90deg, #a3e635, #16a34a)",
-  },
-  {
-    text: "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
-    gradient: "linear-gradient(90deg, #facc15, #f97316)",
-  },
-  {
-    text: "🤝 Apni team banao. Apna naam banao. 👑",
-    gradient: "linear-gradient(90deg, #c084fc, #818cf8)",
-  },
-  {
-    text: "💥 The Battle Begins NOW! 🚀",
-    gradient: "linear-gradient(90deg, #f43f5e, #a855f7, #3b82f6)",
-  },
+// Gradients for welcome lines (cycles if more lines added)
+const NEW_WELCOME_GRADIENTS = [
+  "linear-gradient(90deg, #f97316, #fbbf24)",
+  "linear-gradient(90deg, #f43f5e, #fb923c)",
+  "linear-gradient(90deg, #22d3ee, #6366f1)",
+  "linear-gradient(90deg, #a3e635, #16a34a)",
+  "linear-gradient(90deg, #facc15, #f97316)",
+  "linear-gradient(90deg, #c084fc, #818cf8)",
+  "linear-gradient(90deg, #f43f5e, #a855f7, #3b82f6)",
 ];
 
-// Welcome BACK lines shown on every login/app open
-const WELCOME_BACK_LINES: { text: string; gradient: string }[] = [
-  {
-    text: "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
-    gradient: "linear-gradient(90deg, #f97316, #fbbf24, #f59e0b)",
-  },
-  {
-    text: "☀️ WISH YOU A VERY GOOD DAY! ☀️",
-    gradient: "linear-gradient(90deg, #22d3ee, #6366f1, #a855f7)",
-  },
-  {
-    text: "🍀 BEST OF LUCK, CHAMPION! 🍀",
-    gradient: "linear-gradient(90deg, #a3e635, #16a34a, #10b981)",
-  },
-  {
-    text: "🔥 Go Dominate The Battlefield! 🔥",
-    gradient: "linear-gradient(90deg, #f43f5e, #fb923c, #fbbf24)",
-  },
-  {
-    text: "🏆 Today Is YOUR Victory Day! 🏆",
-    gradient: "linear-gradient(90deg, #fbbf24, #f97316, #ef4444)",
-  },
+const BACK_WELCOME_GRADIENTS = [
+  "linear-gradient(90deg, #f97316, #fbbf24, #f59e0b)",
+  "linear-gradient(90deg, #22d3ee, #6366f1, #a855f7)",
+  "linear-gradient(90deg, #a3e635, #16a34a, #10b981)",
+  "linear-gradient(90deg, #f43f5e, #fb923c, #fbbf24)",
+  "linear-gradient(90deg, #fbbf24, #f97316, #ef4444)",
 ];
+
+const DEFAULT_NEW_WELCOME_TEXTS = [
+  "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
+  "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
+  "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
+  "🏆 Roz naye tournaments join karo... 🏆",
+  "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
+  "🤝 Apni team banao. Apna naam banao. 👑",
+  "💥 The Battle Begins NOW! 🚀",
+];
+
+const DEFAULT_BACK_WELCOME_TEXTS = [
+  "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
+  "☀️ WISH YOU A VERY GOOD DAY! ☀️",
+  "🍀 BEST OF LUCK, CHAMPION! 🍀",
+  "🔥 Go Dominate The Battlefield! 🔥",
+  "🏆 Today Is YOUR Victory Day! 🏆",
+];
+
+function loadWelcomeLines(
+  key: string,
+  defaults: string[],
+  gradients: string[],
+): { text: string; gradient: string }[] {
+  try {
+    const raw = localStorage.getItem(key);
+    const texts: string[] = raw ? (JSON.parse(raw) as string[]) : defaults;
+    return texts.map((text, i) => ({
+      text,
+      gradient: gradients[i % gradients.length],
+    }));
+  } catch {
+    return defaults.map((text, i) => ({
+      text,
+      gradient: gradients[i % gradients.length],
+    }));
+  }
+}
+
+// Dynamic lines read from localStorage (admin-editable)
+const WELCOME_LINES = loadWelcomeLines(
+  "srff_welcome_new_lines",
+  DEFAULT_NEW_WELCOME_TEXTS,
+  NEW_WELCOME_GRADIENTS,
+);
+
+// Welcome BACK lines shown on every login/app open
+const WELCOME_BACK_LINES = loadWelcomeLines(
+  "srff_welcome_returning_lines",
+  DEFAULT_BACK_WELCOME_TEXTS,
+  BACK_WELCOME_GRADIENTS,
+);
 
 function WelcomeModal({
   username,
@@ -915,7 +930,8 @@ export default function Home() {
 
       <footer className="text-center py-4 px-4 border-t border-border mt-4">
         <p className="text-xs text-muted-foreground">
-          {new Date().getFullYear()} SR-FF-TOURNAMENT. Built with caffeine.ai
+          {localStorage.getItem("srff_footer_text") ||
+            "SR-FF-TURNAMENT — Free Fire Tournament Platform"}
         </p>
       </footer>
     </div>

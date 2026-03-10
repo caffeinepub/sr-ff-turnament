@@ -1,8 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { Eye, EyeOff, MessageCircle, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
+
+function getSupportNumber(): string {
+  return localStorage.getItem("srff_support_number") || "9104414372";
+}
 
 export default function Register() {
   const { register } = useUserAuth();
@@ -32,7 +36,6 @@ export default function Register() {
     const result = register(phone.trim(), password, username, ffName);
     setLoading(false);
     if (result.success) {
-      // Set welcome flag so Home page shows welcome modal
       localStorage.setItem(
         "srff_new_user_welcome",
         JSON.stringify({ username: username.trim() }),
@@ -43,6 +46,8 @@ export default function Register() {
       toast.error(result.error || "Registration fail ho gaya");
     }
   }
+
+  const supportNumber = getSupportNumber();
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -228,6 +233,29 @@ export default function Register() {
             >
               Login karo
             </Link>
+          </p>
+        </div>
+
+        {/* Customer Support */}
+        <div className="mt-4">
+          <a
+            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ocid="register.support.button"
+            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #075e54, #25d366)",
+              borderColor: "#25d366",
+              color: "#fff",
+              boxShadow: "0 0 18px #25d36644",
+            }}
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Customer Support — WhatsApp Karo</span>
+          </a>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Register mein koi problem? Seedha support se baat karo 👆
           </p>
         </div>
       </div>

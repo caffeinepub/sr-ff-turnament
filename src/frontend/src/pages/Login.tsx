@@ -1,8 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Eye, EyeOff, Flame } from "lucide-react";
+import { Eye, EyeOff, Flame, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
+
+function getSupportNumber(): string {
+  return localStorage.getItem("srff_support_number") || "9104414372";
+}
 
 export default function Login() {
   const { login } = useUserAuth();
@@ -18,7 +22,6 @@ export default function Login() {
     const result = login(phone.trim(), password);
     setLoading(false);
     if (result.success) {
-      // Set login welcome flag so Home page shows the welcome back modal
       localStorage.setItem(
         "srff_login_welcome",
         JSON.stringify({ username: result.username || phone.trim() }),
@@ -28,6 +31,8 @@ export default function Login() {
       toast.error(result.error || "Mobile number ya password galat hai");
     }
   }
+
+  const supportNumber = getSupportNumber();
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -186,6 +191,29 @@ export default function Login() {
             >
               Naya account banao
             </Link>
+          </p>
+        </div>
+
+        {/* Customer Support */}
+        <div className="mt-4">
+          <a
+            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ocid="login.support.button"
+            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #075e54, #25d366)",
+              borderColor: "#25d366",
+              color: "#fff",
+              boxShadow: "0 0 18px #25d36644",
+            }}
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Customer Support — WhatsApp Karo</span>
+          </a>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Login mein problem? Seedha support se baat karo 👆
           </p>
         </div>
       </div>
