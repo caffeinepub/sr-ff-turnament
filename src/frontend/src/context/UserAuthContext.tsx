@@ -53,13 +53,8 @@ function saveUsers(users: UserRecord[]) {
 }
 
 export function UserAuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<UserRecord | null>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("srff_current_user") || "null");
-    } catch {
-      return null;
-    }
-  });
+  // Auto-login disabled: always start as logged out
+  const [currentUser, setCurrentUser] = useState<UserRecord | null>(null);
 
   useEffect(() => {
     if (currentUser) {
@@ -108,6 +103,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    localStorage.removeItem("srff_current_user");
     setCurrentUser(null);
   }
 

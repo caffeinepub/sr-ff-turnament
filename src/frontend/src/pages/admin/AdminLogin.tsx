@@ -16,7 +16,7 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
     await new Promise((r) => setTimeout(r, 600));
-    if (password === "admin123") {
+    if (password === "7477661867Ss") {
       sessionStorage.setItem("adminAuth", "true");
       navigate({ to: "/admin/dashboard" });
     } else {

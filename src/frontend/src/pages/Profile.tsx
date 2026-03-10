@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -23,11 +24,13 @@ import {
   LogOut,
   MessageCircle,
   Save,
+  Trophy,
   User,
   XCircle,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import type { PaymentRequest } from "../hooks/useQueries";
 import {
@@ -165,7 +168,9 @@ function getSavedAvatar(): number {
 }
 
 export default function Profile() {
-  const { identity, login, clear, isLoggingIn } = useInternetIdentity();
+  const { identity, login, isLoggingIn } = useInternetIdentity();
+  const { logout } = useUserAuth();
+  const navigate = useNavigate();
   const { data: profile } = useCallerProfile();
   const { data: settings } = useSettings();
   const { data: myRequests } = useMyPaymentRequests();
@@ -187,6 +192,21 @@ export default function Profile() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawUpi, setWithdrawUpi] = useState("");
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertAmount, setConvertAmount] = useState("");
+
+  const principalSlice =
+    identity?.getPrincipal().toString().slice(0, 8) ?? "guest";
+  const WINNING_CASH_KEY = `srff_winning_cash_${principalSlice}`;
+
+  const getWinningCash = (): number => {
+    try {
+      return Number(localStorage.getItem(WINNING_CASH_KEY)) || 0;
+    } catch {
+      return 0;
+    }
+  };
+  const [winningCash, setWinningCash] = useState<number>(getWinningCash);
 
   const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
   const minDeposit = getMinDeposit();
@@ -257,6 +277,10 @@ export default function Profile() {
       toast.error(`Minimum withdrawal \u20b9${min} hai`);
       return;
     }
+    if (amt > winningCash) {
+      toast.error("Sirf Winning Cash se withdrawal ho sakta hai");
+      return;
+    }
     if (!withdrawUpi.trim()) {
       toast.error("Apna UPI ID daalo");
       return;
@@ -270,6 +294,9 @@ export default function Profile() {
       },
       {
         onSuccess: () => {
+          const deducted = winningCash - Number(withdrawAmount);
+          localStorage.setItem(WINNING_CASH_KEY, String(Math.max(0, deducted)));
+          setWinningCash(Math.max(0, deducted));
           toast.success("Withdrawal request submit ho gaya!");
           setWithdrawOpen(false);
           setWithdrawAmount("");
@@ -285,6 +312,26 @@ export default function Profile() {
     setDepositAmount("");
     setDepositNote("");
     setDepositDone(false);
+  };
+
+  const handleConvertSubmit = () => {
+    const amt = Number(convertAmount);
+    const walletBal = profile ? Number(profile.walletBalance) : 0;
+    const regularBalance = walletBal - winningCash;
+    if (!amt || amt <= 0) {
+      toast.error("Valid amount daalo");
+      return;
+    }
+    if (amt > regularBalance) {
+      toast.error(`Sirf ₹${regularBalance} regular balance available hai`);
+      return;
+    }
+    const newWinningCash = winningCash + amt;
+    localStorage.setItem(WINNING_CASH_KEY, String(newWinningCash));
+    setWinningCash(newWinningCash);
+    setConvertAmount("");
+    setConvertOpen(false);
+    toast.success(`₹${amt} Winning Cash mein convert ho gaya!`);
   };
 
   if (!identity) {
@@ -322,7 +369,10 @@ export default function Profile() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={clear}
+            onClick={() => {
+              logout();
+              navigate({ to: "/login" });
+            }}
             className="text-destructive hover:text-destructive"
             data-ocid="profile.logout.button"
           >
@@ -437,13 +487,165 @@ export default function Profile() {
         )}
 
         {/* Wallet + Deposit/Withdraw */}
-        <div className="bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 rounded-2xl p-5 glow-orange">
-          <p className="text-sm text-primary/80 font-medium">Wallet Balance</p>
-          <div className="flex items-end gap-2 mt-1 mb-4">
-            <span className="font-display font-bold text-4xl text-foreground">
-              \u20b9{profile ? Number(profile.walletBalance) : 0}
-            </span>
+        <div className="space-y-3">
+          {/* Regular Balance Card */}
+          <div className="bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 rounded-2xl p-4 glow-orange">
+            <p className="text-sm text-primary/80 font-medium">
+              Regular Balance
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="font-display font-bold text-3xl text-foreground">
+                ₹
+                {Math.max(
+                  0,
+                  (profile ? Number(profile.walletBalance) : 0) - winningCash,
+                )}
+              </span>
+              {/* Convert to Winning Cash Dialog */}
+              <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    data-ocid="profile.convert.button"
+                  >
+                    <Trophy className="w-3.5 h-3.5" /> Convert to Winning Cash
+                  </Button>
+                </DialogTrigger>
+                <DialogContent data-ocid="profile.convert.dialog">
+                  <DialogHeader>
+                    <DialogTitle>Convert to Winning Cash</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                      <p className="text-xs text-yellow-400 font-semibold">
+                        ℹ️ Sirf Winning Cash se withdrawal ho sakta hai
+                      </p>
+                    </div>
+                    <div>
+                      <Label>
+                        Amount (₹) — Available: ₹
+                        {Math.max(
+                          0,
+                          (profile ? Number(profile.walletBalance) : 0) -
+                            winningCash,
+                        )}
+                      </Label>
+                      <Input
+                        value={convertAmount}
+                        onChange={(e) => setConvertAmount(e.target.value)}
+                        placeholder="Kitna convert karna hai?"
+                        type="number"
+                        className="mt-1"
+                        data-ocid="profile.convert.input"
+                      />
+                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={handleConvertSubmit}
+                      data-ocid="profile.convert.submit_button"
+                    >
+                      Convert Karo
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
+
+          {/* Winning Cash Card */}
+          <div className="bg-gradient-to-br from-yellow-500/20 to-green-500/10 border border-yellow-500/40 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <p className="text-sm text-yellow-400 font-medium">
+                Winning Cash
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-display font-bold text-3xl text-yellow-300">
+                ₹{winningCash}
+              </span>
+              {/* Withdraw Dialog */}
+              <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10"
+                    data-ocid="profile.withdraw.button"
+                  >
+                    <ArrowUpFromLine className="w-3.5 h-3.5" /> Withdraw
+                  </Button>
+                </DialogTrigger>
+                <DialogContent data-ocid="profile.withdraw.dialog">
+                  <DialogHeader>
+                    <DialogTitle>Withdraw Winning Cash</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    {winningCash === 0 ? (
+                      <div
+                        className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-3 text-center"
+                        data-ocid="profile.withdraw.error_state"
+                      >
+                        <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                        <p className="text-sm text-yellow-400 font-semibold">
+                          Pehle balance ko Winning Cash mein convert karo
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                          <p className="text-xs text-green-400 font-semibold">
+                            Available Winning Cash: ₹{winningCash}
+                          </p>
+                        </div>
+                        <div>
+                          <Label>
+                            Amount (₹) — Min: ₹
+                            {settings ? Number(settings.minWithdraw) : 100}
+                          </Label>
+                          <Input
+                            value={withdrawAmount}
+                            onChange={(e) => setWithdrawAmount(e.target.value)}
+                            placeholder="Kitna withdraw karna hai?"
+                            type="number"
+                            className="mt-1"
+                            data-ocid="profile.withdraw.input"
+                          />
+                        </div>
+                        <div>
+                          <Label>Aapka UPI ID</Label>
+                          <Input
+                            value={withdrawUpi}
+                            onChange={(e) => setWithdrawUpi(e.target.value)}
+                            placeholder="yourname@upi"
+                            className="mt-1"
+                            data-ocid="profile.withdraw.upi.input"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Admin is UPI ID pe payment karega
+                          </p>
+                        </div>
+                        <Button
+                          className="w-full"
+                          onClick={handleWithdrawSubmit}
+                          disabled={submitPayment.isPending}
+                          data-ocid="profile.withdraw.submit_button"
+                        >
+                          {submitPayment.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : null}
+                          Withdrawal Request Bhejo
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {/* Deposit Button */}
           <div className="flex gap-3">
             {/* Deposit Dialog */}
             <Dialog
@@ -455,7 +657,7 @@ export default function Profile() {
             >
               <DialogTrigger asChild>
                 <Button
-                  className="flex-1 gap-2"
+                  className="w-full gap-2"
                   data-ocid="profile.deposit.button"
                 >
                   <ArrowDownToLine className="w-4 h-4" /> Deposit
@@ -491,17 +693,15 @@ export default function Profile() {
                   <div className="space-y-4 py-2">
                     <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
                       <p className="text-xs text-primary font-semibold">
-                        Minimum Deposit: \u20b9{minDeposit}
+                        Minimum Deposit: ₹{minDeposit}
                       </p>
                     </div>
                     <div>
-                      <Label>
-                        Amount (\u20b9) \u2014 Min: \u20b9{minDeposit}
-                      </Label>
+                      <Label>Amount (₹) — Min: ₹{minDeposit}</Label>
                       <Input
                         value={depositAmount}
                         onChange={(e) => setDepositAmount(e.target.value)}
-                        placeholder={`Minimum \u20b9${minDeposit}`}
+                        placeholder={`Minimum ₹${minDeposit}`}
                         type="number"
                         className="mt-1"
                         data-ocid="profile.deposit.input"
@@ -518,7 +718,7 @@ export default function Profile() {
                         <p className="text-sm text-muted-foreground">
                           Pehle{" "}
                           <span className="text-foreground font-bold">
-                            \u20b9{depositAmount}
+                            ₹{depositAmount}
                           </span>{" "}
                           neeche diye WhatsApp number pe bhejo:
                         </p>
@@ -574,67 +774,8 @@ export default function Profile() {
                 )}
               </DialogContent>
             </Dialog>
-
-            {/* Withdraw Dialog */}
-            <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2 border-border"
-                  data-ocid="profile.withdraw.button"
-                >
-                  <ArrowUpFromLine className="w-4 h-4" /> Withdraw
-                </Button>
-              </DialogTrigger>
-              <DialogContent data-ocid="profile.withdraw.dialog">
-                <DialogHeader>
-                  <DialogTitle>Withdraw Funds</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-2">
-                  <div>
-                    <Label>
-                      Amount (\u20b9) \u2014 Min: \u20b9
-                      {settings ? Number(settings.minWithdraw) : 100}
-                    </Label>
-                    <Input
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="Kitna withdraw karna hai?"
-                      type="number"
-                      className="mt-1"
-                      data-ocid="profile.withdraw.input"
-                    />
-                  </div>
-                  <div>
-                    <Label>Aapka UPI ID</Label>
-                    <Input
-                      value={withdrawUpi}
-                      onChange={(e) => setWithdrawUpi(e.target.value)}
-                      placeholder="yourname@upi"
-                      className="mt-1"
-                      data-ocid="profile.withdraw.upi.input"
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Admin is UPI ID pe payment karega
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={handleWithdrawSubmit}
-                    disabled={submitPayment.isPending}
-                    data-ocid="profile.withdraw.submit_button"
-                  >
-                    {submitPayment.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    ) : null}
-                    Withdrawal Request Bhejo
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
-
         {/* My Payment Requests */}
         {myRequests && myRequests.length > 0 && (
           <div className="bg-card border border-border rounded-2xl p-4">

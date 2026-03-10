@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Link } from "@tanstack/react-router";
 import {
@@ -635,15 +634,12 @@ export default function Home() {
         <div className="flex items-center justify-between max-w-lg mx-auto">
           <div className="flex items-center gap-2">
             <Flame className="w-6 h-6 text-primary" />
-            <span className="font-display font-bold text-lg tracking-tight">
-              SR-FF
-            </span>
-            <Badge
-              variant="outline"
-              className="text-xs border-primary/40 text-primary hidden sm:flex"
+            <span
+              className="font-display font-bold text-base tracking-tight"
+              style={{ letterSpacing: "0.03em" }}
             >
-              TOURNAMENT
-            </Badge>
+              SR-FF-TURNAMENT
+            </span>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1 bg-card border border-border rounded-full px-3 py-1">

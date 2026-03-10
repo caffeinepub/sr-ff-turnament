@@ -74,7 +74,7 @@ export default function AppLinks() {
             </div>
             <div>
               <h2 className="text-white font-bold">Admin Panel</h2>
-              <p className="text-gray-400 text-xs">Password: admin123</p>
+              <p className="text-gray-400 text-xs">Admin access only</p>
             </div>
           </div>
           <div className="bg-gray-800 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
