@@ -26,7 +26,7 @@ interface UserAuthContextValue {
   login: (
     phone: string,
     password: string,
-  ) => { success: boolean; error?: string };
+  ) => { success: boolean; error?: string; username?: string };
   logout: () => void;
   resetPassword: (
     phone: string,
@@ -104,7 +104,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
     if (!user)
       return { success: false, error: "Mobile number ya password galat hai" };
     setCurrentUser(user);
-    return { success: true };
+    return { success: true, username: user.username };
   }
 
   function logout() {

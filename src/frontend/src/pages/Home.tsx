@@ -95,6 +95,30 @@ const WELCOME_LINES: { text: string; gradient: string }[] = [
   },
 ];
 
+// Welcome BACK lines shown on every login/app open
+const WELCOME_BACK_LINES: { text: string; gradient: string }[] = [
+  {
+    text: "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
+    gradient: "linear-gradient(90deg, #f97316, #fbbf24, #f59e0b)",
+  },
+  {
+    text: "☀️ WISH YOU A VERY GOOD DAY! ☀️",
+    gradient: "linear-gradient(90deg, #22d3ee, #6366f1, #a855f7)",
+  },
+  {
+    text: "🍀 BEST OF LUCK, CHAMPION! 🍀",
+    gradient: "linear-gradient(90deg, #a3e635, #16a34a, #10b981)",
+  },
+  {
+    text: "🔥 Go Dominate The Battlefield! 🔥",
+    gradient: "linear-gradient(90deg, #f43f5e, #fb923c, #fbbf24)",
+  },
+  {
+    text: "🏆 Today Is YOUR Victory Day! 🏆",
+    gradient: "linear-gradient(90deg, #fbbf24, #f97316, #ef4444)",
+  },
+];
+
 function WelcomeModal({
   username,
   onClose,
@@ -150,7 +174,6 @@ function WelcomeModal({
             "0 0 60px rgba(249,115,22,0.25), 0 0 120px rgba(139,92,246,0.15), inset 0 0 60px rgba(0,0,0,0.5)",
         }}
       >
-        {/* Animated glow orbs */}
         <div
           className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl pointer-events-none animate-pulse"
           style={{ background: "rgba(249,115,22,0.12)" }}
@@ -159,12 +182,7 @@ function WelcomeModal({
           className="absolute bottom-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none animate-pulse"
           style={{ background: "rgba(139,92,246,0.12)", animationDelay: "1s" }}
         />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
-          style={{ background: "rgba(34,211,238,0.04)" }}
-        />
 
-        {/* Logo with fire ring */}
         <div className="flex items-center justify-center mb-3 relative">
           <div
             className="absolute w-28 h-28 rounded-full animate-spin"
@@ -190,7 +208,6 @@ function WelcomeModal({
           </div>
         </div>
 
-        {/* Subtitle badge */}
         <div className="flex items-center justify-center mb-1">
           <span
             className="text-[10px] font-black uppercase tracking-[0.25em] px-3 py-0.5 rounded-full"
@@ -204,7 +221,6 @@ function WelcomeModal({
           </span>
         </div>
 
-        {/* Username greeting */}
         <h2
           className="font-display font-black text-2xl mb-4 mt-1"
           style={{
@@ -219,22 +235,19 @@ function WelcomeModal({
           {username ? `Welcome, ${username}! 👋` : "Welcome, Player! 👋"}
         </h2>
 
-        {/* Typing box with dynamic gradient text */}
         <div
           className="rounded-2xl px-4 py-4 mb-5 min-h-[80px] flex items-center justify-center relative overflow-hidden"
           style={{
             background: "rgba(0,0,0,0.6)",
             border: "1px solid rgba(255,255,255,0.08)",
-            boxShadow: "inset 0 0 30px rgba(0,0,0,0.5)",
           }}
         >
-          {/* Subtle glow behind text that matches line color */}
           <div
             className="absolute inset-0 opacity-10 transition-all duration-500"
             style={{ background: currentGradient }}
           />
           <p
-            className="text-base font-bold leading-relaxed relative z-10 transition-all duration-300"
+            className="text-base font-bold leading-relaxed relative z-10"
             style={{
               background: currentGradient,
               WebkitBackgroundClip: "text",
@@ -253,7 +266,6 @@ function WelcomeModal({
           </p>
         </div>
 
-        {/* Colorful line dots */}
         <div className="flex items-center justify-center gap-2 mb-5">
           {WELCOME_LINES.map((line, i) => (
             <div
@@ -279,18 +291,16 @@ function WelcomeModal({
           ))}
         </div>
 
-        {/* Action buttons */}
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95 relative overflow-hidden"
+            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95"
             style={{
               background: "linear-gradient(90deg, #f97316, #fbbf24, #f97316)",
               backgroundSize: "200% 100%",
               color: "#0a0a0a",
-              boxShadow:
-                "0 0 25px rgba(249,115,22,0.5), 0 4px 15px rgba(0,0,0,0.3)",
+              boxShadow: "0 0 25px rgba(249,115,22,0.5)",
               letterSpacing: "0.05em",
             }}
             data-ocid="welcome.start.button"
@@ -311,10 +321,251 @@ function WelcomeModal({
           </button>
         </div>
 
-        {/* Bottom tagline */}
         <p
           className="text-[10px] mt-3 font-semibold uppercase tracking-widest"
           style={{ color: "rgba(255,255,255,0.25)" }}
+        >
+          SR-FF-TOURNAMENT • Play. Win. Dominate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Welcome BACK modal shown on every login
+function WelcomeBackModal({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [charIdx, setCharIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (done) return;
+    const currentLine = WELCOME_BACK_LINES[lineIdx].text;
+    if (charIdx < currentLine.length) {
+      timerRef.current = setTimeout(() => {
+        setDisplayed((prev) => prev + currentLine[charIdx]);
+        setCharIdx((c) => c + 1);
+      }, 40);
+    } else {
+      timerRef.current = setTimeout(() => {
+        if (lineIdx < WELCOME_BACK_LINES.length - 1) {
+          setLineIdx((l) => l + 1);
+          setDisplayed("");
+          setCharIdx(0);
+        } else {
+          setDone(true);
+        }
+      }, 900);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [charIdx, lineIdx, done]);
+
+  const currentGradient = WELCOME_BACK_LINES[lineIdx].gradient;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.93)", backdropFilter: "blur(10px)" }}
+      data-ocid="welcome-back.modal"
+    >
+      <div
+        className="relative w-full max-w-sm rounded-3xl p-6 text-center overflow-hidden"
+        style={{
+          background:
+            "linear-gradient(135deg, #060b1a 0%, #0a1020 50%, #0d0a18 100%)",
+          border: "1.5px solid rgba(99,102,241,0.55)",
+          boxShadow:
+            "0 0 70px rgba(99,102,241,0.22), 0 0 130px rgba(34,211,238,0.10), inset 0 0 60px rgba(0,0,0,0.5)",
+        }}
+      >
+        {/* Ambient glow top-left */}
+        <div
+          className="absolute top-0 left-0 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(99,102,241,0.13)" }}
+        />
+        {/* Ambient glow bottom-right */}
+        <div
+          className="absolute bottom-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{
+            background: "rgba(34,211,238,0.10)",
+            animationDelay: "1.2s",
+          }}
+        />
+        {/* Center ambient */}
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+          style={{ background: "rgba(168,85,247,0.05)" }}
+        />
+
+        {/* Logo with spinning ring */}
+        <div className="flex items-center justify-center mb-4 relative">
+          <div
+            className="absolute w-32 h-32 rounded-full animate-spin"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #6366f1, #22d3ee, #a855f7, #fbbf24, #6366f1)",
+              padding: "2.5px",
+              animationDuration: "5s",
+            }}
+          />
+          <div
+            className="relative w-28 h-28 rounded-full overflow-hidden"
+            style={{
+              border: "3px solid #060b1a",
+              boxShadow: "0 0 35px rgba(99,102,241,0.75)",
+            }}
+          >
+            <img
+              src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+              alt="SR-FF Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          {/* Small crown badge on top */}
+          <div
+            className="absolute -top-1 left-1/2 -translate-x-1/2 text-lg"
+            style={{ filter: "drop-shadow(0 0 6px #fbbf24)" }}
+          >
+            👑
+          </div>
+        </div>
+
+        {/* Badge */}
+        <div className="flex items-center justify-center mb-2">
+          <span
+            className="text-[10px] font-black uppercase tracking-[0.22em] px-4 py-1 rounded-full"
+            style={{
+              background: "rgba(99,102,241,0.18)",
+              border: "1px solid rgba(99,102,241,0.45)",
+              color: "#a5b4fc",
+            }}
+          >
+            ✨ Player Login Successful
+          </span>
+        </div>
+
+        {/* Username greeting */}
+        <h2
+          className="font-display font-black mb-1"
+          style={{
+            fontSize: "1.35rem",
+            background: "linear-gradient(90deg, #22d3ee, #a855f7, #fbbf24)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {username ? `Hey ${username}! 🎮` : "Hey Player! 🎮"}
+        </h2>
+
+        {/* Typing message box */}
+        <div
+          className="rounded-2xl px-4 py-4 mb-5 mt-3 min-h-[90px] flex items-center justify-center relative overflow-hidden"
+          style={{
+            background: "rgba(0,0,0,0.65)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "inset 0 0 30px rgba(0,0,0,0.6)",
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-10 transition-all duration-500"
+            style={{ background: currentGradient }}
+          />
+          <p
+            className="text-base font-extrabold leading-relaxed relative z-10 text-center tracking-wide"
+            style={{
+              background: currentGradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 10px rgba(255,255,255,0.15))",
+            }}
+          >
+            {displayed}
+            <span
+              className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse rounded-full"
+              style={{
+                background: "#6366f1",
+                display: done ? "none" : "inline-block",
+              }}
+            />
+          </p>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {WELCOME_BACK_LINES.map((line, i) => (
+            <div
+              key={line.text}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === lineIdx ? "22px" : "7px",
+                height: "7px",
+                background:
+                  i < lineIdx
+                    ? "#22d3ee"
+                    : i === lineIdx
+                      ? "#6366f1"
+                      : "rgba(255,255,255,0.12)",
+                boxShadow:
+                  i === lineIdx
+                    ? "0 0 10px rgba(99,102,241,0.9)"
+                    : i < lineIdx
+                      ? "0 0 6px rgba(34,211,238,0.6)"
+                      : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Action button */}
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(90deg, #6366f1, #a855f7, #22d3ee)",
+              color: "#ffffff",
+              boxShadow:
+                "0 0 28px rgba(99,102,241,0.55), 0 4px 15px rgba(0,0,0,0.3)",
+              letterSpacing: "0.05em",
+              textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+            }}
+            data-ocid="welcome-back.start.button"
+          >
+            🎯 Let's Play!
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+            data-ocid="welcome-back.close.button"
+          >
+            <X
+              className="w-4 h-4"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            />
+          </button>
+        </div>
+
+        {/* Bottom tagline */}
+        <p
+          className="text-[10px] mt-3 font-semibold uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.22)" }}
         >
           SR-FF-TOURNAMENT • Play. Win. Dominate.
         </p>
@@ -331,18 +582,31 @@ export default function Home() {
   const [bannerIdx, setBannerIdx] = useState(0);
   const [showWelcome, setShowWelcome] = useState(false);
   const [welcomeUsername, setWelcomeUsername] = useState("");
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [welcomeBackUsername, setWelcomeBackUsername] = useState("");
 
   useEffect(() => {
+    // New user registration welcome
     const flag = localStorage.getItem("srff_new_user_welcome");
     if (flag) {
       const data = JSON.parse(flag);
       setWelcomeUsername(data.username || "");
       setShowWelcome(true);
       localStorage.removeItem("srff_new_user_welcome");
+      return; // Don't show both at same time
+    }
+    // Returning user login welcome
+    const loginFlag = localStorage.getItem("srff_login_welcome");
+    if (loginFlag) {
+      const data = JSON.parse(loginFlag);
+      setWelcomeBackUsername(data.username || "");
+      setShowWelcomeBack(true);
+      localStorage.removeItem("srff_login_welcome");
     }
   }, []);
 
   const handleCloseWelcome = () => setShowWelcome(false);
+  const handleCloseWelcomeBack = () => setShowWelcomeBack(false);
 
   const announcement = loadAnnouncement();
   const promoLinks = loadPromoLinks();
@@ -359,6 +623,12 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       {showWelcome && (
         <WelcomeModal username={welcomeUsername} onClose={handleCloseWelcome} />
+      )}
+      {showWelcomeBack && !showWelcome && (
+        <WelcomeBackModal
+          username={welcomeBackUsername}
+          onClose={handleCloseWelcomeBack}
+        />
       )}
 
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">

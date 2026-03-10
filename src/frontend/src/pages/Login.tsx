@@ -18,6 +18,11 @@ export default function Login() {
     const result = login(phone.trim(), password);
     setLoading(false);
     if (result.success) {
+      // Set login welcome flag so Home page shows the welcome back modal
+      localStorage.setItem(
+        "srff_login_welcome",
+        JSON.stringify({ username: result.username || phone.trim() }),
+      );
       navigate({ to: "/" });
     } else {
       toast.error(result.error || "Mobile number ya password galat hai");
