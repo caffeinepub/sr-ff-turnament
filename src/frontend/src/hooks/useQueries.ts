@@ -11,6 +11,7 @@ import type {
 import { useActor } from "./useActor";
 
 const PAYMENTS_KEY = "srff_payment_requests";
+const NOTIFICATIONS_KEY = "srff_global_notifications";
 
 export interface PaymentRequest {
   id: number;
@@ -22,6 +23,38 @@ export interface PaymentRequest {
   timestamp: number;
   note: string;
   upiId: string;
+}
+
+export interface GlobalNotification {
+  id: number;
+  title: string;
+  message: string;
+  imageUrl: string;
+  timestamp: number;
+}
+
+// ---- localStorage notification helpers ----
+function getLocalNotifications(): GlobalNotification[] {
+  try {
+    return JSON.parse(localStorage.getItem(NOTIFICATIONS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalNotification(n: GlobalNotification) {
+  const existing = getLocalNotifications();
+  if (existing.some((e) => e.id === n.id)) return;
+  existing.unshift(n);
+  localStorage.setItem(
+    NOTIFICATIONS_KEY,
+    JSON.stringify(existing.slice(0, 50)),
+  );
+}
+
+function getNextLocalId(): number {
+  const existing = getLocalNotifications();
+  return existing.length > 0 ? Math.max(...existing.map((e) => e.id)) + 1 : 1;
 }
 
 export function useAllTournaments() {
@@ -49,14 +82,44 @@ export function useCallerProfile() {
 }
 
 export function useAllNotifications() {
-  const { actor, isFetching } = useActor();
-  return useQuery({
+  const { actor } = useActor();
+  return useQuery<GlobalNotification[]>({
     queryKey: ["notifications"],
     queryFn: async () => {
-      if (!actor) return [];
-      return actor.getAllNotifications();
+      const local = getLocalNotifications();
+      // Try to also get from ICP backend and merge
+      if (actor) {
+        try {
+          const backendNotifs = await actor.getAllNotifications();
+          const mapped: GlobalNotification[] = backendNotifs.map((n: any) => ({
+            id: Number(n.id) + 100000, // offset to avoid id collision with localStorage
+            title: n.title,
+            message: n.message,
+            imageUrl: n.imageUrl,
+            timestamp: Number(n.timestamp) / 1_000_000, // nanoseconds to ms
+          }));
+          // Merge: combine local + backend, deduplicate by title+timestamp
+          const combined = [...local];
+          for (const bn of mapped) {
+            const already = combined.some(
+              (l) =>
+                l.title === bn.title &&
+                Math.abs(l.timestamp - bn.timestamp) < 10000,
+            );
+            if (!already) combined.push(bn);
+          }
+          // Sort by timestamp descending
+          combined.sort((a, b) => b.timestamp - a.timestamp);
+          return combined;
+        } catch {
+          // backend failed — return local only
+        }
+      }
+      return local;
     },
-    enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -219,8 +282,39 @@ export function useCreateNotification() {
       message: string;
       imageUrl: string;
     }) => {
-      if (!actor) throw new Error("Not connected");
-      return actor.createNotification(args.title, args.message, args.imageUrl);
+      // Always save to localStorage first (guaranteed to work)
+      const localId = getNextLocalId();
+      const localNotif: GlobalNotification = {
+        id: localId,
+        title: args.title,
+        message: args.message,
+        imageUrl: args.imageUrl,
+        timestamp: Date.now(),
+      };
+      saveLocalNotification(localNotif);
+
+      // Set update flag if it's an update notification
+      if (/update|\u{1F504}/u.test(args.title)) {
+        localStorage.setItem(
+          "srff_update_timestamp",
+          String(localNotif.timestamp),
+        );
+      }
+
+      // Also try ICP backend (works if actor has admin token)
+      if (actor) {
+        try {
+          await actor.createNotification(
+            args.title,
+            args.message,
+            args.imageUrl,
+          );
+        } catch {
+          // Backend failed (likely no admin token in URL) — localStorage is the fallback
+        }
+      }
+
+      return localId;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["notifications"] }),
   });
@@ -318,6 +412,7 @@ export function useSubmitPaymentRequest() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
+      qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
     },
   });
 }
@@ -344,6 +439,9 @@ export function useAllPaymentRequests() {
     queryFn: async () => {
       return JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
     },
+    staleTime: 0,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 }
 

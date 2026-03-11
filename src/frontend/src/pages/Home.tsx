@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import UpdateModal from "../components/UpdateModal";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import { useAllNotifications, useAllTournaments } from "../hooks/useQueries";
 import type { PromoBanner } from "./admin/AdminBanners";
@@ -624,6 +625,9 @@ export default function Home() {
   const [showWelcomeBack, setShowWelcomeBack] = useState(false);
   const [welcomeBackUsername, setWelcomeBackUsername] = useState("");
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateDismissedThisSession, setUpdateDismissedThisSession] =
+    useState(false);
 
   const principalSlice =
     identity?.getPrincipal().toString().slice(0, 8) ?? "guest";
@@ -691,6 +695,40 @@ export default function Home() {
   const handleCloseWelcome = () => setShowWelcome(false);
   const handleCloseWelcomeBack = () => setShowWelcomeBack(false);
 
+  // Show update modal when there is a new update notification
+  useEffect(() => {
+    if (showWelcome || showWelcomeBack) return;
+    const updateNotif = (notifications as any[]).find((n) =>
+      /update|🔄/i.test(String(n.title || "")),
+    );
+    if (!updateNotif) return;
+    const notifTs = Number(
+      updateNotif.timestamp ?? updateNotif.created_at ?? 0,
+    );
+    const dismissed = Number(
+      localStorage.getItem("srff_last_update_dismissed") ?? 0,
+    );
+    const normalizedNotifTs = notifTs > 1e12 ? notifTs : notifTs * 1000;
+    if (normalizedNotifTs > dismissed && !updateDismissedThisSession) {
+      setShowUpdateModal(true);
+    }
+  }, [notifications, showWelcome, showWelcomeBack, updateDismissedThisSession]);
+
+  const handleUpdateApp = () => {
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        for (const name of names) caches.delete(name);
+      });
+    }
+    window.location.reload();
+  };
+
+  const handleDismissUpdate = () => {
+    localStorage.setItem("srff_last_update_dismissed", Date.now().toString());
+    setUpdateDismissedThisSession(true);
+    setShowUpdateModal(false);
+  };
+
   const announcement = loadAnnouncement();
   const promoLinks = loadPromoLinks();
   const promoBanners = loadPromoBanners();
@@ -712,6 +750,10 @@ export default function Home() {
           username={welcomeBackUsername}
           onClose={handleCloseWelcomeBack}
         />
+      )}
+
+      {showUpdateModal && !showWelcome && !showWelcomeBack && (
+        <UpdateModal onUpdate={handleUpdateApp} onLater={handleDismissUpdate} />
       )}
 
       {/* ── Unified Header ── */}
@@ -1218,6 +1260,28 @@ export default function Home() {
             "SR-FF-TURNAMENT — Free Fire Tournament Platform"}
         </p>
       </footer>
+
+      {/* Floating Update App Button — shows after modal is dismissed */}
+      {updateDismissedThisSession &&
+        (notifications as any[]).some((n) =>
+          /update|🔄/i.test(String(n.title || "")),
+        ) && (
+          <div className="fixed bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+            <button
+              type="button"
+              onClick={handleUpdateApp}
+              className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full font-bold text-white text-sm shadow-2xl animate-bounce"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #f59e0b)",
+                boxShadow: "0 0 20px rgba(249,115,22,0.6)",
+              }}
+              data-ocid="home.update_app.button"
+            >
+              <span className="text-base">🔄</span>
+              Update Karo
+            </button>
+          </div>
+        )}
     </div>
   );
 }

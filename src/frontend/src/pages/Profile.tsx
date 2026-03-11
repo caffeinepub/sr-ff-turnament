@@ -37,7 +37,7 @@ import {
   Trophy,
   XCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
 import type { PaymentRequest } from "../hooks/useQueries";
@@ -260,8 +260,58 @@ export default function Profile() {
     localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
   };
 
+  // Reactive localStorage state for admin-editable policy texts
+  const [privacyText, setPrivacyText] = useState(
+    () => localStorage.getItem("srff_privacy_policy") || "",
+  );
+  const [termsText, setTermsText] = useState(
+    () => localStorage.getItem("srff_terms_conditions") || "",
+  );
+  const [refundText, setRefundText] = useState(() => refundText || "");
+  const [contactText, setContactText] = useState(
+    () => localStorage.getItem(CONTACT_US_KEY) || "",
+  );
+  const [fairPlayText, setFairPlayText] = useState(
+    () => localStorage.getItem(FAIR_PLAY_KEY) || "",
+  );
+  const [gameRulesText, setGameRulesText] = useState(
+    () => localStorage.getItem(GAME_RULES_KEY) || "",
+  );
+  const [referEarnText, setReferEarnText] = useState(
+    () => localStorage.getItem("srff_refer_earn") || "",
+  );
+
+  // Listen for admin localStorage changes and sync instantly
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally runs once
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "srff_privacy_policy") setPrivacyText(e.newValue || "");
+      if (e.key === "srff_terms_conditions") setTermsText(e.newValue || "");
+      if (e.key === "srff_refund_policy") setRefundText(e.newValue || "");
+      if (e.key === CONTACT_US_KEY) setContactText(e.newValue || "");
+      if (e.key === FAIR_PLAY_KEY) setFairPlayText(e.newValue || "");
+      if (e.key === GAME_RULES_KEY) setGameRulesText(e.newValue || "");
+      if (e.key === "srff_refer_earn") setReferEarnText(e.newValue || "");
+    };
+    // Also poll every 2s to catch same-tab admin changes
+    const interval = setInterval(() => {
+      setPrivacyText(localStorage.getItem("srff_privacy_policy") || "");
+      setTermsText(localStorage.getItem("srff_terms_conditions") || "");
+      setRefundText(refundText || "");
+      setContactText(localStorage.getItem(CONTACT_US_KEY) || "");
+      setFairPlayText(localStorage.getItem(FAIR_PLAY_KEY) || "");
+      setGameRulesText(localStorage.getItem(GAME_RULES_KEY) || "");
+      setReferEarnText(localStorage.getItem("srff_refer_earn") || "");
+    }, 2000);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
   // Local-only policy fields from localStorage (set by admin)
-  const gameRules = getLocalString(GAME_RULES_KEY);
+  const gameRules = gameRulesText;
 
   const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
   const minDeposit = getMinDeposit();
@@ -1132,18 +1182,26 @@ export default function Profile() {
             {referOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 space-y-3">
-                  <p className="text-xs text-amber-400 font-semibold">
-                    🎁 Refer & Earn kaise kaam karta hai:
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    • Apna referral code apne dosto ko bhejo
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    • Jab friend register kare, apna referral code daale
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    • Aapko bonus wallet mein milega!
-                  </p>
+                  {referEarnText ? (
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {referEarnText}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-amber-400 font-semibold">
+                        🎁 Refer & Earn kaise kaam karta hai:
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Apna referral code apne dosto ko bhejo
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Jab friend register kare, apna referral code daale
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Aapko bonus wallet mein milega!
+                      </p>
+                    </>
+                  )}
                   {profile?.referralCode ? (
                     <div className="mt-2">
                       <p className="text-xs text-muted-foreground mb-1">
@@ -1197,7 +1255,7 @@ export default function Profile() {
             {contactOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {getLocalString(CONTACT_US_KEY) ||
+                  {contactText ||
                     `📞 WhatsApp: 9104414372
 📧 Gmail: Sk190rihan@gmail.com
 
@@ -1232,7 +1290,7 @@ Hum aapki help karne ke liye ready hain! 🙏`}
             {privacyOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {localStorage.getItem("srff_privacy_policy") ||
+                  {privacyText ||
                     settings?.privacyPolicy ||
                     `🔒 PRIVACY POLICY - SR-FF-TOURNAMENT
 
@@ -1279,7 +1337,7 @@ Hum aapki help karne ke liye ready hain! 🙏`}
             {termsOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {localStorage.getItem("srff_terms_conditions") ||
+                  {termsText ||
                     settings?.termsAndConditions ||
                     `📄 TERMS AND CONDITIONS - SR-FF-TOURNAMENT
 
@@ -1328,7 +1386,7 @@ Hum aapki help karne ke liye ready hain! 🙏`}
             {refundOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {localStorage.getItem("srff_refund_policy") ||
+                  {refundText ||
                     settings?.refundPolicy ||
                     `↩️ REFUND AND CANCELLATION POLICY
 
@@ -1380,7 +1438,7 @@ Hum aapki help karne ke liye ready hain! 🙏`}
             {fairPlayOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {getLocalString(FAIR_PLAY_KEY) ||
+                  {fairPlayText ||
                     `⚖️ FAIR PLAY POLICY
 
 SR-FF-TOURNAMENT ek fair aur honest gaming platform hai. Yahan sab players ke liye equal opportunity hai.

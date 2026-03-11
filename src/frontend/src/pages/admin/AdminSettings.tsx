@@ -384,6 +384,9 @@ export default function AdminSettings() {
   const [minDeposit, setMinDeposit] = useState<number>(getStoredMinDeposit);
 
   // Local-only fields (not in AppSettings backend type)
+  const [referEarn, setReferEarn] = useState<string>(
+    () => localStorage.getItem("srff_refer_earn") || "",
+  );
   const [contactUs, setContactUs] = useState<string>(
     () => localStorage.getItem(CONTACT_US_KEY) || "",
   );
@@ -405,6 +408,7 @@ export default function AdminSettings() {
     e.preventDefault();
     // Save local-only fields FIRST so they always get persisted
     localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
+    localStorage.setItem("srff_refer_earn", referEarn);
     localStorage.setItem(CONTACT_US_KEY, contactUs);
     localStorage.setItem(FAIR_PLAY_KEY, fairPlayPolicy);
     localStorage.setItem(MATCH_HISTORY_KEY, matchHistoryNote);
@@ -636,7 +640,18 @@ export default function AdminSettings() {
             Yeh fields locally save hote hain aur profile page par dikhte hain.
           </p>
           <div>
-            <Label>Contact Us</Label>
+            <Label>🎁 Refer &amp; Earn Text</Label>
+            <Textarea
+              value={referEarn}
+              onChange={(e) => setReferEarn(e.target.value)}
+              rows={3}
+              placeholder="Refer karne ka process, reward amount, aur instructions..."
+              className="mt-1"
+              data-ocid="admin-settings.referEarn.textarea"
+            />
+          </div>
+          <div>
+            <Label>📞 Contact Us</Label>
             <Textarea
               value={contactUs}
               onChange={(e) => setContactUs(e.target.value)}
