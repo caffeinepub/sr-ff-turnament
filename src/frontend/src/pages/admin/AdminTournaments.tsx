@@ -71,18 +71,44 @@ const OVERRIDES_KEY = "srff_tournament_overrides";
 const CREATED_KEY = "srff_created_tournaments";
 
 const AVATARS = [
-  { id: 1, emoji: "\uD83D\uDD25", bg: "from-orange-500 to-red-600" },
-  { id: 2, emoji: "\u26A1", bg: "from-yellow-400 to-orange-500" },
-  { id: 3, emoji: "\uD83C\uDFC6", bg: "from-yellow-500 to-amber-600" },
-  { id: 4, emoji: "\uD83C\uDFAF", bg: "from-green-500 to-emerald-600" },
-  { id: 5, emoji: "\u2694\uFE0F", bg: "from-blue-500 to-indigo-600" },
-  { id: 6, emoji: "\uD83D\uDEE1\uFE0F", bg: "from-slate-500 to-slate-600" },
-  { id: 7, emoji: "\uD83D\uDC80", bg: "from-purple-500 to-violet-600" },
-  { id: 8, emoji: "\uD83E\uDD81", bg: "from-amber-500 to-yellow-600" },
-  { id: 9, emoji: "\uD83D\uDC09", bg: "from-red-500 to-rose-600" },
-  { id: 10, emoji: "\uD83C\uDF1F", bg: "from-cyan-500 to-blue-600" },
-  { id: 11, emoji: "\uD83C\uDFAE", bg: "from-pink-500 to-rose-600" },
-  { id: 12, emoji: "\uD83D\uDC51", bg: "from-yellow-400 to-yellow-600" },
+  {
+    id: 1,
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
+  },
+  {
+    id: 2,
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
+  },
+  {
+    id: 3,
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
+  },
+  {
+    id: 4,
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
+  },
+  {
+    id: 5,
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
+  },
+  {
+    id: 6,
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
+  },
+  {
+    id: 7,
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
+  },
 ];
 
 interface TournamentPlayer {
@@ -116,12 +142,7 @@ function saveTournamentPlayerWinnings(
 }
 
 function getAvatarById(avatarId: number) {
-  return (
-    AVATARS.find((a) => a.id === avatarId) ?? {
-      emoji: "\uD83C\uDFAE",
-      bg: "from-pink-500 to-rose-600",
-    }
-  );
+  return AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0];
 }
 
 /**
@@ -348,6 +369,7 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
       };
       saveLocalTournament(localT);
       toast.success("Tournament created (locally)!");
+      window.dispatchEvent(new Event("srff_tournament_updated"));
     }
     setForm(EMPTY_FORM);
     setOpen(false);
@@ -1002,10 +1024,12 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
                   data-ocid={`admin-tournaments.results.item.${i + 1}`}
                 >
                   {/* Avatar */}
-                  <div
-                    className={`w-9 h-9 rounded-full bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}
-                  >
-                    {av.emoji}
+                  <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                    <img
+                      src={av.image}
+                      alt={av.label ?? "Avatar"}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   {/* Player info */}
                   <div className="flex-1 min-w-0">

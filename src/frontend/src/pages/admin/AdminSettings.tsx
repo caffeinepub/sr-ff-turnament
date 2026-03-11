@@ -44,11 +44,11 @@ const DEFAULT_SETTINGS: AppSettings = {
 function getStoredMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 50;
+    if (raw === null) return 10;
     const val = Number(raw);
-    return Number.isNaN(val) ? 50 : val;
+    return Number.isNaN(val) ? 10 : val;
   } catch {
-    return 50;
+    return 10;
   }
 }
 
@@ -409,6 +409,12 @@ export default function AdminSettings() {
     localStorage.setItem(FAIR_PLAY_KEY, fairPlayPolicy);
     localStorage.setItem(MATCH_HISTORY_KEY, matchHistoryNote);
     localStorage.setItem(GAME_RULES_KEY, gameRules);
+    localStorage.setItem("srff_privacy_policy", form.privacyPolicy || "");
+    localStorage.setItem(
+      "srff_terms_conditions",
+      form.termsAndConditions || "",
+    );
+    localStorage.setItem("srff_refund_policy", form.refundPolicy || "");
     if (form.supportContact) {
       localStorage.setItem(
         SUPPORT_NUMBER_KEY,

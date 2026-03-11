@@ -10,9 +10,44 @@ import {
   Trophy,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Tournament } from "../backend.d";
 import { useAllTournaments } from "../hooks/useQueries";
+
+function parseLocalTournaments(): Tournament[] {
+  try {
+    const raw = localStorage.getItem("srff_created_tournaments");
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as Array<{
+      id: string;
+      title: string;
+      gameMode: string;
+      entryFee: number;
+      prizePool: number;
+      maxPlayers: number;
+      minPlayers: number;
+      status: string;
+      description: string;
+      startTime: number;
+      playerCount: number;
+    }>;
+    return arr.map((lt) => ({
+      id: lt.id as unknown as bigint,
+      title: lt.title,
+      gameMode: lt.gameMode,
+      entryFee: BigInt(lt.entryFee),
+      prizePool: BigInt(lt.prizePool),
+      maxPlayers: BigInt(lt.maxPlayers),
+      minPlayers: BigInt(lt.minPlayers),
+      status: lt.status as Tournament["status"],
+      description: lt.description,
+      startTime: BigInt(Math.floor(lt.startTime * 1_000_000)),
+      playerCount: BigInt(lt.playerCount),
+    }));
+  } catch {
+    return [];
+  }
+}
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "ongoing")
@@ -105,8 +140,34 @@ export default function Tournaments() {
   const [tab, setTab] = useState("all");
   const { data: tournaments = [], isLoading } = useAllTournaments();
 
+  const [localCreated, setLocalCreated] = useState<Tournament[]>(
+    parseLocalTournaments,
+  );
+  useEffect(() => {
+    const refresh = () => setLocalCreated(parseLocalTournaments());
+    window.addEventListener("srff_tournament_updated", refresh);
+    window.addEventListener("storage", refresh);
+    // Also poll every 2 seconds to catch admin changes in same tab
+    const interval = setInterval(refresh, 2000);
+    return () => {
+      window.removeEventListener("srff_tournament_updated", refresh);
+      window.removeEventListener("storage", refresh);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const allTournaments = useMemo(() => {
+    const backendIds = new Set(tournaments.map((t) => t.id.toString()));
+    const locals = localCreated.filter(
+      (lt) => !backendIds.has(lt.id.toString()),
+    );
+    return [...tournaments, ...locals];
+  }, [tournaments, localCreated]);
+
   const filtered =
-    tab === "all" ? tournaments : tournaments.filter((t) => t.status === tab);
+    tab === "all"
+      ? allTournaments
+      : allTournaments.filter((t) => t.status === tab);
 
   return (
     <div className="min-h-screen bg-background">

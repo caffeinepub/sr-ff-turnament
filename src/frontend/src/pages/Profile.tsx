@@ -62,11 +62,11 @@ const BANK_NAME_KEY = "srff_bank_name";
 function getMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 50;
+    if (raw === null) return 10;
     const val = Number(raw);
-    return Number.isNaN(val) ? 50 : val;
+    return Number.isNaN(val) ? 10 : val;
   } catch {
-    return 50;
+    return 10;
   }
 }
 
@@ -115,75 +115,41 @@ function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
 const AVATARS = [
   {
     id: 1,
-    emoji: "\uD83D\uDD25",
-    bg: "from-orange-500 to-red-600",
-    label: "Fire",
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
   },
   {
     id: 2,
-    emoji: "\u26A1",
-    bg: "from-yellow-400 to-orange-500",
-    label: "Thunder",
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
   },
   {
     id: 3,
-    emoji: "\uD83C\uDFC6",
-    bg: "from-yellow-500 to-amber-600",
-    label: "Champion",
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
   },
   {
     id: 4,
-    emoji: "\uD83C\uDFAF",
-    bg: "from-green-500 to-emerald-600",
-    label: "Sniper",
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
   },
   {
     id: 5,
-    emoji: "\u2694\uFE0F",
-    bg: "from-blue-500 to-indigo-600",
-    label: "Warrior",
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
   },
   {
     id: 6,
-    emoji: "\uD83D\uDEE1\uFE0F",
-    bg: "from-slate-500 to-slate-700",
-    label: "Shield",
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
   },
   {
     id: 7,
-    emoji: "\uD83D\uDC80",
-    bg: "from-purple-600 to-violet-700",
-    label: "Skull",
-  },
-  {
-    id: 8,
-    emoji: "\uD83E\uDD81",
-    bg: "from-amber-500 to-yellow-600",
-    label: "Lion",
-  },
-  {
-    id: 9,
-    emoji: "\uD83D\uDC09",
-    bg: "from-red-600 to-rose-700",
-    label: "Dragon",
-  },
-  {
-    id: 10,
-    emoji: "\uD83C\uDF1F",
-    bg: "from-cyan-400 to-blue-500",
-    label: "Star",
-  },
-  {
-    id: 11,
-    emoji: "\uD83C\uDFAE",
-    bg: "from-pink-500 to-rose-600",
-    label: "Gamer",
-  },
-  {
-    id: 12,
-    emoji: "\uD83D\uDC51",
-    bg: "from-yellow-400 to-yellow-600",
-    label: "King",
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
   },
 ];
 
@@ -363,6 +329,13 @@ export default function Profile() {
       toast.error("UTR / Transaction ID daalo");
       return;
     }
+    if (
+      depositNote.trim().length !== 12 ||
+      !/^\d{12}$/.test(depositNote.trim())
+    ) {
+      toast.error("UTR exactly 12 digit ka hona chahiye");
+      return;
+    }
     submitPayment.mutate(
       {
         amount: amt,
@@ -383,7 +356,7 @@ export default function Profile() {
 
   const handleWithdrawSubmit = () => {
     const amt = Number(withdrawAmount);
-    const min = settings ? Number(settings.minWithdraw) : 100;
+    const min = 100; // Minimum withdrawal fixed at Rs 100
     if (!amt || amt < min) {
       toast.error(`Minimum withdrawal \u20b9${min} hai`);
       return;
@@ -470,21 +443,13 @@ export default function Profile() {
             <Avatar className="w-20 h-20 border-2 border-primary">
               {currentAvatar ? (
                 <AvatarImage
-                  src=""
+                  src={currentAvatar.image}
                   alt={currentAvatar.label}
-                  className="hidden"
+                  className="w-full h-full rounded-full object-cover"
                 />
               ) : null}
-              <AvatarFallback
-                className={`text-3xl ${
-                  currentAvatar
-                    ? `bg-gradient-to-br ${currentAvatar.bg}`
-                    : "bg-primary/20 text-primary"
-                }`}
-              >
-                {currentAvatar
-                  ? currentAvatar.emoji
-                  : (currentUser.username?.charAt(0)?.toUpperCase() ?? "?")}
+              <AvatarFallback className="bg-primary/20 text-primary text-3xl">
+                {currentUser.username?.charAt(0)?.toUpperCase() ?? "?"}
               </AvatarFallback>
             </Avatar>
             <button
@@ -550,10 +515,12 @@ export default function Profile() {
                   }`}
                   data-ocid={`profile.avatar.item.${av.id}`}
                 >
-                  <div
-                    className={`w-11 h-11 rounded-full bg-gradient-to-br ${av.bg} flex items-center justify-center text-xl`}
-                  >
-                    {av.emoji}
+                  <div className="w-11 h-11 rounded-full overflow-hidden">
+                    <img
+                      src={av.image}
+                      alt={av.label}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <span className="text-[10px] font-semibold text-muted-foreground">
                     #{av.id}
@@ -780,10 +747,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <div>
-                          <Label>
-                            Amount (₹) — Min: ₹
-                            {settings ? Number(settings.minWithdraw) : 100}
-                          </Label>
+                          <Label>Amount (₹) — Min: ₹{100}</Label>
                           <Input
                             value={withdrawAmount}
                             onChange={(e) => setWithdrawAmount(e.target.value)}
@@ -1167,31 +1131,45 @@ export default function Profile() {
             </button>
             {referOpen && (
               <div className="px-4 pb-4">
-                {profile?.referralCode ? (
-                  <div className="bg-background/60 rounded-xl p-3 space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Apna referral code share karo aur bonus kamao:
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="font-mono font-bold text-primary text-sm flex-1">
+                <div className="bg-background/60 rounded-xl p-3 space-y-3">
+                  <p className="text-xs text-amber-400 font-semibold">
+                    🎁 Refer & Earn kaise kaam karta hai:
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    • Apna referral code apne dosto ko bhejo
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    • Jab friend register kare, apna referral code daale
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    • Aapko bonus wallet mein milega!
+                  </p>
+                  {profile?.referralCode ? (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Aapka Referral Code:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-bold text-primary text-sm flex-1 bg-black/30 px-2 py-1 rounded">
+                          {profile.referralCode}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={copyReferral}
+                          data-ocid="profile.refer.copy_button"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Share link: {window.location.origin}/register?ref=
                         {profile.referralCode}
                       </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 px-2 text-xs"
-                        onClick={copyReferral}
-                        data-ocid="profile.refer.copy_button"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground text-center">
-                    Referral code load ho raha hai...
-                  </div>
-                )}
+                  ) : null}
+                </div>
               </div>
             )}
           </div>
@@ -1220,7 +1198,12 @@ export default function Profile() {
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {getLocalString(CONTACT_US_KEY) ||
-                    "Admin ne abhi contact details set nahi ki hain."}
+                    `📞 WhatsApp: 9104414372
+📧 Gmail: Sk190rihan@gmail.com
+
+Hame kisi bhi tournament ya payment issue ke liye contact karein.
+WhatsApp par message karein ya Gmail par email karein.
+Hum aapki help karne ke liye ready hain! 🙏`}
                 </div>
               </div>
             )}
@@ -1249,8 +1232,25 @@ export default function Profile() {
             {privacyOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {settings?.privacyPolicy ||
-                    "Admin ne abhi privacy policy set nahi ki hai."}
+                  {localStorage.getItem("srff_privacy_policy") ||
+                    settings?.privacyPolicy ||
+                    `🔒 PRIVACY POLICY - SR-FF-TOURNAMENT
+
+1. DATA COLLECTION: Hum aapka mobile number, username, aur Free Fire name collect karte hain taaki aap app use kar sakein.
+
+2. DATA SECURITY: Aapka data secure servers par store hota hai. Hum kabhi bhi aapka data third parties ko nahi dete.
+
+3. WALLET DATA: Aapka wallet balance aur transactions securely store hote hain. Admin ke alawa koi bhi aapka balance access nahi kar sakta.
+
+4. TOURNAMENT DATA: Tournament participation data aur match history aapki profile mein store hoti hai.
+
+5. NO SHARING: Hum aapki personal information kisi bhi third party ko nahi dete - na ads ke liye, na kisi aur ke liye.
+
+6. ACCOUNT SECURITY: Aapka password encrypted hai. Apna password kisi ke saath share na karein.
+
+7. COOKIES: App better experience ke liye local storage use karta hai.
+
+8. CONTACT: Privacy related kisi bhi sawaal ke liye: Sk190rihan@gmail.com`}
                 </div>
               </div>
             )}
@@ -1279,8 +1279,27 @@ export default function Profile() {
             {termsOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {settings?.termsAndConditions ||
-                    "Admin ne abhi terms set nahi kiye hain."}
+                  {localStorage.getItem("srff_terms_conditions") ||
+                    settings?.termsAndConditions ||
+                    `📄 TERMS AND CONDITIONS - SR-FF-TOURNAMENT
+
+1. ELIGIBILITY: Yeh app sirf 18+ users ke liye hai. Account banana means aap in terms se agree karte hain.
+
+2. ONE ACCOUNT: Ek mobile number se sirf ek account ban sakta hai. Duplicate accounts ban ho jaayenge.
+
+3. TOURNAMENT RULES: Tournament join karne ke baad entry fee refund nahi hogi (refund policy dekhein).
+
+4. FAIR PLAY: Cheating, hacking, ya unfair means use karne par account permanently ban ho jaayega.
+
+5. WALLET: Wallet balance real money hai. Withdrawal sirf verified accounts ke liye available hai.
+
+6. WINNING: Admin tournament results verify karega. Winning amount admin set karega aur automatically wallet mein credit hoga.
+
+7. DISPUTES: Kisi bhi dispute ke liye admin se contact karein. Admin ka decision final hoga.
+
+8. CHANGES: SR TECHNOLOGY PVT LTD in terms ko kabhi bhi change kar sakta hai. Continued use means acceptance.
+
+9. CONTACT: Sk190rihan@gmail.com | WhatsApp: 9104414372`}
                 </div>
               </div>
             )}
@@ -1309,8 +1328,30 @@ export default function Profile() {
             {refundOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {settings?.refundPolicy ||
-                    "Admin ne abhi refund policy set nahi ki hai."}
+                  {localStorage.getItem("srff_refund_policy") ||
+                    settings?.refundPolicy ||
+                    `↩️ REFUND AND CANCELLATION POLICY
+
+📌 Entry Fee Refund:
+• Agar aap tournament join karne ke baad match cancel ho jaata hai (admin ki taraf se), to aapki poori entry fee wallet mein wapas aa jaayegi.
+• Agar aapne tournament join kiya lekin khela nahi, to entry fee refund nahi hogi.
+
+📌 Deposit Refund:
+• Galat transaction hone par 24 ghante ke andar admin se contact karo.
+• Verified UTR se deposit confirm hoga. Galat UTR submit karne par refund nahi hoga.
+• Duplicate deposit (ek hi UTR do baar) ka paisa refund kiya jaayega.
+
+📌 Withdrawal:
+• Sirf Winning Cash withdraw ho sakta hai — regular balance nahi.
+• Withdrawal ₹50 minimum se hoga.
+• Processing time: 24-48 ghante (working days).
+• Wrong bank details dene par responsibility aapki hogi.
+
+📌 Cancellation:
+• Tournament join karne ke baad cancel karna allowed nahi hai.
+• Agar technical issue ho to admin se WhatsApp par contact karo.
+
+📞 Support: WhatsApp ya Contact Us section mein jaao.`}
                 </div>
               </div>
             )}
@@ -1340,7 +1381,31 @@ export default function Profile() {
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                   {getLocalString(FAIR_PLAY_KEY) ||
-                    "Admin ne abhi fair play policy set nahi ki hai."}
+                    `⚖️ FAIR PLAY POLICY
+
+SR-FF-TOURNAMENT ek fair aur honest gaming platform hai. Yahan sab players ke liye equal opportunity hai.
+
+✅ Allowed:
+• Legal Free Fire account se tournament mein participate karna.
+• Apne genuine skill se game khel kar winning earn karna.
+• Ek mobile number se ek account banana.
+
+❌ Strictly Prohibited:
+• Hacking, cheating ya any third-party tool/mod use karna.
+• Account sharing — ek account multiple logo ke saath use karna.
+• Fake screenshot ya manipulated proof submit karna.
+• Multiple accounts banana ek hi player ke liye.
+• Result manipulation ya fix karna.
+• Abusive/offensive language use karna.
+
+⚠️ Violation ka Result:
+• 1st violation: Warning + match disqualify.
+• 2nd violation: Account permanent ban + winning forfeit.
+• Serious cheating: Legal action bhi ho sakta hai.
+
+🏆 Fair play se hi asli winning milti hai. Khelo honestly, jito proudly!
+
+📞 Koi shikayat ho to admin se contact karo.`}
                 </div>
               </div>
             )}
@@ -1369,7 +1434,47 @@ export default function Profile() {
             {rulesOpen && (
               <div className="px-4 pb-4">
                 <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {gameRules || "Admin ne abhi rules set nahi kiye hain."}
+                  {gameRules ||
+                    `📜 SR-FF-TOURNAMENT — GAME RULES
+
+🎮 TOURNAMENT RULES:
+
+1️⃣ Registration:
+• Sirf registered members tournament join kar sakte hain.
+• Entry fee wallet se auto-deduct hogi join karne par.
+• Join karne ke baad cancel nahi hoga.
+
+2️⃣ Room Details:
+• Room ID aur Password tournament start se 15 min pehle diya jaayega.
+• Apna Free Fire naam aur UID verify karein — same hona chahiye.
+• Late join allow nahi hoga Room ID share hone ke baad.
+
+3️⃣ Game Play:
+• Solo, Duo ya Squad — jo mode selected ho usi mein play karo.
+• Cheating/hacking = immediate disqualification + ban.
+• Intentional team killing = disqualification.
+• AFK (Away From Keyboard) play nahi chalega.
+
+4️⃣ Results:
+• Results admin verify karega kills aur placement ke basis par.
+• Winner screenshot submit karna hoga (agar required ho).
+• Result announcement ke baad koi change nahi hoga.
+
+5️⃣ Winning:
+• Winning amount Winning Cash wallet mein credit hoga.
+• Winning Cash se withdrawal kar sakte hain.
+• Dispute hone par admin ka decision final hoga.
+
+6️⃣ Conduct:
+• Respectful behavior mandatory hai — sab players ke saath.
+• Koi abusive language nahi.
+• Admin ke instructions follow karna zaroori hai.
+
+7️⃣ Technical Issues:
+• Server issue hone par match reschedule ya cancel ho sakta hai.
+• Apne device/internet ki problem par refund nahi hoga.
+
+🏆 Khelo fair, jito bada — Good Luck! 🔥`}
                 </div>
               </div>
             )}

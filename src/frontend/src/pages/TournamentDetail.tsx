@@ -33,75 +33,41 @@ const RANK_BG = [
 const AVATARS = [
   {
     id: 1,
-    emoji: "\uD83D\uDD25",
-    label: "Fire",
-    bg: "from-orange-500 to-red-600",
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
   },
   {
     id: 2,
-    emoji: "\u26A1",
-    label: "Thunder",
-    bg: "from-yellow-400 to-orange-500",
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
   },
   {
     id: 3,
-    emoji: "\uD83C\uDFC6",
-    label: "Champion",
-    bg: "from-yellow-500 to-amber-600",
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
   },
   {
     id: 4,
-    emoji: "\uD83C\uDFAF",
-    label: "Sniper",
-    bg: "from-green-500 to-emerald-600",
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
   },
   {
     id: 5,
-    emoji: "\u2694\uFE0F",
-    label: "Warrior",
-    bg: "from-blue-500 to-indigo-600",
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
   },
   {
     id: 6,
-    emoji: "\uD83D\uDEE1\uFE0F",
-    label: "Shield",
-    bg: "from-slate-500 to-slate-600",
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
   },
   {
     id: 7,
-    emoji: "\uD83D\uDC80",
-    label: "Skull",
-    bg: "from-purple-500 to-violet-600",
-  },
-  {
-    id: 8,
-    emoji: "\uD83E\uDD81",
-    label: "Lion",
-    bg: "from-amber-500 to-yellow-600",
-  },
-  {
-    id: 9,
-    emoji: "\uD83D\uDC09",
-    label: "Dragon",
-    bg: "from-red-500 to-rose-600",
-  },
-  {
-    id: 10,
-    emoji: "\uD83C\uDF1F",
-    label: "Star",
-    bg: "from-cyan-500 to-blue-600",
-  },
-  {
-    id: 11,
-    emoji: "\uD83C\uDFAE",
-    label: "Gamer",
-    bg: "from-pink-500 to-rose-600",
-  },
-  {
-    id: 12,
-    emoji: "\uD83D\uDC51",
-    label: "King",
-    bg: "from-yellow-400 to-yellow-600",
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
   },
 ];
 
@@ -129,12 +95,7 @@ function getTournamentPlayers(tournamentId: string): TournamentPlayer[] {
 }
 
 function getAvatarById(avatarId: number) {
-  return (
-    AVATARS.find((a) => a.id === avatarId) ?? {
-      emoji: "\uD83C\uDFAE",
-      bg: "from-pink-500 to-rose-600",
-    }
-  );
+  return AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0];
 }
 
 export default function TournamentDetail() {
@@ -396,10 +357,12 @@ export default function TournamentDetail() {
                     data-ocid={`tournament-detail.joined-players.item.${i + 1}`}
                   >
                     {/* Avatar */}
-                    <div
-                      className={`w-9 h-9 rounded-full bg-gradient-to-br ${av.bg} flex items-center justify-center text-base shrink-0`}
-                    >
-                      {av.emoji}
+                    <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                      <img
+                        src={av.image}
+                        alt={av.label}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
