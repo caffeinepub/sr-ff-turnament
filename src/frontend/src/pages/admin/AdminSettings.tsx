@@ -44,11 +44,11 @@ const DEFAULT_SETTINGS: AppSettings = {
 function getStoredMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 10;
+    if (raw === null) return 20;
     const val = Number(raw);
-    return Number.isNaN(val) ? 10 : val;
+    return Number.isNaN(val) ? 20 : val;
   } catch {
-    return 10;
+    return 20;
   }
 }
 
@@ -443,6 +443,8 @@ export default function AdminSettings() {
       // Backend failed but local save already succeeded — that's fine
     }
     toast.success("Settings saved!");
+    // Dispatch event so user panel picks up changes immediately
+    window.dispatchEvent(new Event("srff_settings_updated"));
   };
 
   const f = (key: keyof AppSettings, val: string) => {
@@ -483,7 +485,7 @@ export default function AdminSettings() {
                 value={minDeposit}
                 onChange={(e) => setMinDeposit(Number(e.target.value) || 0)}
                 className="mt-1"
-                placeholder="50"
+                placeholder="20"
                 data-ocid="admin-settings.mindeposit.input"
               />
             </div>

@@ -62,11 +62,11 @@ const BANK_NAME_KEY = "srff_bank_name";
 function getMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 10;
+    if (raw === null) return 20;
     const val = Number(raw);
-    return Number.isNaN(val) ? 10 : val;
+    return Number.isNaN(val) ? 20 : val;
   } catch {
-    return 10;
+    return 20;
   }
 }
 
@@ -267,7 +267,9 @@ export default function Profile() {
   const [termsText, setTermsText] = useState(
     () => localStorage.getItem("srff_terms_conditions") || "",
   );
-  const [refundText, setRefundText] = useState(() => refundText || "");
+  const [refundText, setRefundText] = useState(
+    () => localStorage.getItem("srff_refund_policy") || "",
+  );
   const [contactText, setContactText] = useState(
     () => localStorage.getItem(CONTACT_US_KEY) || "",
   );
@@ -297,7 +299,7 @@ export default function Profile() {
     const interval = setInterval(() => {
       setPrivacyText(localStorage.getItem("srff_privacy_policy") || "");
       setTermsText(localStorage.getItem("srff_terms_conditions") || "");
-      setRefundText(refundText || "");
+      setRefundText(localStorage.getItem("srff_refund_policy") || "");
       setContactText(localStorage.getItem(CONTACT_US_KEY) || "");
       setFairPlayText(localStorage.getItem(FAIR_PLAY_KEY) || "");
       setGameRulesText(localStorage.getItem(GAME_RULES_KEY) || "");
@@ -1401,7 +1403,7 @@ Hum aapki help karne ke liye ready hain! 🙏`}
 
 📌 Withdrawal:
 • Sirf Winning Cash withdraw ho sakta hai — regular balance nahi.
-• Withdrawal ₹50 minimum se hoga.
+• Withdrawal ₹100 minimum se hoga.
 • Processing time: 24-48 ghante (working days).
 • Wrong bank details dene par responsibility aapki hogi.
 

@@ -1,0 +1,4619 @@
+// ============================================================
+// FILE: pages/Login.tsx
+// ============================================================
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff, Flame, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
+
+function getSupportNumber(): string {
+  return localStorage.getItem("srff_support_number") || "9104414372";
+}
+
+export default function Login() {
+  const { login } = useUserAuth();
+  const formSize = localStorage.getItem("srff_form_size") || "large";
+  const sizeClasses = {
+    small: {
+      wrapper: "max-w-sm",
+      card: "p-4",
+      input: "py-2 text-sm",
+      btn: "py-2",
+    },
+    medium: {
+      wrapper: "max-w-md",
+      card: "p-5",
+      input: "py-2.5 text-sm",
+      btn: "py-2.5",
+    },
+    large: {
+      wrapper: "max-w-lg",
+      card: "p-7",
+      input: "py-3 text-base",
+      btn: "py-3",
+    },
+  };
+  const sz =
+    sizeClasses[formSize as keyof typeof sizeClasses] || sizeClasses.large;
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    const result = login(phone.trim(), password);
+    setLoading(false);
+    if (result.success) {
+      localStorage.setItem(
+        "srff_login_welcome",
+        JSON.stringify({ username: result.username || phone.trim() }),
+      );
+      navigate({ to: "/" });
+    } else {
+      toast.error(result.error || "Mobile number ya password galat hai");
+    }
+  }
+
+  const supportNumber = getSupportNumber();
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="fixed inset-0 pointer-events-none">
+        <div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-3xl"
+          style={{ background: "oklch(0.7 0.22 35 / 0.08)" }}
+        />
+        <div
+          className="absolute bottom-1/4 right-1/4 w-72 h-72 rounded-full blur-3xl"
+          style={{ background: "oklch(0.72 0.18 200 / 0.06)" }}
+        />
+      </div>
+
+      <div className={`w-full ${sz.wrapper} relative`}>
+        {/* Logo & Brand */}
+        <div className="text-center mb-8">
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="w-24 h-24 rounded-full overflow-hidden border-2"
+              style={{
+                borderColor: "oklch(0.82 0.18 80 / 0.6)",
+                boxShadow: "0 0 28px oklch(0.7 0.22 35 / 0.6)",
+              }}
+            >
+              <img
+                src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+                alt="SR-FF-TURNAMENT Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h1
+                className="font-display uppercase tracking-widest"
+                style={{
+                  fontSize: "0.72rem",
+                  letterSpacing: "0.38em",
+                  background:
+                    "linear-gradient(90deg, oklch(0.7 0.22 35), oklch(0.82 0.18 80), oklch(0.72 0.18 200))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 800,
+                }}
+              >
+                SR-FF-TURNAMENT
+              </h1>
+              <p className="text-muted-foreground mt-0.5 text-xs tracking-wider">
+                Apne account mein login karo
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`rounded-2xl border ${sz.card}`}
+          style={{
+            background: "oklch(0.12 0.028 15)",
+            borderColor: "oklch(0.7 0.22 35 / 0.3)",
+          }}
+        >
+          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+            <Flame
+              className="w-5 h-5"
+              style={{ color: "oklch(0.7 0.22 35)" }}
+            />
+            Login
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="login-phone"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Mobile Number
+              </label>
+              <input
+                id="login-phone"
+                data-ocid="login.phone.input"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                placeholder="+91 XXXXXXXXXX"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="login-password"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="login-password"
+                  data-ocid="login.password.input"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                />
+                <button
+                  data-ocid="login.password.toggle"
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="text-right">
+              <Link
+                data-ocid="login.forgot.link"
+                to="/forgot-password"
+                className="text-xs hover:underline transition-colors"
+                style={{ color: "oklch(0.72 0.18 200)" }}
+              >
+                Password bhool gaye?
+              </Link>
+            </div>
+
+            <button
+              data-ocid="login.submit_button"
+              type="submit"
+              disabled={loading}
+              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60`}
+              style={{
+                background:
+                  "linear-gradient(90deg, oklch(0.7 0.22 35), oklch(0.75 0.18 75))",
+                color: "oklch(0.1 0.01 15)",
+                boxShadow: "0 0 16px oklch(0.7 0.22 35 / 0.4)",
+              }}
+            >
+              {loading ? "Login ho raha hai..." : "Login Karo"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-5">
+            Account nahi hai?{" "}
+            <Link
+              data-ocid="login.register.link"
+              to="/register"
+              className="font-medium hover:underline"
+              style={{ color: "oklch(0.7 0.22 35)" }}
+            >
+              Naya account banao
+            </Link>
+          </p>
+        </div>
+
+        {/* Customer Support */}
+        <div className="mt-4">
+          <a
+            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ocid="login.support.button"
+            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #075e54, #25d366)",
+              borderColor: "#25d366",
+              color: "#fff",
+              boxShadow: "0 0 18px #25d36644",
+            }}
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Customer Support — WhatsApp Karo</span>
+          </a>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Login mein problem? Seedha support se baat karo 👆
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Register.tsx
+// ============================================================
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff, MessageCircle, UserPlus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
+
+function getSupportNumber(): string {
+  return localStorage.getItem("srff_support_number") || "9104414372";
+}
+
+export default function Register() {
+  const { register } = useUserAuth();
+  const formSize = localStorage.getItem("srff_form_size") || "large";
+  const sizeClasses = {
+    small: {
+      wrapper: "max-w-sm",
+      card: "p-4",
+      input: "py-2 text-sm",
+      btn: "py-2",
+    },
+    medium: {
+      wrapper: "max-w-md",
+      card: "p-5",
+      input: "py-2.5 text-sm",
+      btn: "py-2.5",
+    },
+    large: {
+      wrapper: "max-w-lg",
+      card: "p-7",
+      input: "py-3 text-base",
+      btn: "py-3",
+    },
+  };
+  const sz =
+    sizeClasses[formSize as keyof typeof sizeClasses] || sizeClasses.large;
+  const navigate = useNavigate();
+  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
+  const [ffName, setFfName] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!username.trim()) {
+      toast.error("Username required");
+      return;
+    }
+    if (!ffName.trim()) {
+      toast.error("Free Fire name required");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("Password kam se kam 6 characters ka hona chahiye");
+      return;
+    }
+    setLoading(true);
+    const result = register(phone.trim(), password, username, ffName);
+    setLoading(false);
+    if (result.success) {
+      localStorage.setItem(
+        "srff_new_user_welcome",
+        JSON.stringify({ username: username.trim() }),
+      );
+      toast.success("Account ban gaya! Welcome to SR-FF-TURNAMENT");
+      navigate({ to: "/" });
+    } else {
+      toast.error(result.error || "Registration fail ho gaya");
+    }
+  }
+
+  const supportNumber = getSupportNumber();
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="fixed inset-0 pointer-events-none">
+        <div
+          className="absolute top-1/3 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full blur-3xl"
+          style={{ background: "oklch(0.7 0.22 35 / 0.07)" }}
+        />
+        <div
+          className="absolute bottom-1/4 left-1/4 w-72 h-72 rounded-full blur-3xl"
+          style={{ background: "oklch(0.72 0.18 200 / 0.06)" }}
+        />
+      </div>
+
+      <div className={`w-full ${sz.wrapper} relative`}>
+        {/* Logo & Title */}
+        <div className="text-center mb-6">
+          <div className="flex flex-col items-center gap-2">
+            <div
+              className="w-24 h-24 rounded-full overflow-hidden border-2"
+              style={{
+                borderColor: "oklch(0.82 0.18 80 / 0.6)",
+                boxShadow: "0 0 24px oklch(0.7 0.22 35 / 0.5)",
+              }}
+            >
+              <img
+                src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+                alt="SR-FF-TURNAMENT Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h1
+                className="font-display uppercase tracking-widest"
+                style={{
+                  fontSize: "0.72rem",
+                  letterSpacing: "0.3em",
+                  background:
+                    "linear-gradient(90deg, oklch(0.7 0.22 35), oklch(0.82 0.18 80), oklch(0.72 0.18 200))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  fontWeight: 800,
+                }}
+              >
+                SR-FF-TURNAMENT
+              </h1>
+              <p className="text-muted-foreground mt-1 text-xs tracking-wide">
+                Naya account banao aur tournament mein join karo
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          className={`rounded-2xl border ${sz.card}`}
+          style={{
+            background: "oklch(0.12 0.028 15)",
+            borderColor: "oklch(0.68 0.22 145 / 0.3)",
+          }}
+        >
+          <h2 className="text-xl font-semibold mb-5 flex items-center gap-2">
+            <UserPlus
+              className="w-5 h-5"
+              style={{ color: "oklch(0.68 0.22 145)" }}
+            />
+            Register
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label
+                htmlFor="reg-phone"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Mobile Number
+              </label>
+              <input
+                id="reg-phone"
+                data-ocid="register.phone.input"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                placeholder="+91 XXXXXXXXXX"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="reg-username"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Username
+              </label>
+              <input
+                id="reg-username"
+                data-ocid="register.username.input"
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="Apna username likho"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="reg-ffname"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Free Fire Name
+              </label>
+              <input
+                id="reg-ffname"
+                data-ocid="register.ffname.input"
+                type="text"
+                value={ffName}
+                onChange={(e) => setFfName(e.target.value)}
+                required
+                placeholder="Apna Free Fire in-game name"
+                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="reg-password"
+                className="block text-sm font-medium text-muted-foreground mb-1.5"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="reg-password"
+                  data-ocid="register.password.input"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  placeholder="••••••••"
+                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                />
+                <button
+                  data-ocid="register.password.toggle"
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <button
+              data-ocid="register.submit_button"
+              type="submit"
+              disabled={loading}
+              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60 mt-2`}
+              style={{
+                background:
+                  "linear-gradient(90deg, oklch(0.68 0.22 145), oklch(0.72 0.18 200))",
+                color: "oklch(0.1 0.01 15)",
+                boxShadow: "0 0 16px oklch(0.68 0.22 145 / 0.4)",
+              }}
+            >
+              {loading ? "Account ban raha hai..." : "Register Karo"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-5">
+            Pehle se account hai?{" "}
+            <Link
+              data-ocid="register.login.link"
+              to="/login"
+              className="font-medium hover:underline"
+              style={{ color: "oklch(0.7 0.22 35)" }}
+            >
+              Login karo
+            </Link>
+          </p>
+        </div>
+
+        {/* Customer Support */}
+        <div className="mt-4">
+          <a
+            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-ocid="register.support.button"
+            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(135deg, #075e54, #25d366)",
+              borderColor: "#25d366",
+              color: "#fff",
+              boxShadow: "0 0 18px #25d36644",
+            }}
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span>Customer Support — WhatsApp Karo</span>
+          </a>
+          <p className="text-center text-xs text-muted-foreground mt-2">
+            Register mein koi problem? Seedha support se baat karo 👆
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Home.tsx
+// ============================================================
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link, useNavigate } from "@tanstack/react-router";
+import {
+  Bell,
+  ChevronRight,
+  Clock,
+  Flame,
+  Megaphone,
+  Shield,
+  Star,
+  Swords,
+  Target,
+  Trophy,
+  X,
+  Zap,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import UpdateModal from "../components/UpdateModal";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import { useAllNotifications, useAllTournaments } from "../hooks/useQueries";
+import type { PromoBanner } from "./admin/AdminBanners";
+import type { PromoLink } from "./admin/AdminHomeContent";
+
+const HEADER_COLORS_KEY = "srff_header_colors";
+
+function getHeaderColors() {
+  try {
+    const data = JSON.parse(localStorage.getItem(HEADER_COLORS_KEY) || "null");
+    if (data?.color1 && data.color2)
+      return data as { color1: string; color2: string; color3: string };
+  } catch {}
+  return { color1: "#f97316", color2: "#eab308", color3: "#22d3ee" };
+}
+
+const GAME_MODES = [
+  { name: "BR Per Kill", cls: "game-card-1" },
+  { name: "BR Solo", cls: "game-card-2" },
+  { name: "BR Squad", cls: "game-card-3" },
+  { name: "Clash Squad 1v1", cls: "game-card-4" },
+  { name: "Clash Squad 4v4", cls: "game-card-5" },
+  { name: "Lone Wolf 1v1", cls: "game-card-6" },
+  { name: "Lone Wolf 2v2", cls: "game-card-7" },
+  { name: "Free Match", cls: "game-card-8" },
+  { name: "Sunday Special", cls: "game-card-9" },
+];
+
+const _icons = { Shield, Star, Swords, Target, Zap };
+void _icons;
+
+const DEFAULT_ANNOUNCEMENT =
+  "Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! Top players get exclusive rewards! BR Per Kill tournament starting soon!";
+
+function loadAnnouncement(): string {
+  return localStorage.getItem("srff_announcement") ?? DEFAULT_ANNOUNCEMENT;
+}
+
+function loadPromoLinks(): PromoLink[] {
+  try {
+    const data = JSON.parse(
+      localStorage.getItem("srff_promo_links") ?? "[]",
+    ) as PromoLink[];
+    return data.filter((p) => p.active);
+  } catch {
+    return [];
+  }
+}
+
+function loadPromoBanners(): PromoBanner[] {
+  try {
+    const data = JSON.parse(localStorage.getItem("srff_promo_banners") || "[]");
+    return (data as PromoBanner[]).filter((b) => b.active);
+  } catch {
+    return [];
+  }
+}
+
+// Gradients for welcome lines (cycles if more lines added)
+const NEW_WELCOME_GRADIENTS = [
+  "linear-gradient(90deg, #f97316, #fbbf24)",
+  "linear-gradient(90deg, #f43f5e, #fb923c)",
+  "linear-gradient(90deg, #22d3ee, #6366f1)",
+  "linear-gradient(90deg, #a3e635, #16a34a)",
+  "linear-gradient(90deg, #facc15, #f97316)",
+  "linear-gradient(90deg, #c084fc, #818cf8)",
+  "linear-gradient(90deg, #f43f5e, #a855f7, #3b82f6)",
+];
+
+const BACK_WELCOME_GRADIENTS = [
+  "linear-gradient(90deg, #f97316, #fbbf24, #f59e0b)",
+  "linear-gradient(90deg, #22d3ee, #6366f1, #a855f7)",
+  "linear-gradient(90deg, #a3e635, #16a34a, #10b981)",
+  "linear-gradient(90deg, #f43f5e, #fb923c, #fbbf24)",
+  "linear-gradient(90deg, #fbbf24, #f97316, #ef4444)",
+];
+
+const DEFAULT_NEW_WELCOME_TEXTS = [
+  "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
+  "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
+  "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
+  "🏆 Roz naye tournaments join karo... 🏆",
+  "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
+  "🤝 Apni team banao. Apna naam banao. 👑",
+  "💥 The Battle Begins NOW! 🚀",
+];
+
+const DEFAULT_BACK_WELCOME_TEXTS = [
+  "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
+  "☀️ WISH YOU A VERY GOOD DAY! ☀️",
+  "🍀 BEST OF LUCK, CHAMPION! 🍀",
+  "🔥 Go Dominate The Battlefield! 🔥",
+  "🏆 Today Is YOUR Victory Day! 🏆",
+];
+
+function loadWelcomeLines(
+  key: string,
+  defaults: string[],
+  gradients: string[],
+): { text: string; gradient: string }[] {
+  try {
+    const raw = localStorage.getItem(key);
+    const texts: string[] = raw ? (JSON.parse(raw) as string[]) : defaults;
+    return texts.map((text, i) => ({
+      text,
+      gradient: gradients[i % gradients.length],
+    }));
+  } catch {
+    return defaults.map((text, i) => ({
+      text,
+      gradient: gradients[i % gradients.length],
+    }));
+  }
+}
+
+// Dynamic lines read from localStorage (admin-editable)
+const WELCOME_LINES = loadWelcomeLines(
+  "srff_new_welcome_lines",
+  DEFAULT_NEW_WELCOME_TEXTS,
+  NEW_WELCOME_GRADIENTS,
+);
+
+// Welcome BACK lines shown on every login
+const WELCOME_BACK_LINES = loadWelcomeLines(
+  "srff_login_welcome_lines",
+  DEFAULT_BACK_WELCOME_TEXTS,
+  BACK_WELCOME_GRADIENTS,
+);
+
+function getModalSizeClass(): string {
+  const size = localStorage.getItem("srff_modal_size") || "medium";
+  const map: Record<string, string> = {
+    small: "max-w-xs",
+    medium: "max-w-sm",
+    large: "max-w-md",
+  };
+  return map[size] || "max-w-sm";
+}
+
+function WelcomeModal({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [charIdx, setCharIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (done) return;
+    const currentLine = WELCOME_LINES[lineIdx].text;
+    if (charIdx < currentLine.length) {
+      timerRef.current = setTimeout(() => {
+        setDisplayed((prev) => prev + currentLine[charIdx]);
+        setCharIdx((c) => c + 1);
+      }, 38);
+    } else {
+      timerRef.current = setTimeout(() => {
+        if (lineIdx < WELCOME_LINES.length - 1) {
+          setLineIdx((l) => l + 1);
+          setDisplayed("");
+          setCharIdx(0);
+        } else {
+          setDone(true);
+        }
+      }, 900);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [charIdx, lineIdx, done]);
+
+  const currentGradient = WELCOME_LINES[lineIdx].gradient;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.92)", backdropFilter: "blur(8px)" }}
+      data-ocid="welcome.modal"
+    >
+      <div
+        className={`relative w-full ${getModalSizeClass()} rounded-3xl p-6 text-center overflow-hidden`}
+        style={{
+          background:
+            "linear-gradient(135deg, #0f0a1a 0%, #14091f 50%, #0a1020 100%)",
+          border: "1.5px solid rgba(249,115,22,0.5)",
+          boxShadow:
+            "0 0 60px rgba(249,115,22,0.25), 0 0 120px rgba(139,92,246,0.15), inset 0 0 60px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          className="absolute top-0 left-0 w-48 h-48 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(249,115,22,0.12)" }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-40 h-40 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(139,92,246,0.12)", animationDelay: "1s" }}
+        />
+
+        <div className="flex items-center justify-center mb-3 relative">
+          <div
+            className="absolute w-28 h-28 rounded-full animate-spin"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #f97316, #fbbf24, #a855f7, #3b82f6, #f97316)",
+              padding: "2px",
+              animationDuration: "4s",
+            }}
+          />
+          <div
+            className="relative w-24 h-24 rounded-full overflow-hidden"
+            style={{
+              border: "3px solid #0f0a1a",
+              boxShadow: "0 0 30px rgba(249,115,22,0.7)",
+            }}
+          >
+            <img
+              src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+              alt="SR-FF Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center mb-1">
+          <span
+            className="text-[10px] font-black uppercase tracking-[0.25em] px-3 py-0.5 rounded-full"
+            style={{
+              background: "rgba(249,115,22,0.15)",
+              border: "1px solid rgba(249,115,22,0.4)",
+              color: "#fbbf24",
+            }}
+          >
+            🎉 New Player Registered
+          </span>
+        </div>
+
+        <h2
+          className="font-display font-black text-2xl mb-4 mt-1"
+          style={{
+            background:
+              "linear-gradient(90deg, #f97316, #fbbf24, #a855f7, #3b82f6)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "none",
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {username ? `Welcome, ${username}! 👋` : "Welcome, Player! 👋"}
+        </h2>
+
+        <div
+          className="rounded-2xl px-4 py-4 mb-5 min-h-[80px] flex items-center justify-center relative overflow-hidden"
+          style={{
+            background: "rgba(0,0,0,0.6)",
+            border: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-10 transition-all duration-500"
+            style={{ background: currentGradient }}
+          />
+          <p
+            className="text-base font-bold leading-relaxed relative z-10"
+            style={{
+              background: currentGradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 8px rgba(255,255,255,0.2))",
+            }}
+          >
+            {displayed}
+            <span
+              className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse rounded-full"
+              style={{
+                background: "#f97316",
+                display: done ? "none" : "inline-block",
+              }}
+            />
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {WELCOME_LINES.map((line, i) => (
+            <div
+              key={line.text}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === lineIdx ? "20px" : "7px",
+                height: "7px",
+                background:
+                  i < lineIdx
+                    ? "#22c55e"
+                    : i === lineIdx
+                      ? "#f97316"
+                      : "rgba(255,255,255,0.15)",
+                boxShadow:
+                  i === lineIdx
+                    ? "0 0 8px rgba(249,115,22,0.8)"
+                    : i < lineIdx
+                      ? "0 0 6px rgba(34,197,94,0.5)"
+                      : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95"
+            style={{
+              background: "linear-gradient(90deg, #f97316, #fbbf24, #f97316)",
+              backgroundSize: "200% 100%",
+              color: "#0a0a0a",
+              boxShadow: "0 0 25px rgba(249,115,22,0.5)",
+              letterSpacing: "0.05em",
+            }}
+            data-ocid="welcome.start.button"
+          >
+            🚀 Chalte Hain!
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid rgba(255,255,255,0.12)",
+            }}
+            data-ocid="welcome.close.button"
+          >
+            <X className="w-4 h-4" style={{ color: "rgba(255,255,255,0.4)" }} />
+          </button>
+        </div>
+
+        <p
+          className="text-[10px] mt-3 font-semibold uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.25)" }}
+        >
+          SR-FF-TOURNAMENT • Play. Win. Dominate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// Welcome BACK modal shown on every login
+function WelcomeBackModal({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [lineIdx, setLineIdx] = useState(0);
+  const [displayed, setDisplayed] = useState("");
+  const [charIdx, setCharIdx] = useState(0);
+  const [done, setDone] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (done) return;
+    const currentLine = WELCOME_BACK_LINES[lineIdx].text;
+    if (charIdx < currentLine.length) {
+      timerRef.current = setTimeout(() => {
+        setDisplayed((prev) => prev + currentLine[charIdx]);
+        setCharIdx((c) => c + 1);
+      }, 40);
+    } else {
+      timerRef.current = setTimeout(() => {
+        if (lineIdx < WELCOME_BACK_LINES.length - 1) {
+          setLineIdx((l) => l + 1);
+          setDisplayed("");
+          setCharIdx(0);
+        } else {
+          setDone(true);
+        }
+      }, 900);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [charIdx, lineIdx, done]);
+
+  const currentGradient = WELCOME_BACK_LINES[lineIdx].gradient;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.93)", backdropFilter: "blur(10px)" }}
+      data-ocid="welcome-back.modal"
+    >
+      <div
+        className={`relative w-full ${getModalSizeClass()} rounded-3xl p-6 text-center overflow-hidden`}
+        style={{
+          background:
+            "linear-gradient(135deg, #060b1a 0%, #0a1020 50%, #0d0a18 100%)",
+          border: "1.5px solid rgba(99,102,241,0.55)",
+          boxShadow:
+            "0 0 70px rgba(99,102,241,0.22), 0 0 130px rgba(34,211,238,0.10), inset 0 0 60px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          className="absolute top-0 left-0 w-52 h-52 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{ background: "rgba(99,102,241,0.13)" }}
+        />
+        <div
+          className="absolute bottom-0 right-0 w-44 h-44 rounded-full blur-3xl pointer-events-none animate-pulse"
+          style={{
+            background: "rgba(34,211,238,0.10)",
+            animationDelay: "1.2s",
+          }}
+        />
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full blur-3xl pointer-events-none"
+          style={{ background: "rgba(168,85,247,0.05)" }}
+        />
+
+        <div className="flex items-center justify-center mb-4 relative">
+          <div
+            className="absolute w-32 h-32 rounded-full animate-spin"
+            style={{
+              background:
+                "conic-gradient(from 0deg, #6366f1, #22d3ee, #a855f7, #fbbf24, #6366f1)",
+              padding: "2.5px",
+              animationDuration: "5s",
+            }}
+          />
+          <div
+            className="relative w-28 h-28 rounded-full overflow-hidden"
+            style={{
+              border: "3px solid #060b1a",
+              boxShadow: "0 0 35px rgba(99,102,241,0.75)",
+            }}
+          >
+            <img
+              src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+              alt="SR-FF Logo"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div
+            className="absolute -top-1 left-1/2 -translate-x-1/2 text-lg"
+            style={{ filter: "drop-shadow(0 0 6px #fbbf24)" }}
+          >
+            👑
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center mb-2">
+          <span
+            className="text-[10px] font-black uppercase tracking-[0.22em] px-4 py-1 rounded-full"
+            style={{
+              background: "rgba(99,102,241,0.18)",
+              border: "1px solid rgba(99,102,241,0.45)",
+              color: "#a5b4fc",
+            }}
+          >
+            ✨ Player Login Successful
+          </span>
+        </div>
+
+        <h2
+          className="font-display font-black mb-1"
+          style={{
+            fontSize: "1.35rem",
+            background: "linear-gradient(90deg, #22d3ee, #a855f7, #fbbf24)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            letterSpacing: "-0.01em",
+          }}
+        >
+          {username ? `Hey ${username}! 🎮` : "Hey Player! 🎮"}
+        </h2>
+
+        <div
+          className="rounded-2xl px-4 py-4 mb-5 mt-3 min-h-[90px] flex items-center justify-center relative overflow-hidden"
+          style={{
+            background: "rgba(0,0,0,0.65)",
+            border: "1px solid rgba(255,255,255,0.07)",
+            boxShadow: "inset 0 0 30px rgba(0,0,0,0.6)",
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-10 transition-all duration-500"
+            style={{ background: currentGradient }}
+          />
+          <p
+            className="text-base font-extrabold leading-relaxed relative z-10 text-center tracking-wide"
+            style={{
+              background: currentGradient,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter: "drop-shadow(0 0 10px rgba(255,255,255,0.15))",
+            }}
+          >
+            {displayed}
+            <span
+              className="inline-block w-0.5 h-5 ml-0.5 align-middle animate-pulse rounded-full"
+              style={{
+                background: "#6366f1",
+                display: done ? "none" : "inline-block",
+              }}
+            />
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 mb-5">
+          {WELCOME_BACK_LINES.map((line, i) => (
+            <div
+              key={line.text}
+              className="rounded-full transition-all duration-300"
+              style={{
+                width: i === lineIdx ? "22px" : "7px",
+                height: "7px",
+                background:
+                  i < lineIdx
+                    ? "#22d3ee"
+                    : i === lineIdx
+                      ? "#6366f1"
+                      : "rgba(255,255,255,0.12)",
+                boxShadow:
+                  i === lineIdx
+                    ? "0 0 10px rgba(99,102,241,0.9)"
+                    : i < lineIdx
+                      ? "0 0 6px rgba(34,211,238,0.6)"
+                      : "none",
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-black text-sm transition-all active:scale-95 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(90deg, #6366f1, #a855f7, #22d3ee)",
+              color: "#ffffff",
+              boxShadow:
+                "0 0 28px rgba(99,102,241,0.55), 0 4px 15px rgba(0,0,0,0.3)",
+              letterSpacing: "0.05em",
+              textShadow: "0 1px 4px rgba(0,0,0,0.4)",
+            }}
+            data-ocid="welcome-back.start.button"
+          >
+            🎯 Let's Play!
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all active:scale-95"
+            style={{
+              background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.10)",
+            }}
+            data-ocid="welcome-back.close.button"
+          >
+            <X
+              className="w-4 h-4"
+              style={{ color: "rgba(255,255,255,0.35)" }}
+            />
+          </button>
+        </div>
+
+        <p
+          className="text-[10px] mt-3 font-semibold uppercase tracking-widest"
+          style={{ color: "rgba(255,255,255,0.22)" }}
+        >
+          SR-FF-TOURNAMENT • Play. Win. Dominate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function getLocalWalletBalance(): number {
+  try {
+    const cu = JSON.parse(localStorage.getItem("srff_current_user") || "null");
+    if (!cu?.phone) return 0;
+    const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
+    const u = users.find((u: any) => u.phone === cu.phone);
+    return u?.walletBalance || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export default function Home() {
+  const navigate = useNavigate();
+  const [contestTab, setContestTab] = useState("ongoing");
+  const { data: tournaments = [] } = useAllTournaments();
+  const { identity } = useInternetIdentity();
+  const { data: notifications = [] } = useAllNotifications();
+
+  const [headerColors, setHeaderColors] = useState(getHeaderColors);
+  const [bannerIdx, setBannerIdx] = useState(0);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [welcomeUsername, setWelcomeUsername] = useState("");
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [welcomeBackUsername, setWelcomeBackUsername] = useState("");
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateDismissedThisSession, setUpdateDismissedThisSession] =
+    useState(false);
+
+  const principalSlice =
+    identity?.getPrincipal().toString().slice(0, 8) ?? "guest";
+  const READ_KEY = `srff_notif_read_${principalSlice}`;
+
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try {
+      const arr = JSON.parse(localStorage.getItem(READ_KEY) || "[]");
+      return new Set(arr);
+    } catch {
+      return new Set();
+    }
+  });
+
+  const unreadCount = (notifications as any[]).filter(
+    (n) => !readIds.has(String(n.id)),
+  ).length;
+
+  const markAllRead = () => {
+    const ids = (notifications as any[]).map((n) => String(n.id));
+    setReadIds(new Set(ids));
+    try {
+      localStorage.setItem(READ_KEY, JSON.stringify(ids));
+    } catch {}
+  };
+
+  const handleOpenNotifications = () => {
+    setShowNotifications(true);
+    markAllRead();
+  };
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === HEADER_COLORS_KEY && e.newValue) {
+        try {
+          const data = JSON.parse(e.newValue);
+          if (data?.color1) setHeaderColors(data);
+        } catch {}
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
+  useEffect(() => {
+    // New user registration welcome
+    const flag = localStorage.getItem("srff_new_user_welcome");
+    if (flag) {
+      const data = JSON.parse(flag);
+      setWelcomeUsername(data.username || "");
+      setShowWelcome(true);
+      localStorage.removeItem("srff_new_user_welcome");
+      return;
+    }
+    // Returning user login welcome
+    const loginFlag = localStorage.getItem("srff_login_welcome");
+    if (loginFlag) {
+      const data = JSON.parse(loginFlag);
+      setWelcomeBackUsername(data.username || "");
+      setShowWelcomeBack(true);
+      localStorage.removeItem("srff_login_welcome");
+    }
+  }, []);
+
+  const handleCloseWelcome = () => setShowWelcome(false);
+  const handleCloseWelcomeBack = () => setShowWelcomeBack(false);
+
+  // Show update modal when there is a new update notification
+  useEffect(() => {
+    if (showWelcome || showWelcomeBack) return;
+    const updateNotif = (notifications as any[]).find((n) =>
+      /update|🔄/i.test(String(n.title || "")),
+    );
+    if (!updateNotif) return;
+    const notifTs = Number(
+      updateNotif.timestamp ?? updateNotif.created_at ?? 0,
+    );
+    const dismissed = Number(
+      localStorage.getItem("srff_last_update_dismissed") ?? 0,
+    );
+    const normalizedNotifTs = notifTs > 1e12 ? notifTs : notifTs * 1000;
+    if (normalizedNotifTs > dismissed && !updateDismissedThisSession) {
+      setShowUpdateModal(true);
+    }
+  }, [notifications, showWelcome, showWelcomeBack, updateDismissedThisSession]);
+
+  const handleUpdateApp = () => {
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        for (const name of names) caches.delete(name);
+      });
+    }
+    window.location.reload();
+  };
+
+  const handleDismissUpdate = () => {
+    localStorage.setItem("srff_last_update_dismissed", Date.now().toString());
+    setUpdateDismissedThisSession(true);
+    setShowUpdateModal(false);
+  };
+
+  const announcement = loadAnnouncement();
+  const promoLinks = loadPromoLinks();
+  const promoBanners = loadPromoBanners();
+  const activeBanner = promoBanners[bannerIdx] ?? null;
+
+  const filtered = tournaments.filter((t) => {
+    if (contestTab === "ongoing") return t.status === "ongoing";
+    if (contestTab === "upcoming") return t.status === "upcoming";
+    return t.status === "complete";
+  });
+
+  return (
+    <div className="min-h-screen bg-background">
+      {showWelcome && (
+        <WelcomeModal username={welcomeUsername} onClose={handleCloseWelcome} />
+      )}
+      {showWelcomeBack && !showWelcome && (
+        <WelcomeBackModal
+          username={welcomeBackUsername}
+          onClose={handleCloseWelcomeBack}
+        />
+      )}
+
+      {showUpdateModal && !showWelcome && !showWelcomeBack && (
+        <UpdateModal onUpdate={handleUpdateApp} onLater={handleDismissUpdate} />
+      )}
+
+      {/* ── Unified Header ── */}
+      <header
+        className="sticky top-0 z-40 backdrop-blur-md border-b px-4 py-2"
+        style={{
+          background: "oklch(0.1 0.025 15 / 0.95)",
+          borderColor: `${headerColors.color1}33`,
+          backdropFilter: "blur(8px)",
+        }}
+      >
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <div className="flex items-center gap-2">
+            {/* Circular logo */}
+            <img
+              src="/assets/uploads/sr_ff_tournament_icon_512-1.png"
+              alt="logo"
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              style={{ boxShadow: `0 0 8px ${headerColors.color1}80` }}
+            />
+            {/* Gradient app name */}
+            <span
+              className="font-display font-black text-base uppercase tracking-wide"
+              style={{
+                background: `linear-gradient(90deg, ${headerColors.color1}, ${headerColors.color2}, ${headerColors.color3})`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                letterSpacing: "0.05em",
+              }}
+            >
+              SR-FF-TURNAMENT
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {/* Bell with badge */}
+            <button
+              type="button"
+              onClick={handleOpenNotifications}
+              className="relative flex items-center justify-center w-9 h-9 rounded-full transition-all active:scale-95"
+              style={{
+                background: `linear-gradient(135deg, ${headerColors.color1}22, ${headerColors.color2}11)`,
+                border: `1px solid ${headerColors.color1}44`,
+              }}
+              data-ocid="home.notifications.button"
+            >
+              <Bell
+                className="w-4 h-4"
+                style={{ color: headerColors.color2 }}
+              />
+              {unreadCount > 0 && (
+                <span
+                  className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold text-white px-1"
+                  style={{ background: "#ef4444" }}
+                >
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+            {/* Balance button */}
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/profile" })}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold text-sm transition-all active:scale-95"
+              style={{
+                background: `linear-gradient(135deg, ${headerColors.color1}33, ${headerColors.color2}22)`,
+                border: `1px solid ${headerColors.color1}55`,
+                color: headerColors.color2,
+                boxShadow: `0 0 10px ${headerColors.color1}30`,
+              }}
+              data-ocid="home.balance.button"
+            >
+              <span>🪙</span>
+              <span style={{ color: "white", fontWeight: 700 }}>
+                ₹{getLocalWalletBalance()}
+              </span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* Notification Slide Panel */}
+      {showNotifications && (
+        <div
+          className="fixed inset-0 z-50 flex"
+          style={{ background: "rgba(0,0,0,0.6)" }}
+          onClick={() => setShowNotifications(false)}
+          onKeyDown={() => setShowNotifications(false)}
+          data-ocid="notifications.modal"
+        >
+          <div
+            className="ml-auto w-full max-w-sm h-full flex flex-col"
+            style={{
+              background: "oklch(0.1 0.025 15)",
+              borderLeft: `1px solid ${headerColors.color1}33`,
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <div
+              className="flex items-center justify-between px-4 py-3 border-b shrink-0"
+              style={{ borderColor: `${headerColors.color1}33` }}
+            >
+              <div className="flex items-center gap-2">
+                <Bell
+                  className="w-4 h-4"
+                  style={{ color: headerColors.color1 }}
+                />
+                <span
+                  className="font-bold text-sm"
+                  style={{
+                    background: `linear-gradient(90deg, ${headerColors.color1}, ${headerColors.color2})`,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Notifications
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNotifications(false)}
+                className="p-1 rounded-full hover:bg-white/10 transition-colors"
+                data-ocid="notifications.close_button"
+              >
+                <X className="w-5 h-5 text-muted-foreground" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {(notifications as any[]).length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center h-full gap-4 py-16"
+                  data-ocid="notifications.empty_state"
+                >
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center"
+                    style={{
+                      background: `linear-gradient(135deg, ${headerColors.color1}22, ${headerColors.color2}11)`,
+                      border: `1px solid ${headerColors.color1}33`,
+                    }}
+                  >
+                    <Bell
+                      className="w-7 h-7"
+                      style={{ color: `${headerColors.color1}88` }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-white font-semibold mb-1">
+                      Koi Notification Nahi Hai 🔕
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Jab admin koi global message bhejega,
+                      <br />
+                      woh yahan dikhai dega 🔔
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                [...(notifications as any[])]
+                  .sort((a, b) => Number(b.timestamp) - Number(a.timestamp))
+                  .map((n, i) => (
+                    <div
+                      key={String(n.id)}
+                      className="rounded-xl p-3 border"
+                      style={{
+                        background: `linear-gradient(135deg, ${headerColors.color1}0f, transparent)`,
+                        borderColor: `${headerColors.color1}33`,
+                      }}
+                      data-ocid={`notifications.item.${i + 1}`}
+                    >
+                      {n.imageUrl && (
+                        <img
+                          src={n.imageUrl}
+                          alt=""
+                          className="w-full rounded-lg mb-2 max-h-36 object-cover"
+                        />
+                      )}
+                      <p
+                        className="font-bold text-sm mb-1"
+                        style={{
+                          background: `linear-gradient(90deg, ${headerColors.color1}, ${headerColors.color2})`,
+                          WebkitBackgroundClip: "text",
+                          WebkitTextFillColor: "transparent",
+                        }}
+                      >
+                        {n.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {n.message}
+                      </p>
+                      <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground/60">
+                        <Clock className="w-3 h-3" />
+                        <span>
+                          {new Date(
+                            Number(n.timestamp) / 1_000_000,
+                          ).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-lg mx-auto px-4 space-y-5 py-4">
+        {/* ── Announcement Ticker (black theme) ── */}
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background:
+              "linear-gradient(135deg, #0a0a0a 0%, #111111 50%, #0d0d0d 100%)",
+            border: "1px solid rgba(249,115,22,0.35)",
+            boxShadow:
+              "0 2px 16px rgba(249,115,22,0.2), inset 0 0 20px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* App name badge row */}
+          <div className="flex items-center gap-2 px-3 pt-2 pb-1">
+            <div
+              className="flex items-center justify-center w-6 h-6 rounded-md shrink-0"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #ef4444)",
+                boxShadow: "0 0 8px rgba(249,115,22,0.7)",
+              }}
+            >
+              <Flame className="w-3.5 h-3.5 text-white" />
+            </div>
+            <span
+              className="font-display font-black text-xs uppercase tracking-widest"
+              style={{
+                background:
+                  "linear-gradient(90deg, #f97316, #fbbf24, #22d3ee, #a855f7)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 4px rgba(249,115,22,0.5))",
+              }}
+            >
+              SR-FF-TURNAMENT
+            </span>
+            <div
+              className="flex-1 h-px"
+              style={{
+                background:
+                  "linear-gradient(90deg, rgba(249,115,22,0.4), transparent)",
+              }}
+            />
+          </div>
+          {/* Ticker text row */}
+          <div className="flex items-center gap-2 px-3 pb-2 overflow-hidden">
+            <Megaphone
+              className="w-3.5 h-3.5 shrink-0"
+              style={{
+                color: "#fbbf24",
+                filter: "drop-shadow(0 0 4px #fbbf24)",
+              }}
+            />
+            <div className="overflow-hidden flex-1">
+              <p
+                className="animate-ticker text-xs font-semibold"
+                style={{
+                  background:
+                    "linear-gradient(90deg, #fbbf24, #f97316, #fbbf24)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {announcement}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Promo Photo Links row */}
+        {promoLinks.length > 0 && (
+          <section data-ocid="home.promo-links.panel">
+            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
+              {promoLinks.map((item, i) => (
+                <a
+                  key={item.id}
+                  href={item.link}
+                  target={item.link.startsWith("http") ? "_blank" : undefined}
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-xl overflow-hidden border border-border hover:border-primary/60 transition-all hover:scale-105 block"
+                  style={{ width: 140 }}
+                  data-ocid={`home.promo-link.item.${i + 1}`}
+                >
+                  <img
+                    src={item.photoUrl}
+                    alt={item.label}
+                    className="w-full h-24 object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.opacity = "0.3";
+                    }}
+                  />
+                  <div className="bg-card px-2 py-1">
+                    <p className="text-xs font-semibold truncate text-foreground">
+                      {item.label}
+                    </p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Promotion Banner from Admin */}
+        {activeBanner ? (
+          <div
+            className="relative rounded-2xl overflow-hidden glow-fire"
+            data-ocid="home.promo-banner.panel"
+          >
+            {activeBanner.imageUrl ? (
+              <img
+                src={activeBanner.imageUrl}
+                alt={activeBanner.title}
+                className="w-full h-40 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            ) : (
+              <div className="w-full h-40 bg-gradient-to-r from-primary/40 to-primary/10" />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent flex items-center">
+              <div className="p-4">
+                <p className="text-xs text-primary font-semibold uppercase tracking-wider">
+                  Promotion
+                </p>
+                <h2 className="font-display font-bold text-xl text-foreground leading-tight">
+                  {activeBanner.title}
+                </h2>
+                {activeBanner.subtitle && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activeBanner.subtitle}
+                  </p>
+                )}
+                {activeBanner.buttonText && activeBanner.buttonLink && (
+                  <a
+                    href={activeBanner.buttonLink}
+                    target={
+                      activeBanner.buttonLink.startsWith("http")
+                        ? "_blank"
+                        : undefined
+                    }
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-semibold hover:bg-primary/90 transition-colors"
+                    data-ocid="home.promo-banner.button"
+                  >
+                    {activeBanner.buttonText}{" "}
+                    <ChevronRight className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+            {promoBanners.length > 1 && (
+              <div className="absolute bottom-2 right-3 flex gap-1">
+                {promoBanners.map((pb, di) => (
+                  <button
+                    key={pb.id}
+                    type="button"
+                    onClick={() => setBannerIdx(di)}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                      pb.id === activeBanner.id ? "bg-primary" : "bg-white/40"
+                    }`}
+                    data-ocid={`home.promo-banner-dot.${di + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden glow-fire">
+            <img
+              src="/assets/generated/ff-tournament-banner.dim_800x300.jpg"
+              alt="Free Fire Tournament"
+              className="w-full h-40 object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/80 via-transparent to-transparent flex items-center">
+              <div className="p-4">
+                <p className="text-xs text-primary font-semibold uppercase tracking-wider">
+                  Live Now
+                </p>
+                <h2 className="font-display font-bold text-xl text-foreground leading-tight">
+                  SR-FF Grand
+                  <br />
+                  Tournament
+                </h2>
+                <Link
+                  to="/tournaments"
+                  className="mt-2 inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground px-3 py-1.5 rounded-full font-semibold hover:bg-primary/90 transition-colors"
+                  data-ocid="home.play-now.button"
+                >
+                  Play Now <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display font-bold text-base">My Contest</h3>
+            <Link
+              to="/tournaments"
+              className="text-xs text-primary"
+              data-ocid="home.all-contests.link"
+            >
+              View All
+            </Link>
+          </div>
+          <Tabs value={contestTab} onValueChange={setContestTab}>
+            <TabsList className="w-full bg-card border border-border">
+              <TabsTrigger
+                value="ongoing"
+                className="flex-1 text-xs"
+                data-ocid="home.ongoing.tab"
+              >
+                Ongoing
+              </TabsTrigger>
+              <TabsTrigger
+                value="upcoming"
+                className="flex-1 text-xs"
+                data-ocid="home.upcoming.tab"
+              >
+                Upcoming
+              </TabsTrigger>
+              <TabsTrigger
+                value="complete"
+                className="flex-1 text-xs"
+                data-ocid="home.complete.tab"
+              >
+                Complete
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <div className="mt-3 space-y-3">
+            {filtered.length === 0 ? (
+              <div
+                className="text-center py-8 text-muted-foreground"
+                data-ocid="contest.empty_state"
+              >
+                <Trophy className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No {contestTab} tournaments</p>
+              </div>
+            ) : (
+              filtered.slice(0, 3).map((t, i) => (
+                <Link
+                  key={t.id.toString()}
+                  to="/tournament/$id"
+                  params={{ id: t.id.toString() }}
+                  className="flex items-center gap-3 bg-card border border-border rounded-xl p-3 hover:border-primary/50 transition-colors"
+                  data-ocid={`contest.item.${i + 1}`}
+                >
+                  <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
+                    <Trophy className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm truncate">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t.gameMode}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs text-warning font-semibold">
+                      Rs.{Number(t.prizePool)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {Number(t.playerCount)}/{Number(t.maxPlayers)}
+                    </p>
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+        </section>
+
+        <section className="pb-2">
+          <h3 className="font-display font-bold text-base mb-3">
+            Free Fire Modes
+          </h3>
+          <div className="grid grid-cols-3 gap-2">
+            {GAME_MODES.map((mode, i) => (
+              <Link
+                key={mode.name}
+                to="/tournaments"
+                className={`${mode.cls} rounded-xl aspect-square flex flex-col items-center justify-center gap-1 border border-white/10 hover:border-primary/50 hover:scale-105 transition-all`}
+                data-ocid={`game-mode.item.${i + 1}`}
+              >
+                <span className="text-[11px] font-semibold text-white/90 text-center px-1 leading-tight">
+                  {mode.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <footer className="text-center py-4 px-4 border-t border-border mt-4">
+        <p className="text-xs text-muted-foreground">
+          {localStorage.getItem("srff_footer_text") ||
+            "SR-FF-TURNAMENT — Free Fire Tournament Platform"}
+        </p>
+      </footer>
+
+      {/* Floating Update App Button — shows after modal is dismissed */}
+      {updateDismissedThisSession &&
+        (notifications as any[]).some((n) =>
+          /update|🔄/i.test(String(n.title || "")),
+        ) && (
+          <div className="fixed bottom-24 left-0 right-0 flex justify-center z-50 pointer-events-none">
+            <button
+              type="button"
+              onClick={handleUpdateApp}
+              className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full font-bold text-white text-sm shadow-2xl animate-bounce"
+              style={{
+                background: "linear-gradient(135deg, #f97316, #f59e0b)",
+                boxShadow: "0 0 20px rgba(249,115,22,0.6)",
+              }}
+              data-ocid="home.update_app.button"
+            >
+              <span className="text-base">🔄</span>
+              Update Karo
+            </button>
+          </div>
+        )}
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Profile.tsx
+// ============================================================
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Bell,
+  Check,
+  CheckCircle,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Copy,
+  Edit2,
+  FileText,
+  Gift,
+  History,
+  Loader2,
+  Lock,
+  LogOut,
+  PhoneCall,
+  RefreshCw,
+  Save,
+  ScrollText,
+  Shield,
+  ShieldCheck,
+  Trophy,
+  XCircle,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
+import type { PaymentRequest } from "../hooks/useQueries";
+import {
+  useAllNotifications,
+  useCallerProfile,
+  useMyPaymentRequests,
+  useSaveProfile,
+  useSettings,
+  useSubmitPaymentRequest,
+} from "../hooks/useQueries";
+
+const MIN_DEPOSIT_KEY = "srff_min_deposit";
+const CONTACT_US_KEY = "srff_contact_us";
+const FAIR_PLAY_KEY = "srff_fair_play_policy";
+const GAME_RULES_KEY = "srff_game_rules";
+const UPI_ID_KEY = "srff_upi_id";
+const BANK_ACCOUNT_KEY = "srff_bank_account";
+const BANK_HOLDER_KEY = "srff_bank_holder";
+const BANK_NAME_KEY = "srff_bank_name";
+
+function getMinDeposit(): number {
+  try {
+    const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
+    if (raw === null) return 10;
+    const val = Number(raw);
+    return Number.isNaN(val) ? 10 : val;
+  } catch {
+    return 10;
+  }
+}
+
+function getLocalWalletBalance(): number {
+  try {
+    const cu = JSON.parse(localStorage.getItem("srff_current_user") || "null");
+    if (!cu?.phone) return 0;
+    const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
+    const u = users.find((u: any) => u.phone === cu.phone);
+    return u?.walletBalance || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function getLocalString(key: string): string {
+  try {
+    return localStorage.getItem(key) || "";
+  } catch {
+    return "";
+  }
+}
+
+function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
+  if ("pending" in status) {
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1 text-xs">
+        <Clock className="w-3 h-3" /> Pending
+      </Badge>
+    );
+  }
+  if ("accepted" in status) {
+    return (
+      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1 text-xs">
+        <CheckCircle className="w-3 h-3" /> Accepted
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 gap-1 text-xs">
+      <XCircle className="w-3 h-3" /> Rejected
+    </Badge>
+  );
+}
+
+const AVATARS = [
+  {
+    id: 1,
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
+  },
+  {
+    id: 2,
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
+  },
+  {
+    id: 3,
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
+  },
+  {
+    id: 4,
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
+  },
+  {
+    id: 5,
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
+  },
+  {
+    id: 6,
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
+  },
+  {
+    id: 7,
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
+  },
+];
+
+const AVATAR_KEY = "srff_avatar";
+
+function getSavedAvatar(): number {
+  try {
+    return Number(localStorage.getItem(AVATAR_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+export default function Profile() {
+  const { currentUser, logout } = useUserAuth();
+  const navigate = useNavigate();
+  const { data: profile } = useCallerProfile();
+  const { data: settings } = useSettings();
+  const { data: myRequests } = useMyPaymentRequests();
+  const { data: notifications = [] } = useAllNotifications();
+  const saveMutation = useSaveProfile();
+  const submitPayment = useSubmitPaymentRequest();
+
+  const [editing, setEditing] = useState(false);
+  const [username, setUsername] = useState("");
+  const [ffUid, setFfUid] = useState("");
+  const [savedAvatarId, setSavedAvatarId] = useState<number>(getSavedAvatar);
+  const [selectedAvatarId, setSelectedAvatarId] =
+    useState<number>(getSavedAvatar);
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showPlayerInfo, setShowPlayerInfo] = useState(false);
+
+  const [depositAmount, setDepositAmount] = useState("");
+  const [depositNote, setDepositNote] = useState("");
+  const [depositOpen, setDepositOpen] = useState(false);
+  const [depositDone, setDepositDone] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [withdrawUpi, setWithdrawUpi] = useState("");
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertAmount, setConvertAmount] = useState("");
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [matchHistoryOpen, setMatchHistoryOpen] = useState(false);
+  const [referOpen, setReferOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [fairPlayOpen, setFairPlayOpen] = useState(false);
+
+  const userKey = currentUser?.phone ?? "guest";
+  const WINNING_CASH_KEY = `srff_winning_cash_${userKey}`;
+
+  const getWinningCash = (): number => {
+    try {
+      return Number(localStorage.getItem(WINNING_CASH_KEY)) || 0;
+    } catch {
+      return 0;
+    }
+  };
+  const [winningCash, setWinningCash] = useState<number>(getWinningCash);
+
+  // Match history
+  const JOINED_KEY = `srff_joined_matches_${userKey}`;
+  const joinedMatches: Array<{
+    id: string;
+    title: string;
+    gameMode: string;
+    entryFee: number;
+    prizePool: number;
+    joinedAt: string;
+    winningAmount: number;
+  }> = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  })();
+  const enrichedMatches = joinedMatches.map((m) => {
+    const winReq = myRequests?.find(
+      (r) =>
+        "deposit" in r.requestType &&
+        "accepted" in r.status &&
+        r.note?.includes(m.id),
+    );
+    return {
+      ...m,
+      winningAmount: winReq ? Number(winReq.amount) : m.winningAmount,
+    };
+  });
+
+  // Notification read tracking
+  const NOTIF_READ_KEY = `srff_notif_read_${userKey}`;
+  const readIds: string[] = (() => {
+    try {
+      return JSON.parse(localStorage.getItem(NOTIF_READ_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  })();
+  const unreadCount = notifications.filter(
+    (n) => !readIds.includes(n.id?.toString() ?? ""),
+  ).length;
+  const markAllRead = () => {
+    const ids = notifications.map((n) => n.id?.toString() ?? "");
+    localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
+  };
+
+  // Reactive localStorage state for admin-editable policy texts
+  const [privacyText, setPrivacyText] = useState(
+    () => localStorage.getItem("srff_privacy_policy") || "",
+  );
+  const [termsText, setTermsText] = useState(
+    () => localStorage.getItem("srff_terms_conditions") || "",
+  );
+  const [refundText, setRefundText] = useState(
+    () => localStorage.getItem("srff_refund_policy") || "",
+  );
+  const [contactText, setContactText] = useState(
+    () => localStorage.getItem(CONTACT_US_KEY) || "",
+  );
+  const [fairPlayText, setFairPlayText] = useState(
+    () => localStorage.getItem(FAIR_PLAY_KEY) || "",
+  );
+  const [gameRulesText, setGameRulesText] = useState(
+    () => localStorage.getItem(GAME_RULES_KEY) || "",
+  );
+  const [referEarnText, setReferEarnText] = useState(
+    () => localStorage.getItem("srff_refer_earn") || "",
+  );
+
+  // Listen for admin localStorage changes and sync instantly
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally runs once
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "srff_privacy_policy") setPrivacyText(e.newValue || "");
+      if (e.key === "srff_terms_conditions") setTermsText(e.newValue || "");
+      if (e.key === "srff_refund_policy") setRefundText(e.newValue || "");
+      if (e.key === CONTACT_US_KEY) setContactText(e.newValue || "");
+      if (e.key === FAIR_PLAY_KEY) setFairPlayText(e.newValue || "");
+      if (e.key === GAME_RULES_KEY) setGameRulesText(e.newValue || "");
+      if (e.key === "srff_refer_earn") setReferEarnText(e.newValue || "");
+    };
+    // Also poll every 2s to catch same-tab admin changes
+    const interval = setInterval(() => {
+      setPrivacyText(localStorage.getItem("srff_privacy_policy") || "");
+      setTermsText(localStorage.getItem("srff_terms_conditions") || "");
+      setRefundText(localStorage.getItem("srff_refund_policy") || "");
+      setContactText(localStorage.getItem(CONTACT_US_KEY) || "");
+      setFairPlayText(localStorage.getItem(FAIR_PLAY_KEY) || "");
+      setGameRulesText(localStorage.getItem(GAME_RULES_KEY) || "");
+      setReferEarnText(localStorage.getItem("srff_refer_earn") || "");
+    }, 2000);
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Local-only policy fields from localStorage (set by admin)
+  const gameRules = gameRulesText;
+
+  const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
+  const minDeposit = getMinDeposit();
+  const upiId = getLocalString(UPI_ID_KEY) || "sk190rihan@mvhdfc";
+  const bankAccount = getLocalString(BANK_ACCOUNT_KEY) || "7477661867";
+  const bankHolder = getLocalString(BANK_HOLDER_KEY) || "SK SAHIL";
+  const bankName = getLocalString(BANK_NAME_KEY) || "Airtel Payment Bank";
+
+  const handleSave = async () => {
+    if (!profile) return;
+    try {
+      await saveMutation.mutateAsync({ ...profile, username, ffUid });
+      toast.success("Profile saved!");
+      setEditing(false);
+      setShowPlayerInfo(false);
+    } catch {
+      toast.error("Failed to save profile");
+    }
+  };
+
+  const handleClearInfo = async () => {
+    if (!profile) return;
+    try {
+      await saveMutation.mutateAsync({
+        ...profile,
+        username: profile.username ?? "",
+        ffUid: "",
+      });
+      setFfUid("");
+      toast.success("Player info cleared!");
+      setEditing(false);
+      setShowPlayerInfo(false);
+    } catch {
+      toast.error("Failed to clear info");
+    }
+  };
+
+  const handleSetAvatar = () => {
+    localStorage.setItem(AVATAR_KEY, String(selectedAvatarId));
+    setSavedAvatarId(selectedAvatarId);
+    setShowAvatarPicker(false);
+    setShowPlayerInfo(false);
+    setEditing(false);
+    toast.success("Avatar updated!");
+  };
+
+  const copyReferral = () => {
+    if (profile?.referralCode) {
+      navigator.clipboard.writeText(profile.referralCode);
+      toast.success("Referral code copied!");
+    }
+  };
+
+  const handleDepositSubmit = () => {
+    const amt = Number(depositAmount);
+    if (amt <= 0 || (minDeposit > 0 && amt < minDeposit)) {
+      const msg =
+        minDeposit > 0
+          ? `Minimum deposit ₹${minDeposit} hai`
+          : "Valid amount daalo";
+      toast.error(msg);
+      return;
+    }
+    if (!depositNote.trim()) {
+      toast.error("UTR / Transaction ID daalo");
+      return;
+    }
+    if (
+      depositNote.trim().length !== 12 ||
+      !/^\d{12}$/.test(depositNote.trim())
+    ) {
+      toast.error("UTR exactly 12 digit ka hona chahiye");
+      return;
+    }
+    submitPayment.mutate(
+      {
+        amount: amt,
+        requestType: { deposit: null },
+        note: depositNote.trim(),
+        upiId: "",
+      },
+      {
+        onSuccess: () => {
+          setDepositDone(true);
+          toast.success("Deposit request submit ho gaya!");
+        },
+        onError: () =>
+          toast.error("Request submit nahi ho saka, dobara try karo"),
+      },
+    );
+  };
+
+  const handleWithdrawSubmit = () => {
+    const amt = Number(withdrawAmount);
+    const min = 100; // Minimum withdrawal fixed at Rs 100
+    if (!amt || amt < min) {
+      toast.error(`Minimum withdrawal \u20b9${min} hai`);
+      return;
+    }
+    if (amt > winningCash) {
+      toast.error("Sirf Winning Cash se withdrawal ho sakta hai");
+      return;
+    }
+    if (!withdrawUpi.trim()) {
+      toast.error("Apna UPI ID daalo");
+      return;
+    }
+    submitPayment.mutate(
+      {
+        amount: amt,
+        requestType: { withdraw: null },
+        note: "",
+        upiId: withdrawUpi.trim(),
+      },
+      {
+        onSuccess: () => {
+          const deducted = winningCash - Number(withdrawAmount);
+          localStorage.setItem(WINNING_CASH_KEY, String(Math.max(0, deducted)));
+          setWinningCash(Math.max(0, deducted));
+          toast.success("Withdrawal request submit ho gaya!");
+          setWithdrawOpen(false);
+          setWithdrawAmount("");
+          setWithdrawUpi("");
+        },
+        onError: () =>
+          toast.error("Request submit nahi ho saka, dobara try karo"),
+      },
+    );
+  };
+
+  const resetDeposit = () => {
+    setDepositAmount("");
+    setDepositNote("");
+    setDepositDone(false);
+  };
+
+  const handleConvertSubmit = () => {
+    const amt = Number(convertAmount);
+    const walletBal = profile ? Number(profile.walletBalance) : 0;
+    const regularBalance = walletBal - winningCash;
+    if (!amt || amt <= 0) {
+      toast.error("Valid amount daalo");
+      return;
+    }
+    if (amt > regularBalance) {
+      toast.error(`Sirf \u20b9${regularBalance} regular balance available hai`);
+      return;
+    }
+    const newWinningCash = winningCash + amt;
+    localStorage.setItem(WINNING_CASH_KEY, String(newWinningCash));
+    setWinningCash(newWinningCash);
+    setConvertAmount("");
+    setConvertOpen(false);
+    toast.success(`\u20b9${amt} Winning Cash mein convert ho gaya!`);
+  };
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-muted-foreground text-sm">
+          Please login to view your profile.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <h1 className="font-display font-bold text-lg">Profile</h1>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+        {/* Avatar Display */}
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative">
+            <Avatar className="w-20 h-20 border-2 border-primary">
+              {currentAvatar ? (
+                <AvatarImage
+                  src={currentAvatar.image}
+                  alt={currentAvatar.label}
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : null}
+              <AvatarFallback className="bg-primary/20 text-primary text-3xl">
+                {currentUser.username?.charAt(0)?.toUpperCase() ?? "?"}
+              </AvatarFallback>
+            </Avatar>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !showAvatarPicker;
+                setSelectedAvatarId(savedAvatarId);
+                setShowAvatarPicker(next);
+                setShowPlayerInfo(next);
+                if (next) {
+                  setUsername(profile?.username ?? "");
+                  setFfUid(profile?.ffUid ?? "");
+                  setEditing(true);
+                } else {
+                  setEditing(false);
+                }
+              }}
+              className="absolute -bottom-1 -right-1 w-7 h-7 bg-primary rounded-full flex items-center justify-center border-2 border-background hover:bg-primary/90 transition-colors"
+              data-ocid="profile.avatar-change.button"
+            >
+              <Edit2 className="w-3 h-3 text-primary-foreground" />
+            </button>
+          </div>
+          <div className="text-center">
+            <p className="font-display font-bold text-lg">
+              {currentUser.username || "Player"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              📱 {currentUser.phone}
+            </p>
+          </div>
+        </div>
+
+        {/* Avatar Picker */}
+        {showAvatarPicker && (
+          <div
+            className="bg-card border border-border rounded-2xl p-4 space-y-4"
+            data-ocid="profile.avatar-picker.panel"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold text-sm">
+                Choose Avatar
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAvatarPicker(false)}
+                className="text-xs text-muted-foreground hover:text-foreground"
+                data-ocid="profile.avatar-picker.close_button"
+              >
+                Cancel
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {AVATARS.map((av) => (
+                <button
+                  key={av.id}
+                  type="button"
+                  onClick={() => setSelectedAvatarId(av.id)}
+                  className={`relative flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all ${
+                    selectedAvatarId === av.id
+                      ? "border-primary bg-primary/10 scale-105"
+                      : "border-border bg-background hover:border-primary/50"
+                  }`}
+                  data-ocid={`profile.avatar.item.${av.id}`}
+                >
+                  <div className="w-11 h-11 rounded-full overflow-hidden">
+                    <img
+                      src={av.image}
+                      alt={av.label}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground">
+                    #{av.id}
+                  </span>
+                  {selectedAvatarId === av.id && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                      <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleSetAvatar}
+              disabled={selectedAvatarId === 0}
+              data-ocid="profile.avatar-set.button"
+            >
+              Set Avatar
+            </Button>
+          </div>
+        )}
+
+        {/* Player Info Panel (shown when pencil is clicked) */}
+        {showPlayerInfo && (
+          <div
+            className="bg-card border border-border rounded-2xl p-4 space-y-4"
+            data-ocid="profile.playerinfo.panel"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display font-semibold text-sm">
+                Player Info
+              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearInfo}
+                  disabled={saveMutation.isPending}
+                  className="text-xs border-destructive/50 text-destructive hover:bg-destructive/10"
+                  data-ocid="profile.clear-info.button"
+                >
+                  Clear Info
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saveMutation.isPending}
+                  data-ocid="profile.save.button"
+                >
+                  {saveMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />
+                  ) : (
+                    <Save className="w-3.5 h-3.5 mr-1" />
+                  )}
+                  Save
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Username
+                </Label>
+                {editing ? (
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="mt-1"
+                    placeholder="Your username"
+                    data-ocid="profile.username.input"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm font-medium">
+                    {currentUser.username || "Not set"}
+                  </p>
+                )}
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Free Fire Name
+                </Label>
+                <p className="mt-1 text-sm font-medium">
+                  {currentUser.ffName || "Not set"}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Mobile Number
+                </Label>
+                <p className="mt-1 text-sm font-medium font-mono">
+                  {currentUser.phone}
+                </p>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">
+                  Free Fire UID
+                </Label>
+                {editing ? (
+                  <Input
+                    value={ffUid}
+                    onChange={(e) => setFfUid(e.target.value)}
+                    className="mt-1"
+                    placeholder="Your FF UID"
+                    data-ocid="profile.ffuid.input"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm font-medium font-mono">
+                    {profile?.ffUid || "Not set"}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Wallet + Deposit/Withdraw */}
+        <div className="space-y-3">
+          {/* Regular Balance Card */}
+          <div className="bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 rounded-2xl p-4 glow-orange">
+            <p className="text-sm text-primary/80 font-medium">
+              Regular Balance
+            </p>
+            <div className="flex items-center justify-between mt-1">
+              <span className="font-display font-bold text-3xl text-foreground">
+                ₹{Math.max(0, getLocalWalletBalance() - winningCash)}
+              </span>
+              <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    data-ocid="profile.convert.button"
+                  >
+                    <Trophy className="w-3.5 h-3.5" /> Convert to Winning Cash
+                  </Button>
+                </DialogTrigger>
+                <DialogContent data-ocid="profile.convert.dialog">
+                  <DialogHeader>
+                    <DialogTitle>Convert to Winning Cash</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
+                      <p className="text-xs text-yellow-400 font-semibold">
+                        ℹ️ Sirf Winning Cash se withdrawal ho sakta hai
+                      </p>
+                    </div>
+                    <div>
+                      <Label>
+                        Amount (₹) — Available: ₹
+                        {Math.max(0, getLocalWalletBalance() - winningCash)}
+                      </Label>
+                      <Input
+                        value={convertAmount}
+                        onChange={(e) => setConvertAmount(e.target.value)}
+                        placeholder="Kitna convert karna hai?"
+                        type="number"
+                        className="mt-1"
+                        data-ocid="profile.convert.input"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={handleConvertSubmit}
+                      data-ocid="profile.convert.submit_button"
+                    >
+                      Convert Karo
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {/* Winning Cash Card */}
+          <div className="bg-gradient-to-br from-yellow-500/20 to-green-500/10 border border-yellow-500/40 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Trophy className="w-4 h-4 text-yellow-400" />
+              <p className="text-sm text-yellow-400 font-medium">
+                Winning Cash
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-display font-bold text-3xl text-yellow-300">
+                ₹{winningCash}
+              </span>
+              <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs border-yellow-500/50 text-yellow-300 hover:bg-yellow-500/10"
+                    data-ocid="profile.withdraw.button"
+                  >
+                    <ArrowUpFromLine className="w-3.5 h-3.5" /> Withdraw
+                  </Button>
+                </DialogTrigger>
+                <DialogContent data-ocid="profile.withdraw.dialog">
+                  <DialogHeader>
+                    <DialogTitle>Withdraw Winning Cash</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    {winningCash === 0 ? (
+                      <div
+                        className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-3 text-center"
+                        data-ocid="profile.withdraw.error_state"
+                      >
+                        <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
+                        <p className="text-sm text-yellow-400 font-semibold">
+                          Pehle balance ko Winning Cash mein convert karo
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                          <p className="text-xs text-green-400 font-semibold">
+                            Available Winning Cash: ₹{winningCash}
+                          </p>
+                        </div>
+                        <div>
+                          <Label>Amount (₹) — Min: ₹{100}</Label>
+                          <Input
+                            value={withdrawAmount}
+                            onChange={(e) => setWithdrawAmount(e.target.value)}
+                            placeholder="Kitna withdraw karna hai?"
+                            type="number"
+                            className="mt-1"
+                            data-ocid="profile.withdraw.input"
+                          />
+                        </div>
+                        <div>
+                          <Label>Aapka UPI ID</Label>
+                          <Input
+                            value={withdrawUpi}
+                            onChange={(e) => setWithdrawUpi(e.target.value)}
+                            placeholder="yourname@upi"
+                            className="mt-1"
+                            data-ocid="profile.withdraw.upi.input"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Admin is UPI ID pe payment karega
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          className="w-full"
+                          onClick={handleWithdrawSubmit}
+                          disabled={submitPayment.isPending}
+                          data-ocid="profile.withdraw.submit_button"
+                        >
+                          {submitPayment.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : null}
+                          Withdrawal Request Bhejo
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+          </div>
+
+          {/* Deposit Button */}
+          <div className="flex gap-3">
+            <Dialog
+              open={depositOpen}
+              onOpenChange={(open) => {
+                setDepositOpen(open);
+                if (!open) resetDeposit();
+              }}
+            >
+              <DialogTrigger asChild>
+                <Button
+                  type="button"
+                  className="w-full gap-2"
+                  data-ocid="profile.deposit.button"
+                >
+                  <ArrowDownToLine className="w-4 h-4" /> Deposit
+                </Button>
+              </DialogTrigger>
+              <DialogContent data-ocid="profile.deposit.dialog">
+                <DialogHeader>
+                  <DialogTitle>Deposit Funds</DialogTitle>
+                </DialogHeader>
+                {depositDone ? (
+                  <div
+                    className="flex flex-col items-center gap-4 py-6 text-center"
+                    data-ocid="profile.deposit.success_state"
+                  >
+                    <CheckCircle className="w-12 h-12 text-green-400" />
+                    <div>
+                      <p className="font-bold text-foreground">
+                        Request Submit Ho Gaya!
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Admin review karega aur aapka balance update karega.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDepositOpen(false)}
+                      data-ocid="profile.deposit.close_button"
+                    >
+                      Theek Hai
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4 py-2">
+                    <div className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
+                      <p className="text-xs text-primary font-semibold">
+                        Minimum Deposit: ₹{minDeposit}
+                      </p>
+                    </div>
+                    <div>
+                      <Label>Amount (₹) — Min: ₹{minDeposit}</Label>
+                      <Input
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        placeholder={`Minimum ₹${minDeposit}`}
+                        type="number"
+                        className="mt-1"
+                        data-ocid="profile.deposit.input"
+                      />
+                    </div>
+                    {/* Payment Details — always visible */}
+                    <div className="space-y-3">
+                      <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+                        Step 1: Neeche diye account par payment karo
+                      </p>
+                      {/* UPI ID */}
+                      <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 flex items-center justify-between gap-2">
+                        <div>
+                          <p className="text-xs text-muted-foreground">
+                            UPI ID
+                          </p>
+                          <p className="font-mono font-bold text-orange-400 text-sm break-all">
+                            {upiId}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="shrink-0 border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                          onClick={() => {
+                            navigator.clipboard.writeText(upiId);
+                            toast.success("UPI ID copy ho gaya!");
+                          }}
+                          data-ocid="profile.deposit.copy_upi.button"
+                        >
+                          Copy
+                        </Button>
+                      </div>
+                      {/* Bank Account */}
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              Bank Account Number
+                            </p>
+                            <p className="font-mono font-bold text-blue-400 text-sm">
+                              {bankAccount}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="shrink-0 border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                            onClick={() => {
+                              navigator.clipboard.writeText(bankAccount);
+                              toast.success("Account number copy ho gaya!");
+                            }}
+                            data-ocid="profile.deposit.copy_bank.button"
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                        <div className="flex gap-4 text-xs text-muted-foreground">
+                          <span>
+                            Name:{" "}
+                            <span className="text-foreground font-semibold">
+                              {bankHolder}
+                            </span>
+                          </span>
+                          <span>
+                            Bank:{" "}
+                            <span className="text-foreground font-semibold">
+                              {bankName}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Step 2: UTR / Transaction ID (12 digit)</Label>
+                      <Input
+                        value={depositNote}
+                        onChange={(e) => setDepositNote(e.target.value)}
+                        placeholder="Payment ka UTR ya Transaction ID"
+                        className="mt-1"
+                        data-ocid="profile.deposit.utr.input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Payment bhejne ke baad transaction ID yahan daalo
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={handleDepositSubmit}
+                      disabled={submitPayment.isPending}
+                      data-ocid="profile.deposit.submit_button"
+                    >
+                      {submitPayment.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : null}
+                      Deposit Request Submit Karo
+                    </Button>
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+
+        {/* My Payment Requests */}
+        {myRequests && myRequests.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-4">
+            <h3 className="font-display font-semibold text-sm mb-3">
+              Meri Requests
+            </h3>
+            <div className="space-y-2">
+              {myRequests.slice(0, 5).map((req, i) => (
+                <div
+                  key={req.id.toString()}
+                  className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0"
+                  data-ocid={`profile.requests.item.${i + 1}`}
+                >
+                  <div className="flex items-center gap-2">
+                    {"deposit" in req.requestType ? (
+                      <ArrowDownToLine className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <ArrowUpFromLine className="w-3 h-3 text-red-400" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">
+                        {"deposit" in req.requestType ? "Deposit" : "Withdraw"}{" "}
+                        \u20b9{Number(req.amount)}
+                      </p>
+                      {req.note && (
+                        <p className="text-xs text-muted-foreground">
+                          UTR: {req.note}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <StatusBadge status={req.status} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Profile Menu Buttons — all same accordion style as Rules */}
+        <div className="space-y-2">
+          {/* 1. Notifications */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => {
+                setNotifOpen((v) => !v);
+                if (!notifOpen) markAllRead();
+              }}
+              data-ocid="profile.notifications.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <Bell className="w-4 h-4 text-yellow-400" />
+                <span className="font-display font-semibold text-sm">
+                  🔔 Notifications
+                </span>
+                {unreadCount > 0 && !notifOpen && (
+                  <span className="bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 font-bold min-w-[18px] text-center">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              {notifOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {notifOpen && (
+              <div className="px-4 pb-4 space-y-2">
+                {notifications.length === 0 ? (
+                  <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground text-center">
+                    🔕 Koi Notification Nahi Hai
+                  </div>
+                ) : (
+                  notifications.map((n) => (
+                    <div
+                      key={n.title}
+                      className="bg-background/60 rounded-xl p-3"
+                    >
+                      <p className="font-semibold text-sm">{n.title}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {n.message}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 2. Life Time Match History */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setMatchHistoryOpen((v) => !v)}
+              data-ocid="profile.match-history.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-cyan-400" />
+                <span className="font-display font-semibold text-sm">
+                  🏆 Life Time Match History
+                </span>
+              </div>
+              {matchHistoryOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {matchHistoryOpen && (
+              <div className="px-4 pb-4">
+                {enrichedMatches.length === 0 ? (
+                  <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground text-center">
+                    Abhi tak koi match nahi khela. Tournament join karo!
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {enrichedMatches.map((m, i) => (
+                      <div
+                        key={m.id}
+                        className="bg-background/60 rounded-xl p-3 flex items-center justify-between gap-2"
+                        data-ocid={`profile.match-history.item.${i + 1}`}
+                      >
+                        <div>
+                          <p className="font-semibold text-sm">{m.title}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {m.gameMode} • Entry: ₹{m.entryFee}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(m.joinedAt).toLocaleDateString("en-IN")}
+                          </p>
+                        </div>
+                        <div className="text-right flex flex-col items-end gap-1">
+                          {m.winningAmount > 0 ? (
+                            <span className="flex items-center gap-1 text-green-400 font-bold text-sm">
+                              <CheckCircle className="w-4 h-4 text-green-400" />
+                              +₹{m.winningAmount}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">
+                              No win
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* 3. Refer & Earn */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setReferOpen((v) => !v)}
+              data-ocid="profile.refer.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <Gift className="w-4 h-4 text-pink-400" />
+                <span className="font-display font-semibold text-sm">
+                  🎁 Refer & Earn
+                </span>
+              </div>
+              {referOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {referOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 space-y-3">
+                  {referEarnText ? (
+                    <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {referEarnText}
+                    </p>
+                  ) : (
+                    <>
+                      <p className="text-xs text-amber-400 font-semibold">
+                        🎁 Refer & Earn kaise kaam karta hai:
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Apna referral code apne dosto ko bhejo
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Jab friend register kare, apna referral code daale
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        • Aapko bonus wallet mein milega!
+                      </p>
+                    </>
+                  )}
+                  {profile?.referralCode ? (
+                    <div className="mt-2">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Aapka Referral Code:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-mono font-bold text-primary text-sm flex-1 bg-black/30 px-2 py-1 rounded">
+                          {profile.referralCode}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 px-2 text-xs"
+                          onClick={copyReferral}
+                          data-ocid="profile.refer.copy_button"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Share link: {window.location.origin}/register?ref=
+                        {profile.referralCode}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Contact Us */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setContactOpen((v) => !v)}
+              data-ocid="profile.contact.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-cyan-400" />
+                <span className="font-display font-semibold text-sm">
+                  📞 Contact Us
+                </span>
+              </div>
+              {contactOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {contactOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {contactText ||
+                    `📞 WhatsApp: 9104414372
+📧 Gmail: Sk190rihan@gmail.com
+
+Hame kisi bhi tournament ya payment issue ke liye contact karein.
+WhatsApp par message karein ya Gmail par email karein.
+Hum aapki help karne ke liye ready hain! 🙏`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 5. Privacy Policy */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setPrivacyOpen((v) => !v)}
+              data-ocid="profile.privacy.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-blue-400" />
+                <span className="font-display font-semibold text-sm">
+                  🔒 Privacy Policy
+                </span>
+              </div>
+              {privacyOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {privacyOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {privacyText ||
+                    settings?.privacyPolicy ||
+                    `🔒 PRIVACY POLICY - SR-FF-TOURNAMENT
+
+1. DATA COLLECTION: Hum aapka mobile number, username, aur Free Fire name collect karte hain taaki aap app use kar sakein.
+
+2. DATA SECURITY: Aapka data secure servers par store hota hai. Hum kabhi bhi aapka data third parties ko nahi dete.
+
+3. WALLET DATA: Aapka wallet balance aur transactions securely store hote hain. Admin ke alawa koi bhi aapka balance access nahi kar sakta.
+
+4. TOURNAMENT DATA: Tournament participation data aur match history aapki profile mein store hoti hai.
+
+5. NO SHARING: Hum aapki personal information kisi bhi third party ko nahi dete - na ads ke liye, na kisi aur ke liye.
+
+6. ACCOUNT SECURITY: Aapka password encrypted hai. Apna password kisi ke saath share na karein.
+
+7. COOKIES: App better experience ke liye local storage use karta hai.
+
+8. CONTACT: Privacy related kisi bhi sawaal ke liye: Sk190rihan@gmail.com`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 6. Terms and Conditions */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setTermsOpen((v) => !v)}
+              data-ocid="profile.terms.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-green-400" />
+                <span className="font-display font-semibold text-sm">
+                  📄 Terms and Conditions
+                </span>
+              </div>
+              {termsOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {termsOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {termsText ||
+                    settings?.termsAndConditions ||
+                    `📄 TERMS AND CONDITIONS - SR-FF-TOURNAMENT
+
+1. ELIGIBILITY: Yeh app sirf 18+ users ke liye hai. Account banana means aap in terms se agree karte hain.
+
+2. ONE ACCOUNT: Ek mobile number se sirf ek account ban sakta hai. Duplicate accounts ban ho jaayenge.
+
+3. TOURNAMENT RULES: Tournament join karne ke baad entry fee refund nahi hogi (refund policy dekhein).
+
+4. FAIR PLAY: Cheating, hacking, ya unfair means use karne par account permanently ban ho jaayega.
+
+5. WALLET: Wallet balance real money hai. Withdrawal sirf verified accounts ke liye available hai.
+
+6. WINNING: Admin tournament results verify karega. Winning amount admin set karega aur automatically wallet mein credit hoga.
+
+7. DISPUTES: Kisi bhi dispute ke liye admin se contact karein. Admin ka decision final hoga.
+
+8. CHANGES: SR TECHNOLOGY PVT LTD in terms ko kabhi bhi change kar sakta hai. Continued use means acceptance.
+
+9. CONTACT: Sk190rihan@gmail.com | WhatsApp: 9104414372`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 7. Refund and Cancellation */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setRefundOpen((v) => !v)}
+              data-ocid="profile.refund.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 text-orange-400" />
+                <span className="font-display font-semibold text-sm">
+                  ↩️ Refund and Cancellation
+                </span>
+              </div>
+              {refundOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {refundOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {refundText ||
+                    settings?.refundPolicy ||
+                    `↩️ REFUND AND CANCELLATION POLICY
+
+📌 Entry Fee Refund:
+• Agar aap tournament join karne ke baad match cancel ho jaata hai (admin ki taraf se), to aapki poori entry fee wallet mein wapas aa jaayegi.
+• Agar aapne tournament join kiya lekin khela nahi, to entry fee refund nahi hogi.
+
+📌 Deposit Refund:
+• Galat transaction hone par 24 ghante ke andar admin se contact karo.
+• Verified UTR se deposit confirm hoga. Galat UTR submit karne par refund nahi hoga.
+• Duplicate deposit (ek hi UTR do baar) ka paisa refund kiya jaayega.
+
+📌 Withdrawal:
+• Sirf Winning Cash withdraw ho sakta hai — regular balance nahi.
+• Withdrawal ₹50 minimum se hoga.
+• Processing time: 24-48 ghante (working days).
+• Wrong bank details dene par responsibility aapki hogi.
+
+📌 Cancellation:
+• Tournament join karne ke baad cancel karna allowed nahi hai.
+• Agar technical issue ho to admin se WhatsApp par contact karo.
+
+📞 Support: WhatsApp ya Contact Us section mein jaao.`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 8. Fair Play Policy */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setFairPlayOpen((v) => !v)}
+              data-ocid="profile.fairplay.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-purple-400" />
+                <span className="font-display font-semibold text-sm">
+                  ⚖️ Fair Play Policy
+                </span>
+              </div>
+              {fairPlayOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {fairPlayOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {fairPlayText ||
+                    `⚖️ FAIR PLAY POLICY
+
+SR-FF-TOURNAMENT ek fair aur honest gaming platform hai. Yahan sab players ke liye equal opportunity hai.
+
+✅ Allowed:
+• Legal Free Fire account se tournament mein participate karna.
+• Apne genuine skill se game khel kar winning earn karna.
+• Ek mobile number se ek account banana.
+
+❌ Strictly Prohibited:
+• Hacking, cheating ya any third-party tool/mod use karna.
+• Account sharing — ek account multiple logo ke saath use karna.
+• Fake screenshot ya manipulated proof submit karna.
+• Multiple accounts banana ek hi player ke liye.
+• Result manipulation ya fix karna.
+• Abusive/offensive language use karna.
+
+⚠️ Violation ka Result:
+• 1st violation: Warning + match disqualify.
+• 2nd violation: Account permanent ban + winning forfeit.
+• Serious cheating: Legal action bhi ho sakta hai.
+
+🏆 Fair play se hi asli winning milti hai. Khelo honestly, jito proudly!
+
+📞 Koi shikayat ho to admin se contact karo.`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 9. Rules */}
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-muted/30 transition-colors"
+              onClick={() => setRulesOpen((v) => !v)}
+              data-ocid="profile.rules.toggle"
+            >
+              <div className="flex items-center gap-2">
+                <ScrollText className="w-4 h-4 text-amber-400" />
+                <span className="font-display font-semibold text-sm">
+                  📜 Rules
+                </span>
+              </div>
+              {rulesOpen ? (
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              )}
+            </button>
+            {rulesOpen && (
+              <div className="px-4 pb-4">
+                <div className="bg-background/60 rounded-xl p-3 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                  {gameRules ||
+                    `📜 SR-FF-TOURNAMENT — GAME RULES
+
+🎮 TOURNAMENT RULES:
+
+1️⃣ Registration:
+• Sirf registered members tournament join kar sakte hain.
+• Entry fee wallet se auto-deduct hogi join karne par.
+• Join karne ke baad cancel nahi hoga.
+
+2️⃣ Room Details:
+• Room ID aur Password tournament start se 15 min pehle diya jaayega.
+• Apna Free Fire naam aur UID verify karein — same hona chahiye.
+• Late join allow nahi hoga Room ID share hone ke baad.
+
+3️⃣ Game Play:
+• Solo, Duo ya Squad — jo mode selected ho usi mein play karo.
+• Cheating/hacking = immediate disqualification + ban.
+• Intentional team killing = disqualification.
+• AFK (Away From Keyboard) play nahi chalega.
+
+4️⃣ Results:
+• Results admin verify karega kills aur placement ke basis par.
+• Winner screenshot submit karna hoga (agar required ho).
+• Result announcement ke baad koi change nahi hoga.
+
+5️⃣ Winning:
+• Winning amount Winning Cash wallet mein credit hoga.
+• Winning Cash se withdrawal kar sakte hain.
+• Dispute hone par admin ka decision final hoga.
+
+6️⃣ Conduct:
+• Respectful behavior mandatory hai — sab players ke saath.
+• Koi abusive language nahi.
+• Admin ke instructions follow karna zaroori hai.
+
+7️⃣ Technical Issues:
+• Server issue hone par match reschedule ya cancel ho sakta hai.
+• Apne device/internet ki problem par refund nahi hoga.
+
+🏆 Khelo fair, jito bada — Good Luck! 🔥`}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 10. Logout — standalone red button at very bottom */}
+          <button
+            type="button"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-500/10 border border-red-500/30 rounded-2xl text-red-400 font-display font-semibold text-sm hover:bg-red-500/20 transition-colors"
+            onClick={() => {
+              logout();
+              navigate({ to: "/login" });
+            }}
+            data-ocid="profile.logout.button"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Tournaments.tsx
+// ============================================================
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Link } from "@tanstack/react-router";
+import {
+  ChevronRight,
+  Clock,
+  Coins,
+  Filter,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import type { Tournament } from "../backend.d";
+import { useAllTournaments } from "../hooks/useQueries";
+
+function parseLocalTournaments(): Tournament[] {
+  try {
+    const raw = localStorage.getItem("srff_created_tournaments");
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as Array<{
+      id: string;
+      title: string;
+      gameMode: string;
+      entryFee: number;
+      prizePool: number;
+      maxPlayers: number;
+      minPlayers: number;
+      status: string;
+      description: string;
+      startTime: number;
+      playerCount: number;
+    }>;
+    return arr.map((lt) => ({
+      id: lt.id as unknown as bigint,
+      title: lt.title,
+      gameMode: lt.gameMode,
+      entryFee: BigInt(lt.entryFee),
+      prizePool: BigInt(lt.prizePool),
+      maxPlayers: BigInt(lt.maxPlayers),
+      minPlayers: BigInt(lt.minPlayers),
+      status: lt.status as Tournament["status"],
+      description: lt.description,
+      startTime: BigInt(Math.floor(lt.startTime * 1_000_000)),
+      playerCount: BigInt(lt.playerCount),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+function StatusBadge({ status }: { status: string }) {
+  if (status === "ongoing")
+    return (
+      <Badge className="bg-success/20 text-success border-0 text-xs">
+        ● LIVE
+      </Badge>
+    );
+  if (status === "upcoming")
+    return (
+      <Badge className="bg-warning/20 text-warning border-0 text-xs">
+        ⏰ SOON
+      </Badge>
+    );
+  return (
+    <Badge className="bg-muted text-muted-foreground border-0 text-xs">
+      ✓ DONE
+    </Badge>
+  );
+}
+
+function TournamentCard({ t, index }: { t: Tournament; index: number }) {
+  const start = new Date(Number(t.startTime) / 1_000_000);
+  return (
+    <Link
+      to="/tournament/$id"
+      params={{ id: t.id.toString() }}
+      className="block bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:glow-orange"
+      data-ocid={`tournament.item.${index}`}
+    >
+      <div className="game-card-1 h-2 w-full" />
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <div>
+            <h3 className="font-display font-bold text-sm leading-tight">
+              {t.title}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{t.gameMode}</p>
+          </div>
+          <StatusBadge status={t.status as string} />
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Coins className="w-3 h-3" />
+              Entry
+            </p>
+            <p className="text-sm font-bold text-foreground">
+              ₹{Number(t.entryFee)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Trophy className="w-3 h-3" />
+              Prize
+            </p>
+            <p className="text-sm font-bold text-warning">
+              ₹{Number(t.prizePool)}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Users className="w-3 h-3" />
+              Players
+            </p>
+            <p className="text-sm font-bold text-foreground">
+              {Number(t.playerCount)}/{Number(t.maxPlayers)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Clock className="w-3 h-3" />
+            {start.toLocaleDateString()}{" "}
+            {start.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+          <span className="text-xs text-primary font-semibold flex items-center gap-0.5">
+            Join <ChevronRight className="w-3 h-3" />
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+export default function Tournaments() {
+  const [tab, setTab] = useState("all");
+  const { data: tournaments = [], isLoading } = useAllTournaments();
+
+  const [localCreated, setLocalCreated] = useState<Tournament[]>(
+    parseLocalTournaments,
+  );
+  useEffect(() => {
+    const refresh = () => setLocalCreated(parseLocalTournaments());
+    window.addEventListener("srff_tournament_updated", refresh);
+    window.addEventListener("storage", refresh);
+    // Also poll every 2 seconds to catch admin changes in same tab
+    const interval = setInterval(refresh, 2000);
+    return () => {
+      window.removeEventListener("srff_tournament_updated", refresh);
+      window.removeEventListener("storage", refresh);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const allTournaments = useMemo(() => {
+    const backendIds = new Set(tournaments.map((t) => t.id.toString()));
+    const locals = localCreated.filter(
+      (lt) => !backendIds.has(lt.id.toString()),
+    );
+    return [...tournaments, ...locals];
+  }, [tournaments, localCreated]);
+
+  const filtered =
+    tab === "all"
+      ? allTournaments
+      : allTournaments.filter((t) => t.status === tab);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+        <div className="flex items-center justify-between max-w-lg mx-auto">
+          <h1 className="font-display font-bold text-lg">Tournaments</h1>
+          <Filter className="w-4 h-4 text-muted-foreground" />
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="w-full bg-card border border-border">
+            <TabsTrigger
+              value="all"
+              className="flex-1 text-xs"
+              data-ocid="tournaments.all.tab"
+            >
+              All
+            </TabsTrigger>
+            <TabsTrigger
+              value="ongoing"
+              className="flex-1 text-xs"
+              data-ocid="tournaments.ongoing.tab"
+            >
+              Live
+            </TabsTrigger>
+            <TabsTrigger
+              value="upcoming"
+              className="flex-1 text-xs"
+              data-ocid="tournaments.upcoming.tab"
+            >
+              Upcoming
+            </TabsTrigger>
+            <TabsTrigger
+              value="complete"
+              className="flex-1 text-xs"
+              data-ocid="tournaments.complete.tab"
+            >
+              Done
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {isLoading ? (
+          <div className="space-y-3" data-ocid="tournaments.loading_state">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-36 rounded-2xl" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div
+            className="text-center py-16"
+            data-ocid="tournaments.empty_state"
+          >
+            <Trophy className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+            <p className="text-muted-foreground">No tournaments found</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filtered.map((t, i) => (
+              <TournamentCard key={t.id.toString()} t={t} index={i + 1} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/TournamentDetail.tsx
+// ============================================================
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate, useParams } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  ArrowLeft,
+  Clock,
+  Coins,
+  Loader2,
+  Medal,
+  Shield,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useAllTournaments,
+  useCallerProfile,
+  useJoinTournament,
+  useLeaderboard,
+} from "../hooks/useQueries";
+
+const RANK_COLORS = ["text-yellow-400", "text-slate-300", "text-amber-600"];
+
+const RANK_BG = [
+  "bg-yellow-400/20 border-yellow-400/40",
+  "bg-slate-300/20 border-slate-300/40",
+  "bg-amber-600/20 border-amber-600/40",
+];
+
+const AVATARS = [
+  {
+    id: 1,
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
+  },
+  {
+    id: 2,
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
+  },
+  {
+    id: 3,
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
+  },
+  {
+    id: 4,
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
+  },
+  {
+    id: 5,
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
+  },
+  {
+    id: 6,
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
+  },
+  {
+    id: 7,
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
+  },
+];
+
+interface TournamentPlayer {
+  phone: string;
+  username: string;
+  avatarId: number;
+  joinedAt: string;
+  winningAmount?: number;
+}
+
+function maskPhone(phone: string): string {
+  if (phone.length < 4) return phone;
+  return `${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+}
+
+function getTournamentPlayers(tournamentId: string): TournamentPlayer[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(`srff_tp_${tournamentId}`) ?? "[]",
+    ) as TournamentPlayer[];
+  } catch {
+    return [];
+  }
+}
+
+function getAvatarById(avatarId: number) {
+  return AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0];
+}
+
+export default function TournamentDetail() {
+  const params = useParams({ strict: false });
+  const id = (params as Record<string, string>).id ?? "";
+  const navigate = useNavigate();
+  const { data: tournaments = [] } = useAllTournaments();
+  const { data: profile } = useCallerProfile();
+  const { identity, login } = useInternetIdentity();
+  const { currentUser } = useUserAuth();
+  const joinMutation = useJoinTournament();
+  const tournament = tournaments.find((t) => t.id.toString() === id);
+  const { data: leaderboard = [] } = useLeaderboard(
+    tournament?.id ?? BigInt(0),
+  );
+
+  if (!tournament) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <AlertCircle className="w-12 h-12 text-destructive" />
+        <p className="text-muted-foreground">Tournament not found</p>
+        <Button
+          onClick={() => navigate({ to: "/tournaments" })}
+          variant="outline"
+        >
+          Back
+        </Button>
+      </div>
+    );
+  }
+
+  const start = new Date(Number(tournament.startTime) / 1_000_000);
+  const canJoin = tournament.status !== "complete";
+  const playerCount = Number(tournament.playerCount);
+  const maxPlayers = Number(tournament.maxPlayers);
+  const minPlayers = Number(tournament.minPlayers);
+  const joinPercent =
+    maxPlayers > 0 ? Math.min((playerCount / maxPlayers) * 100, 100) : 0;
+
+  const joinedPlayers = getTournamentPlayers(tournament.id.toString());
+
+  const handleJoin = async () => {
+    if (!identity) {
+      login();
+      return;
+    }
+    try {
+      await joinMutation.mutateAsync(tournament.id);
+      toast.success("Joined tournament!");
+
+      // Save to match history in localStorage
+      const userKey = profile?.principal?.toString() ?? "guest";
+      const JOINED_KEY = `srff_joined_matches_${userKey}`;
+      try {
+        const existing = JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
+        const already = existing.find(
+          (m: { id: string }) => m.id === tournament.id.toString(),
+        );
+        if (!already) {
+          existing.push({
+            id: tournament.id.toString(),
+            title: tournament.title,
+            gameMode: tournament.gameMode,
+            entryFee: Number(tournament.entryFee),
+            prizePool: Number(tournament.prizePool),
+            joinedAt: new Date().toISOString(),
+            winningAmount: 0,
+          });
+          localStorage.setItem(JOINED_KEY, JSON.stringify(existing));
+        }
+      } catch {}
+
+      // Save player to tournament players list
+      if (currentUser) {
+        const tpKey = `srff_tp_${tournament.id.toString()}`;
+        try {
+          const players: TournamentPlayer[] = JSON.parse(
+            localStorage.getItem(tpKey) ?? "[]",
+          );
+          const alreadyJoined = players.find(
+            (p) => p.phone === currentUser.phone,
+          );
+          if (!alreadyJoined) {
+            const savedAvatarId = Number.parseInt(
+              localStorage.getItem("srff_avatar") || "0",
+            );
+            players.push({
+              phone: currentUser.phone,
+              username: currentUser.username,
+              avatarId: savedAvatarId,
+              joinedAt: new Date().toISOString(),
+              winningAmount: 0,
+            });
+            localStorage.setItem(tpKey, JSON.stringify(players));
+          }
+        } catch {}
+      }
+    } catch {
+      toast.error("Failed to join. Check wallet balance.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+        <div className="flex items-center gap-3 max-w-lg mx-auto">
+          <button
+            type="button"
+            onClick={() => navigate({ to: "/tournaments" })}
+            className="p-2 rounded-lg hover:bg-card transition-colors"
+            data-ocid="tournament-detail.back.button"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
+          <h1 className="font-display font-bold text-base truncate">
+            {tournament.title}
+          </h1>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* Tournament Card */}
+        <div className="game-card-1 border border-primary/30 rounded-2xl p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <Badge
+                className={
+                  tournament.status === "ongoing"
+                    ? "bg-success/20 text-success border-0"
+                    : tournament.status === "upcoming"
+                      ? "bg-warning/20 text-warning border-0"
+                      : "bg-muted text-muted-foreground border-0"
+                }
+              >
+                {tournament.status === "ongoing"
+                  ? "\u25cf LIVE"
+                  : tournament.status === "upcoming"
+                    ? "\u23f0 UPCOMING"
+                    : "\u2713 COMPLETE"}
+              </Badge>
+              <h2 className="font-display font-bold text-xl mt-2">
+                {tournament.title}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {tournament.gameMode}
+              </p>
+            </div>
+            <Trophy className="w-10 h-10 text-primary/60" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {tournament.description}
+          </p>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            {
+              icon: Coins,
+              label: "Entry Fee",
+              value: `\u20b9${Number(tournament.entryFee)}`,
+              color: "text-foreground",
+            },
+            {
+              icon: Trophy,
+              label: "Prize Pool",
+              value: `\u20b9${Number(tournament.prizePool)}`,
+              color: "text-warning",
+            },
+            {
+              icon: Clock,
+              label: "Start Time",
+              value: start.toLocaleString([], {
+                dateStyle: "short",
+                timeStyle: "short",
+              }),
+              color: "text-foreground",
+            },
+            {
+              icon: Users,
+              label: "Mode",
+              value: tournament.gameMode,
+              color: "text-foreground",
+            },
+          ].map(({ icon: Icon, label, value, color }) => (
+            <div
+              key={label}
+              className="bg-card border border-border rounded-xl p-3"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className="w-4 h-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">{label}</span>
+              </div>
+              <p className={`font-bold text-sm ${color} truncate`}>{value}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Player Join Leaderboard / Status */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" />
+              <h3 className="font-display font-bold text-sm">Players Joined</h3>
+            </div>
+            {joinedPlayers.length > 0 && (
+              <span className="text-xs bg-primary/20 text-primary font-bold px-2 py-0.5 rounded-full">
+                {joinedPlayers.length} Players
+              </span>
+            )}
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-background rounded-full h-3 mb-3 overflow-hidden">
+            <div
+              className="h-3 rounded-full bg-gradient-to-r from-primary to-warning transition-all"
+              style={{ width: `${joinPercent}%` }}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center mb-3">
+            <div className="bg-background rounded-xl p-2">
+              <p className="text-xs text-muted-foreground">Joined</p>
+              <p className="font-bold text-lg text-primary">{playerCount}</p>
+            </div>
+            <div className="bg-background rounded-xl p-2">
+              <p className="text-xs text-muted-foreground">Min Required</p>
+              <p className="font-bold text-lg text-warning">
+                {minPlayers > 0 ? minPlayers : "--"}
+              </p>
+            </div>
+            <div className="bg-background rounded-xl p-2">
+              <p className="text-xs text-muted-foreground">Max Players</p>
+              <p className="font-bold text-lg">{maxPlayers}</p>
+            </div>
+          </div>
+
+          {minPlayers > 0 &&
+            playerCount < minPlayers &&
+            tournament.status !== "complete" && (
+              <p className="text-xs text-warning mb-3 text-center">
+                Tournament start hone ke liye {minPlayers - playerCount} aur
+                players chahiye
+              </p>
+            )}
+
+          {/* Joined Players List */}
+          {joinedPlayers.length > 0 ? (
+            <div
+              className="space-y-2 max-h-60 overflow-y-auto pr-1"
+              data-ocid="tournament-detail.joined-players.list"
+            >
+              {joinedPlayers.map((player, i) => {
+                const av = getAvatarById(player.avatarId);
+                return (
+                  <div
+                    key={`${player.phone}-${i}`}
+                    className="flex items-center gap-3 bg-background rounded-xl px-3 py-2"
+                    data-ocid={`tournament-detail.joined-players.item.${i + 1}`}
+                  >
+                    {/* Avatar */}
+                    <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                      <img
+                        src={av.image}
+                        alt={av.label}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate">
+                        {player.username}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {maskPhone(player.phone)}
+                      </p>
+                    </div>
+                    {/* Winning badge if tournament complete */}
+                    {tournament.status === "complete" &&
+                      player.winningAmount != null &&
+                      player.winningAmount > 0 && (
+                        <span className="text-xs font-bold bg-success/20 text-success border border-success/30 rounded-full px-2 py-0.5 shrink-0">
+                          \u2705 \u20b9{player.winningAmount}
+                        </span>
+                      )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div
+              className="text-center py-4"
+              data-ocid="tournament-detail.joined-players.empty_state"
+            >
+              <p className="text-xs text-muted-foreground">
+                Abhi koi player join nahi kiya
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Wallet Balance */}
+        {profile && (
+          <div className="flex items-center gap-2 bg-card border border-border rounded-xl p-3">
+            <Shield className="w-4 h-4 text-success shrink-0" />
+            <div className="text-sm">
+              <span className="text-muted-foreground">Wallet Balance: </span>
+              <span className="font-bold text-warning">
+                \u20b9{Number(profile.walletBalance)}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Join Button */}
+        {canJoin && (
+          <Button
+            className="w-full h-12 text-base font-bold glow-orange"
+            onClick={handleJoin}
+            disabled={joinMutation.isPending}
+            data-ocid="tournament-detail.join.button"
+          >
+            {joinMutation.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" /> Joining...
+              </>
+            ) : identity ? (
+              `Join for \u20b9${Number(tournament.entryFee)}`
+            ) : (
+              "Login to Join"
+            )}
+          </Button>
+        )}
+
+        {/* Winner Leaderboard */}
+        {leaderboard.length > 0 && (
+          <div className="bg-card border border-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-warning" />
+              <h3 className="font-display font-bold text-sm">
+                Winner Leaderboard
+              </h3>
+            </div>
+            <div className="space-y-2">
+              {leaderboard
+                .slice()
+                .sort((a, b) => Number(a.position) - Number(b.position))
+                .map((entry, i) => {
+                  const pos = Number(entry.position);
+                  const colorClass =
+                    i < 3 ? RANK_COLORS[i] : "text-muted-foreground";
+                  const bgClass =
+                    i < 3 ? RANK_BG[i] : "bg-muted/20 border-border";
+                  return (
+                    <div
+                      key={`${entry.playerName}-${pos}`}
+                      className={`flex items-center justify-between rounded-xl px-3 py-3 border ${bgClass}`}
+                      data-ocid={`leaderboard.item.${i + 1}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm border ${bgClass} ${colorClass}`}
+                        >
+                          {pos <= 3 ? <Medal className="w-4 h-4" /> : pos}
+                        </div>
+                        <div>
+                          <p className="font-bold text-sm">
+                            {entry.playerName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            #{pos} Place
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-bold text-base ${colorClass}`}>
+                          \u20b9{Number(entry.prize)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Prize</p>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {leaderboard.length === 0 && tournament.status === "complete" && (
+          <div className="bg-card border border-border rounded-2xl p-4 text-center">
+            <Trophy className="w-8 h-8 mx-auto mb-2 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              Results abhi announce nahi hue
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Earn.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Gift, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
+import { useUserAuth } from "../context/UserAuthContext";
+import { useCallerProfile, useSettings } from "../hooks/useQueries";
+
+const EARNING_TIPS = [
+  "Win tournaments to earn prize money",
+  "Refer friends to earn bonus credits",
+  "Participate in daily free matches",
+  "Top the leaderboard for weekly rewards",
+];
+
+export default function Earn() {
+  const { currentUser } = useUserAuth();
+  const { data: profile } = useCallerProfile();
+  const { data: settings } = useSettings();
+
+  const copyReferral = () => {
+    if (profile?.referralCode) {
+      navigator.clipboard.writeText(profile.referralCode);
+      toast.success("Referral code copied!");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
+        <div className="max-w-lg mx-auto">
+          <h1 className="font-display font-bold text-lg">Refer &amp; Earn</h1>
+        </div>
+      </header>
+
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {/* Referral Bonus Card */}
+        <div className="bg-gradient-to-br from-primary/30 to-primary/10 border border-primary/40 rounded-2xl p-5 glow-orange">
+          <div className="flex items-center gap-2 mb-2">
+            <Gift className="w-5 h-5 text-primary" />
+            <h3 className="font-display font-bold text-lg">Referral Bonus</h3>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">
+            Apne dost ko refer karo aur{" "}
+            <span className="text-warning font-bold">
+              ₹{settings ? Number(settings.referralBonus) : 50}
+            </span>{" "}
+            bonus kamao har refer pe!
+          </p>
+          {currentUser && profile?.referralCode && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Tera referral code:
+              </p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-background/60 border border-border rounded-lg px-3 py-2 text-sm font-mono tracking-widest text-primary font-bold">
+                  {profile.referralCode}
+                </code>
+                <Button
+                  onClick={copyReferral}
+                  className="gap-2"
+                  data-ocid="earn.referral-copy.button"
+                >
+                  Copy
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Earning Tips */}
+        <div className="bg-card border border-border rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-success" />
+            <h3 className="font-display font-semibold text-sm">Earning Tips</h3>
+          </div>
+          <ul className="space-y-2">
+            {EARNING_TIPS.map((tip) => (
+              <li
+                key={tip}
+                className="flex items-start gap-2 text-sm text-muted-foreground"
+              >
+                <span className="text-primary mt-0.5">●</span>
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/Leaderboard.tsx
+// ============================================================
+import { Crown, Medal, Trophy, Users } from "lucide-react";
+import { useState } from "react";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../components/ui/tabs";
+import { useUserAuth } from "../context/UserAuthContext";
+import { useAllTournaments, useLeaderboard } from "../hooks/useQueries";
+
+interface MatchEntry {
+  id: string;
+  title: string;
+  gameMode: string;
+  entryFee: number;
+  prizePool: number;
+  joinedAt: string;
+  winningAmount?: number;
+}
+
+interface PlayerStats {
+  phone: string;
+  username: string;
+  ffName: string;
+  totalMatches: number;
+  totalWinnings: number;
+  totalEntryFee: number;
+  lastMatchAt: string;
+}
+
+function getUsers(): Array<{
+  phone: string;
+  username: string;
+  ffName: string;
+}> {
+  try {
+    return JSON.parse(localStorage.getItem("srff_users") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function getJoinedMatches(phone: string): MatchEntry[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(`srff_joined_matches_${phone}`) || "[]",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function buildLeaderboard(): PlayerStats[] {
+  const users = getUsers();
+  const stats: PlayerStats[] = [];
+
+  for (const user of users) {
+    const matches = getJoinedMatches(user.phone);
+    if (matches.length === 0) continue;
+
+    const totalWinnings = matches.reduce(
+      (sum, m) => sum + (m.winningAmount || 0),
+      0,
+    );
+    const totalEntryFee = matches.reduce(
+      (sum, m) => sum + (m.entryFee || 0),
+      0,
+    );
+    const lastMatchAt = matches.reduce(
+      (latest, m) => (m.joinedAt > latest ? m.joinedAt : latest),
+      "",
+    );
+
+    stats.push({
+      phone: user.phone,
+      username: user.username,
+      ffName: user.ffName,
+      totalMatches: matches.length,
+      totalWinnings,
+      totalEntryFee,
+      lastMatchAt,
+    });
+  }
+
+  return stats.sort((a, b) => b.totalWinnings - a.totalWinnings);
+}
+
+const RANK_STYLES: Record<
+  number,
+  { bg: string; text: string; icon: React.ReactNode; label: string }
+> = {
+  1: {
+    bg: "bg-gradient-to-r from-yellow-500/20 to-amber-500/10 border border-yellow-500/40",
+    text: "text-yellow-400",
+    icon: <Crown className="w-5 h-5 text-yellow-400" />,
+    label: "Gold",
+  },
+  2: {
+    bg: "bg-gradient-to-r from-slate-400/20 to-slate-500/10 border border-slate-400/40",
+    text: "text-slate-300",
+    icon: <Medal className="w-5 h-5 text-slate-300" />,
+    label: "Silver",
+  },
+  3: {
+    bg: "bg-gradient-to-r from-orange-700/20 to-amber-800/10 border border-orange-700/40",
+    text: "text-orange-400",
+    icon: <Medal className="w-5 h-5 text-orange-400" />,
+    label: "Bronze",
+  },
+};
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank <= 3) {
+    const style = RANK_STYLES[rank];
+    return (
+      <span
+        className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-sm ${style.text} bg-opacity-30`}
+      >
+        {style.icon}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-muted-foreground font-bold text-sm">
+      {rank}
+    </span>
+  );
+}
+
+function TournamentLeaderboard({ tournamentId }: { tournamentId: bigint }) {
+  const { data: entries = [], isLoading } = useLeaderboard(tournamentId);
+
+  if (isLoading) {
+    return (
+      <div
+        data-ocid="leaderboard.loading_state"
+        className="flex items-center justify-center py-12"
+      >
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div
+        data-ocid="leaderboard.empty_state"
+        className="text-center py-12 text-muted-foreground"
+      >
+        <Trophy className="w-12 h-12 mx-auto mb-3 opacity-30" />
+        <p>Is tournament ka leaderboard abhi available nahi hai</p>
+      </div>
+    );
+  }
+
+  return (
+    <div data-ocid="leaderboard.tournament.list" className="space-y-2">
+      {entries.map((entry) => {
+        const rank = Number(entry.position);
+        const rankStyle = rank <= 3 ? RANK_STYLES[rank] : null;
+        return (
+          <div
+            key={entry.position.toString()}
+            data-ocid={`leaderboard.tournament.item.${Number(entry.position)}`}
+            className={`flex items-center gap-3 p-3 rounded-xl ${
+              rankStyle ? rankStyle.bg : "bg-card border border-border"
+            }`}
+          >
+            <RankBadge rank={rank} />
+            <div className="flex-1 min-w-0">
+              <p
+                className={`font-semibold truncate ${rankStyle ? rankStyle.text : "text-foreground"}`}
+              >
+                {entry.playerName}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Position: {entry.position.toString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <p
+                className={`font-bold ${rankStyle ? rankStyle.text : "text-green-400"}`}
+              >
+                ₹{entry.prize.toString()}
+              </p>
+              <p className="text-xs text-muted-foreground">Prize</p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function Leaderboard() {
+  const { currentUser } = useUserAuth();
+  const { data: tournaments = [] } = useAllTournaments();
+  const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
+
+  const leaderboard = buildLeaderboard();
+  const completedTournaments = tournaments.filter(
+    (t) => t.status === "complete",
+  );
+
+  const lastUpdated =
+    leaderboard.length > 0
+      ? leaderboard.reduce(
+          (latest, p) => (p.lastMatchAt > latest ? p.lastMatchAt : latest),
+          "",
+        )
+      : null;
+
+  const selectedId = selectedTournamentId
+    ? BigInt(selectedTournamentId)
+    : completedTournaments.length > 0
+      ? completedTournaments[0].id
+      : null;
+
+  return (
+    <div
+      data-ocid="leaderboard.page"
+      className="min-h-screen bg-background pb-24"
+    >
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-md border-b border-border px-4 py-4">
+        <div className="flex items-center gap-2">
+          <Trophy className="w-6 h-6 text-yellow-400" />
+          <h1 className="text-xl font-bold text-foreground">Leaderboard</h1>
+        </div>
+        {lastUpdated && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Last updated:{" "}
+            {new Date(lastUpdated).toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        )}
+      </div>
+
+      <div className="px-4 pt-4">
+        <Tabs defaultValue="overall">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger
+              value="overall"
+              className="flex-1"
+              data-ocid="leaderboard.overall.tab"
+            >
+              <Users className="w-4 h-4 mr-1" /> Overall
+            </TabsTrigger>
+            <TabsTrigger
+              value="tournament"
+              className="flex-1"
+              data-ocid="leaderboard.tournament.tab"
+            >
+              <Trophy className="w-4 h-4 mr-1" /> Tournament
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Overall Tab */}
+          <TabsContent value="overall">
+            {leaderboard.length === 0 ? (
+              <div
+                data-ocid="leaderboard.empty_state"
+                className="text-center py-16"
+              >
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+                <p className="text-muted-foreground font-medium">
+                  Abhi koi tournament nahi khela
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Pehle tournament join karo!
+                </p>
+              </div>
+            ) : (
+              <div data-ocid="leaderboard.overall.list" className="space-y-2">
+                {leaderboard.map((player, idx) => {
+                  const rank = idx + 1;
+                  const rankStyle = rank <= 3 ? RANK_STYLES[rank] : null;
+                  const isCurrentUser = currentUser?.phone === player.phone;
+
+                  return (
+                    <div
+                      key={player.phone}
+                      data-ocid={`leaderboard.overall.item.${rank}`}
+                      className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                        isCurrentUser
+                          ? "border-2 border-primary bg-primary/10"
+                          : rankStyle
+                            ? rankStyle.bg
+                            : "bg-card border border-border"
+                      }`}
+                    >
+                      <RankBadge rank={rank} />
+
+                      {/* Avatar */}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/60 to-primary/20 flex items-center justify-center text-lg font-bold text-primary shrink-0">
+                        {player.username.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1">
+                          <p
+                            className={`font-semibold truncate ${
+                              rankStyle
+                                ? rankStyle.text
+                                : isCurrentUser
+                                  ? "text-primary"
+                                  : "text-foreground"
+                            }`}
+                          >
+                            {player.username}
+                          </p>
+                          {isCurrentUser && (
+                            <span className="text-xs bg-primary/20 text-primary px-1.5 py-0.5 rounded-full shrink-0">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {player.ffName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {player.totalMatches} matches played
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-green-400">
+                          ₹{player.totalWinnings.toLocaleString("en-IN")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Winnings
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Tournament Tab */}
+          <TabsContent value="tournament">
+            {completedTournaments.length === 0 ? (
+              <div
+                data-ocid="leaderboard.empty_state"
+                className="text-center py-16"
+              >
+                <Trophy className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+                <p className="text-muted-foreground font-medium">
+                  Abhi koi tournament complete nahi hua
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <select
+                  data-ocid="leaderboard.tournament.select"
+                  value={selectedTournamentId}
+                  onChange={(e) => setSelectedTournamentId(e.target.value)}
+                  className="w-full bg-card border border-border text-foreground rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  {completedTournaments.map((t) => (
+                    <option key={t.id.toString()} value={t.id.toString()}>
+                      {t.title} — {t.gameMode}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedId && (
+                  <TournamentLeaderboard tournamentId={selectedId} />
+                )}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+

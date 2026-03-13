@@ -1,0 +1,4327 @@
+// ============================================================
+// FILE: pages/admin/AdminLogin.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useNavigate } from "@tanstack/react-router";
+import { Eye, EyeOff, Flame, Loader2, Lock } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+export default function AdminLogin() {
+  const navigate = useNavigate();
+  const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    await new Promise((r) => setTimeout(r, 600));
+    const storedPw =
+      localStorage.getItem("srff_admin_password") || "7477661867Ss";
+    if (password === storedPw) {
+      sessionStorage.setItem("adminAuth", "true");
+      navigate({ to: "/admin/dashboard" });
+    } else {
+      toast.error("Invalid password");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Flame className="w-8 h-8 text-primary" />
+            <span className="font-display font-bold text-2xl">SR-FF</span>
+          </div>
+          <h1 className="font-display font-bold text-xl">Admin Panel</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Enter your password to continue
+          </p>
+        </div>
+
+        <form
+          onSubmit={handleLogin}
+          className="bg-card border border-border rounded-2xl p-6 space-y-4"
+          data-ocid="admin-login.form"
+        >
+          <div>
+            <Label htmlFor="password" className="text-sm">
+              Password
+            </Label>
+            <div className="relative mt-1">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                id="password"
+                type={showPwd ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter admin password"
+                className="pl-10 pr-10"
+                required
+                data-ocid="admin-login.password.input"
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setShowPwd((v) => !v)}
+                data-ocid="admin-login.show-password.toggle"
+              >
+                {showPwd ? (
+                  <EyeOff className="w-4 h-4" />
+                ) : (
+                  <Eye className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+          </div>
+          <Button
+            type="submit"
+            className="w-full glow-orange"
+            disabled={loading}
+            data-ocid="admin-login.submit.button"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+            {loading ? "Logging in..." : "Login"}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminDashboard.tsx
+// ============================================================
+import { Activity, Trophy, Users, Zap } from "lucide-react";
+import { useAllTournaments } from "../../hooks/useQueries";
+
+export default function AdminDashboard() {
+  const { data: tournaments = [] } = useAllTournaments();
+
+  const stats = [
+    {
+      label: "Total Tournaments",
+      value: tournaments.length,
+      icon: Trophy,
+      color: "text-primary",
+      bg: "bg-primary/10",
+    },
+    {
+      label: "Active Tournaments",
+      value: tournaments.filter((t) => t.status === "ongoing").length,
+      icon: Activity,
+      color: "text-success",
+      bg: "bg-success/10",
+    },
+    {
+      label: "Upcoming",
+      value: tournaments.filter((t) => t.status === "upcoming").length,
+      icon: Zap,
+      color: "text-warning",
+      bg: "bg-warning/10",
+    },
+    {
+      label: "Completed",
+      value: tournaments.filter((t) => t.status === "complete").length,
+      icon: Users,
+      color: "text-muted-foreground",
+      bg: "bg-muted/10",
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="font-display font-bold text-2xl">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Welcome back, Admin
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {stats.map((s, i) => (
+          <div
+            key={s.label}
+            className="bg-card border border-border rounded-2xl p-4"
+            data-ocid={`dashboard.stat.${i + 1}`}
+          >
+            <div
+              className={`w-9 h-9 ${s.bg} rounded-xl flex items-center justify-center mb-3`}
+            >
+              <s.icon className={`w-5 h-5 ${s.color}`} />
+            </div>
+            <p className="text-2xl font-display font-bold">{s.value}</p>
+            <p className="text-xs text-muted-foreground mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <h2 className="font-display font-semibold text-base mb-4">
+          Recent Tournaments
+        </h2>
+        {tournaments.length === 0 ? (
+          <p
+            className="text-sm text-muted-foreground text-center py-6"
+            data-ocid="dashboard.tournaments.empty_state"
+          >
+            No tournaments yet
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {tournaments.slice(0, 5).map((t, i) => (
+              <div
+                key={t.id.toString()}
+                className="flex items-center justify-between"
+                data-ocid={`dashboard.tournament.item.${i + 1}`}
+              >
+                <div>
+                  <p className="text-sm font-medium">{t.title}</p>
+                  <p className="text-xs text-muted-foreground">{t.gameMode}</p>
+                </div>
+                <span
+                  className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                    t.status === "ongoing"
+                      ? "bg-success/20 text-success"
+                      : t.status === "upcoming"
+                        ? "bg-warning/20 text-warning"
+                        : "bg-muted text-muted-foreground"
+                  }`}
+                >
+                  {t.status as string}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminTournaments.tsx
+// ============================================================
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  CheckCircle2,
+  Edit2,
+  Loader2,
+  Medal,
+  Plus,
+  Trash2,
+  Trophy,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { TournamentStatus } from "../../backend";
+import type { Tournament } from "../../backend.d";
+import {
+  useAllTournaments,
+  useCreateTournament,
+  useLeaderboard,
+  useSetLeaderboard,
+} from "../../hooks/useQueries";
+
+const GAME_MODES = [
+  "Solo",
+  "Duo",
+  "Squad",
+  "4v4 Clash Squad",
+  "BR Ranked",
+  "CS Ranked",
+  "Custom Room",
+  "BR Per Kill",
+  "Lone Wolf 1v1",
+  "Lone Wolf 2v2",
+  "Sunday Special",
+  "1 vs 1 Custom",
+  "4 vs 4 Custom",
+  "BR Full Map",
+];
+
+const DELETED_KEY = "srff_deleted_tournaments";
+const OVERRIDES_KEY = "srff_tournament_overrides";
+const CREATED_KEY = "srff_created_tournaments";
+
+const AVATARS = [
+  {
+    id: 1,
+    image:
+      "https://fragile-rose-ox0f0xpjsr.edgeone.app/Screenshot_2026_0311_192623.png",
+    label: "Avatar 1",
+  },
+  {
+    id: 2,
+    image:
+      "https://moderate-fuchsia-zngf7ch8ht.edgeone.app/Screenshot_2026_0311_192709.png",
+    label: "Avatar 2",
+  },
+  {
+    id: 3,
+    image:
+      "https://spicy-lime-kys4z9abso.edgeone.app/Screenshot_2026_0311_192742.png",
+    label: "Avatar 3",
+  },
+  {
+    id: 4,
+    image: "https://i.ibb.co/pBHp9p4Y/Screenshot-2026-0311-192858.png",
+    label: "Avatar 4",
+  },
+  {
+    id: 5,
+    image: "https://i.ibb.co/BKY6vhFK/Screenshot-2026-0311-193040.png",
+    label: "Avatar 5",
+  },
+  {
+    id: 6,
+    image: "https://i.ibb.co/jPGYvTPD/Screenshot-2026-0311-193101.png",
+    label: "Avatar 6",
+  },
+  {
+    id: 7,
+    image: "https://i.ibb.co/yFqYjdGw/Screenshot-2026-0311-193122.png",
+    label: "Avatar 7",
+  },
+];
+
+interface TournamentPlayer {
+  phone: string;
+  username: string;
+  avatarId: number;
+  joinedAt: string;
+  winningAmount?: number;
+}
+
+function maskPhone(phone: string): string {
+  if (phone.length < 4) return phone;
+  return `${phone.slice(0, 2)}XXXX${phone.slice(-2)}`;
+}
+
+function getTournamentPlayers(tournamentId: string): TournamentPlayer[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(`srff_tp_${tournamentId}`) ?? "[]",
+    ) as TournamentPlayer[];
+  } catch {
+    return [];
+  }
+}
+
+function saveTournamentPlayerWinnings(
+  tournamentId: string,
+  players: TournamentPlayer[],
+) {
+  localStorage.setItem(`srff_tp_${tournamentId}`, JSON.stringify(players));
+}
+
+function getAvatarById(avatarId: number) {
+  return AVATARS.find((a) => a.id === avatarId) ?? AVATARS[0];
+}
+
+/**
+ * Automatically credit winning amount to a player's Winning Cash wallet.
+ * Uses srff_winning_cash_{phone} key — same key that Profile.tsx reads.
+ * Tracks credited tournaments per phone to avoid double-crediting.
+ */
+function creditWinningCash(
+  phone: string,
+  amount: number,
+  tournamentId: string,
+  tournamentTitle: string,
+) {
+  if (amount <= 0) return;
+
+  // Prevent double-crediting: check if this tournament already credited for this phone
+  const creditedKey = `srff_credited_${phone}`;
+  let credited: string[] = [];
+  try {
+    credited = JSON.parse(
+      localStorage.getItem(creditedKey) ?? "[]",
+    ) as string[];
+  } catch {
+    credited = [];
+  }
+  if (credited.includes(tournamentId)) return; // Already credited
+
+  // Add to winning cash
+  const cashKey = `srff_winning_cash_${phone}`;
+  const current = Number(localStorage.getItem(cashKey) ?? "0");
+  localStorage.setItem(cashKey, String(current + amount));
+
+  // Mark this tournament as credited for this phone
+  credited.push(tournamentId);
+  localStorage.setItem(creditedKey, JSON.stringify(credited));
+
+  // Send in-app notification to the user
+  const notifKey = `srff_user_notifs_${phone}`;
+  let notifs: {
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    read: boolean;
+  }[] = [];
+  try {
+    notifs = JSON.parse(
+      localStorage.getItem(notifKey) ?? "[]",
+    ) as typeof notifs;
+  } catch {
+    notifs = [];
+  }
+  notifs.unshift({
+    id: `win_${tournamentId}_${Date.now()}`,
+    title: "🏆 Tournament Winning!",
+    message: `Congratulations! ₹${amount} winning amount has been credited to your Winning Cash wallet from "${tournamentTitle}". You can now withdraw it!`,
+    time: new Date().toISOString(),
+    read: false,
+  });
+  localStorage.setItem(notifKey, JSON.stringify(notifs));
+}
+
+interface LocalTournament {
+  id: string;
+  title: string;
+  gameMode: string;
+  entryFee: number;
+  prizePool: number;
+  maxPlayers: number;
+  minPlayers: number;
+  status: string;
+  description: string;
+  startTime: number;
+  playerCount: number;
+  bannerUrl?: string;
+}
+
+function getLocalTournaments(): LocalTournament[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(CREATED_KEY) ?? "[]",
+    ) as LocalTournament[];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTournament(t: LocalTournament) {
+  const arr = getLocalTournaments();
+  arr.unshift(t);
+  localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
+}
+
+function deleteLocalTournament(id: string) {
+  const arr = getLocalTournaments().filter((t) => t.id !== id);
+  localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
+}
+
+function getDeleted(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY) ?? "[]") as string[];
+  } catch {
+    return [];
+  }
+}
+
+function addDeleted(id: string) {
+  const arr = getDeleted();
+  if (!arr.includes(id)) arr.push(id);
+  localStorage.setItem(DELETED_KEY, JSON.stringify(arr));
+}
+
+interface TournamentOverride {
+  title?: string;
+  gameMode?: string;
+  entryFee?: string;
+  prizePool?: string;
+  maxPlayers?: string;
+  minPlayers?: string;
+  status?: string;
+  description?: string;
+}
+
+function getOverride(id: string): TournamentOverride | null {
+  try {
+    const all = JSON.parse(
+      localStorage.getItem(OVERRIDES_KEY) ?? "{}",
+    ) as Record<string, TournamentOverride>;
+    return all[id] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function saveOverride(id: string, data: TournamentOverride) {
+  try {
+    const all = JSON.parse(
+      localStorage.getItem(OVERRIDES_KEY) ?? "{}",
+    ) as Record<string, TournamentOverride>;
+    all[id] = { ...all[id], ...data };
+    localStorage.setItem(OVERRIDES_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
+interface TournamentForm {
+  title: string;
+  gameMode: string;
+  startTime: string;
+  entryFee: string;
+  prizePool: string;
+  maxPlayers: string;
+  minPlayers: string;
+  status: string;
+  description: string;
+  bannerUrl: string;
+}
+
+const TOURNAMENT_BANNERS_KEY = "srff_tournament_banners";
+
+function getTournamentBanners(): Record<string, string> {
+  try {
+    return JSON.parse(
+      localStorage.getItem(TOURNAMENT_BANNERS_KEY) ?? "{}",
+    ) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+function saveTournamentBanner(id: string, url: string) {
+  const banners = getTournamentBanners();
+  banners[id] = url;
+  localStorage.setItem(TOURNAMENT_BANNERS_KEY, JSON.stringify(banners));
+}
+
+const EMPTY_FORM: TournamentForm = {
+  title: "",
+  gameMode: "Squad",
+  startTime: "",
+  entryFee: "",
+  prizePool: "",
+  maxPlayers: "100",
+  minPlayers: "10",
+  status: "upcoming",
+  description: "",
+  bannerUrl: "",
+};
+
+function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState<TournamentForm>(EMPTY_FORM);
+  const createMutation = useCreateTournament();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createMutation.mutateAsync({
+        title: form.title,
+        gameMode: form.gameMode,
+        startTime: BigInt(new Date(form.startTime).getTime() * 1_000_000),
+        entryFee: BigInt(Number(form.entryFee)),
+        prizePool: BigInt(Number(form.prizePool)),
+        maxPlayers: BigInt(Number(form.maxPlayers)),
+        minPlayers: BigInt(Number(form.minPlayers)),
+        status: form.status as TournamentStatus,
+        description: form.description,
+      });
+      toast.success("Tournament created!");
+    } catch {
+      const localT: LocalTournament = {
+        id: `local_${Date.now()}`,
+        title: form.title,
+        gameMode: form.gameMode,
+        entryFee: Number(form.entryFee),
+        prizePool: Number(form.prizePool),
+        maxPlayers: Number(form.maxPlayers),
+        minPlayers: Number(form.minPlayers),
+        status: form.status,
+        description: form.description,
+        startTime: new Date(form.startTime).getTime(),
+        playerCount: 0,
+      };
+      saveLocalTournament(localT);
+      toast.success("Tournament created (locally)!");
+      window.dispatchEvent(new Event("srff_tournament_updated"));
+    }
+    setForm(EMPTY_FORM);
+    setOpen(false);
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          className="gap-2"
+          data-ocid="admin-tournaments.create.open_modal_button"
+        >
+          <Plus className="w-4 h-4" /> Create Tournament
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="admin-tournaments.create.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>Create Free Fire Tournament</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 py-2">
+          <div>
+            <Label>Title</Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Tournament title"
+              required
+              className="mt-1"
+              data-ocid="admin-tournaments.title.input"
+            />
+          </div>
+          <div>
+            <Label>Game Mode</Label>
+            <Select
+              value={form.gameMode}
+              onValueChange={(v) => setForm({ ...form, gameMode: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.gamemode.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GAME_MODES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Start Time</Label>
+            <Input
+              type="datetime-local"
+              value={form.startTime}
+              onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+              required
+              className="mt-1"
+              data-ocid="admin-tournaments.starttime.input"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Entry Fee (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.entryFee}
+                onChange={(e) => setForm({ ...form, entryFee: e.target.value })}
+                placeholder="50"
+                required
+                className="mt-1"
+                data-ocid="admin-tournaments.entryfee.input"
+              />
+            </div>
+            <div>
+              <Label>Prize Pool (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.prizePool}
+                onChange={(e) =>
+                  setForm({ ...form, prizePool: e.target.value })
+                }
+                placeholder="5000"
+                required
+                className="mt-1"
+                data-ocid="admin-tournaments.prizepool.input"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Max Players</Label>
+              <Input
+                type="number"
+                value={form.maxPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, maxPlayers: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.maxplayers.input"
+              />
+            </div>
+            <div>
+              <Label>Min Players</Label>
+              <Input
+                type="number"
+                value={form.minPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, minPlayers: e.target.value })
+                }
+                placeholder="10"
+                className="mt-1"
+                data-ocid="admin-tournaments.minplayers.input"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.status.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Tournament details..."
+              className="mt-1"
+              data-ocid="admin-tournaments.description.textarea"
+            />
+          </div>
+          <div>
+            <Label>Tournament Banner Image URL</Label>
+            <Input
+              value={form.bannerUrl}
+              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+              placeholder="https://...image.jpg"
+              className="mt-1"
+              data-ocid="admin-tournaments.banner.input"
+            />
+            {form.bannerUrl && (
+              <img
+                src={form.bannerUrl}
+                alt="banner preview"
+                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+              />
+            )}
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={createMutation.isPending}
+            data-ocid="admin-tournaments.create.submit_button"
+          >
+            {createMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : null}
+            Create Tournament
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Edit Tournament Modal
+function EditTournamentModal({
+  tournament,
+  onSaved,
+}: {
+  tournament: Tournament;
+  onSaved: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const override = getOverride(tournament.id.toString());
+
+  const [form, setForm] = useState<TournamentForm>({
+    title: override?.title ?? tournament.title,
+    gameMode: override?.gameMode ?? tournament.gameMode,
+    startTime: "",
+    entryFee: override?.entryFee ?? String(Number(tournament.entryFee)),
+    prizePool: override?.prizePool ?? String(Number(tournament.prizePool)),
+    maxPlayers: override?.maxPlayers ?? String(Number(tournament.maxPlayers)),
+    minPlayers: override?.minPlayers ?? String(Number(tournament.minPlayers)),
+    status: override?.status ?? (tournament.status as string),
+    description: override?.description ?? tournament.description,
+    bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
+  });
+
+  const handleOpen = () => {
+    const ov = getOverride(tournament.id.toString());
+    setForm({
+      title: ov?.title ?? tournament.title,
+      gameMode: ov?.gameMode ?? tournament.gameMode,
+      startTime: "",
+      entryFee: ov?.entryFee ?? String(Number(tournament.entryFee)),
+      prizePool: ov?.prizePool ?? String(Number(tournament.prizePool)),
+      maxPlayers: ov?.maxPlayers ?? String(Number(tournament.maxPlayers)),
+      minPlayers: ov?.minPlayers ?? String(Number(tournament.minPlayers)),
+      status: ov?.status ?? (tournament.status as string),
+      description: ov?.description ?? tournament.description,
+      bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
+    });
+    setOpen(true);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveOverride(tournament.id.toString(), {
+      title: form.title,
+      gameMode: form.gameMode,
+      entryFee: form.entryFee,
+      prizePool: form.prizePool,
+      maxPlayers: form.maxPlayers,
+      minPlayers: form.minPlayers,
+      status: form.status,
+      description: form.description,
+    });
+    saveTournamentBanner(tournament.id.toString(), form.bannerUrl);
+    toast.success("Tournament updated!");
+    setOpen(false);
+    onSaved();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="px-2"
+          onClick={handleOpen}
+          data-ocid="admin-tournaments.edit.open_modal_button"
+        >
+          <Edit2 className="w-3 h-3" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="admin-tournaments.edit.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>Edit Tournament</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSave} className="space-y-3 py-2">
+          <div>
+            <Label>Title</Label>
+            <Input
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              placeholder="Tournament title"
+              required
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.title.input"
+            />
+          </div>
+          <div>
+            <Label>Game Mode</Label>
+            <Select
+              value={form.gameMode}
+              onValueChange={(v) => setForm({ ...form, gameMode: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.gamemode.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {GAME_MODES.map((m) => (
+                  <SelectItem key={m} value={m}>
+                    {m}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Entry Fee (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.entryFee}
+                onChange={(e) => setForm({ ...form, entryFee: e.target.value })}
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.entryfee.input"
+              />
+            </div>
+            <div>
+              <Label>Prize Pool (\u20b9)</Label>
+              <Input
+                type="number"
+                value={form.prizePool}
+                onChange={(e) =>
+                  setForm({ ...form, prizePool: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.prizepool.input"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Max Players</Label>
+              <Input
+                type="number"
+                value={form.maxPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, maxPlayers: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.maxplayers.input"
+              />
+            </div>
+            <div>
+              <Label>Min Players</Label>
+              <Input
+                type="number"
+                value={form.minPlayers}
+                onChange={(e) =>
+                  setForm({ ...form, minPlayers: e.target.value })
+                }
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.minplayers.input"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Status</Label>
+            <Select
+              value={form.status}
+              onValueChange={(v) => setForm({ ...form, status: v })}
+            >
+              <SelectTrigger
+                className="mt-1"
+                data-ocid="admin-tournaments.edit.status.select"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="upcoming">Upcoming</SelectItem>
+                <SelectItem value="ongoing">Ongoing</SelectItem>
+                <SelectItem value="complete">Complete</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Tournament details..."
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.description.textarea"
+            />
+          </div>
+          <div>
+            <Label>Tournament Banner Image URL</Label>
+            <Input
+              value={form.bannerUrl}
+              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+              placeholder="https://...image.jpg"
+              className="mt-1"
+              data-ocid="admin-tournaments.edit.banner.input"
+            />
+            {form.bannerUrl && (
+              <img
+                src={form.bannerUrl}
+                alt="banner preview"
+                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+              />
+            )}
+          </div>
+          <Button
+            type="submit"
+            className="w-full"
+            data-ocid="admin-tournaments.edit.save_button"
+          >
+            Save Changes
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+interface LeaderboardRow {
+  id: number;
+  position: string;
+  playerName: string;
+  prize: string;
+}
+
+function ResultsModal({ tournament }: { tournament: Tournament }) {
+  const [open, setOpen] = useState(false);
+  const { data: leaderboard = [], refetch } = useLeaderboard(tournament.id);
+  const setLeaderboardMutation = useSetLeaderboard();
+  const [creditedCount, setCreditedCount] = useState(0);
+
+  // Player-based prizes (when players have joined)
+  const [playerPrizes, setPlayerPrizes] = useState<Record<string, string>>({});
+  // Fallback manual rows (when no players joined yet)
+  const [rows, setRows] = useState<LeaderboardRow[]>([
+    { id: 1, position: "1", playerName: "", prize: "" },
+    { id: 2, position: "2", playerName: "", prize: "" },
+    { id: 3, position: "3", playerName: "", prize: "" },
+  ]);
+
+  const [joinedPlayers, setJoinedPlayers] = useState<TournamentPlayer[]>([]);
+
+  const handleOpen = () => {
+    const players = getTournamentPlayers(tournament.id.toString());
+    setJoinedPlayers(players);
+    setCreditedCount(0);
+
+    // Pre-fill prizes from stored winning amounts
+    const prizes: Record<string, string> = {};
+    for (const p of players) {
+      prizes[p.phone] = p.winningAmount ? String(p.winningAmount) : "";
+    }
+    setPlayerPrizes(prizes);
+
+    // Also populate fallback rows from leaderboard (when no joined players)
+    if (players.length === 0 && leaderboard.length > 0) {
+      setRows(
+        leaderboard.map((e, idx) => ({
+          id: idx + 1,
+          position: String(Number(e.position)),
+          playerName: e.playerName,
+          prize: String(Number(e.prize)),
+        })),
+      );
+    }
+    setOpen(true);
+  };
+
+  const addRow = () =>
+    setRows((r) => [
+      ...r,
+      {
+        id: Date.now(),
+        position: String(r.length + 1),
+        playerName: "",
+        prize: "",
+      },
+    ]);
+  const removeRow = (i: number) =>
+    setRows((r) => r.filter((_, idx) => idx !== i));
+  const updateRow = (i: number, field: keyof LeaderboardRow, val: string) =>
+    setRows((r) =>
+      r.map((row, idx) => (idx === i ? { ...row, [field]: val } : row)),
+    );
+
+  const handleSave = async () => {
+    const tournamentId = tournament.id.toString();
+    const tournamentTitle = tournament.title;
+    let entries: [bigint, string, bigint][];
+    let newlyCredited = 0;
+
+    if (joinedPlayers.length > 0) {
+      // Build leaderboard from joined players + their prizes
+      entries = joinedPlayers
+        .map((p, idx) => {
+          const prize = Number(playerPrizes[p.phone] ?? "0");
+          return [BigInt(idx + 1), p.username, BigInt(prize)] as [
+            bigint,
+            string,
+            bigint,
+          ];
+        })
+        .filter(([, , prize]) => prize > BigInt(0));
+
+      // Save winning amounts back to tournament players localStorage
+      const updatedPlayers = joinedPlayers.map((p) => ({
+        ...p,
+        winningAmount: Number(playerPrizes[p.phone] ?? 0),
+      }));
+      saveTournamentPlayerWinnings(tournamentId, updatedPlayers);
+
+      // AUTO-CREDIT: add winning amount to each player's Winning Cash wallet
+      for (const p of joinedPlayers) {
+        const amount = Number(playerPrizes[p.phone] ?? 0);
+        if (amount > 0) {
+          const creditedKey = `srff_credited_${p.phone}`;
+          let credited: string[] = [];
+          try {
+            credited = JSON.parse(
+              localStorage.getItem(creditedKey) ?? "[]",
+            ) as string[];
+          } catch {
+            credited = [];
+          }
+          if (!credited.includes(tournamentId)) {
+            creditWinningCash(p.phone, amount, tournamentId, tournamentTitle);
+            newlyCredited++;
+          }
+        }
+      }
+    } else {
+      // Fallback: use manual rows
+      entries = rows
+        .filter((r) => r.playerName.trim() && r.prize)
+        .map(
+          (r) =>
+            [
+              BigInt(Number(r.position)),
+              r.playerName.trim(),
+              BigInt(Number(r.prize)),
+            ] as [bigint, string, bigint],
+        );
+    }
+
+    try {
+      await setLeaderboardMutation.mutateAsync({
+        tournamentId: tournament.id,
+        entries,
+      });
+      if (newlyCredited > 0) {
+        toast.success(
+          `\u2705 Leaderboard save ho gaya! ${newlyCredited} players ke Winning Cash wallet mein amount automatically credit ho gaya.`,
+        );
+      } else {
+        toast.success("Leaderboard save ho gaya!");
+      }
+      setCreditedCount(newlyCredited);
+      refetch();
+      setOpen(false);
+    } catch {
+      // Even if backend fails, localStorage credits are already done
+      if (newlyCredited > 0) {
+        toast.success(
+          `\u2705 ${newlyCredited} players ke wallets mein amount credit ho gaya!`,
+        );
+      } else {
+        toast.error("Save nahi ho saka");
+      }
+      setOpen(false);
+    }
+  };
+
+  // Check if already credited for any player
+  const alreadyCreditedPhones = joinedPlayers.filter((p) => {
+    try {
+      const credited = JSON.parse(
+        localStorage.getItem(`srff_credited_${p.phone}`) ?? "[]",
+      ) as string[];
+      return credited.includes(tournament.id.toString());
+    } catch {
+      return false;
+    }
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 gap-1 text-xs"
+          onClick={handleOpen}
+          data-ocid="admin-tournaments.results.open_modal_button"
+        >
+          <Trophy className="w-3 h-3" /> Results
+        </Button>
+      </DialogTrigger>
+      <DialogContent
+        className="max-w-md max-h-[90vh] overflow-y-auto"
+        data-ocid="admin-tournaments.results.dialog"
+      >
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Medal className="w-4 h-4 text-warning" /> Winner Leaderboard
+          </DialogTitle>
+        </DialogHeader>
+        <p className="text-xs text-muted-foreground mb-1">{tournament.title}</p>
+
+        {/* Auto-credit info banner */}
+        <div className="flex items-start gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-3 py-2 mb-3">
+          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+          <p className="text-xs text-green-600 dark:text-green-400">
+            <span className="font-bold">Auto Credit ON:</span> Jab aap prize
+            save karoge, system automatically us player ke Winning Cash wallet
+            mein amount transfer kar dega. Admin ko alag se kuch karne ki
+            zarurat nahi.
+          </p>
+        </div>
+
+        {alreadyCreditedPhones.length > 0 && (
+          <div className="flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-xl px-3 py-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+            <p className="text-xs text-blue-600 dark:text-blue-400">
+              {alreadyCreditedPhones.length} player(s) ko already credit ho
+              chuka hai is tournament se.
+            </p>
+          </div>
+        )}
+
+        {creditedCount > 0 && (
+          <div className="flex items-center gap-2 bg-green-500/15 border border-green-500/40 rounded-xl px-3 py-2 mb-3">
+            <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+              \u2705 {creditedCount} players ke Winning Cash wallets mein amount
+              credit ho gaya!
+            </p>
+          </div>
+        )}
+
+        {joinedPlayers.length > 0 ? (
+          /* Players joined — show each with prize input */
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              {joinedPlayers.length} players ne join kiya — inhe prize set karo:
+            </p>
+            {joinedPlayers.map((player, i) => {
+              const av = getAvatarById(player.avatarId);
+              const alreadyCredited = alreadyCreditedPhones.some(
+                (p) => p.phone === player.phone,
+              );
+              return (
+                <div
+                  key={player.phone}
+                  className={`flex items-center gap-3 rounded-xl px-3 py-2 ${
+                    alreadyCredited
+                      ? "bg-green-500/10 border border-green-500/20"
+                      : "bg-muted/30"
+                  }`}
+                  data-ocid={`admin-tournaments.results.item.${i + 1}`}
+                >
+                  {/* Avatar */}
+                  <div className="w-9 h-9 rounded-full overflow-hidden shrink-0">
+                    <img
+                      src={av.image}
+                      alt={av.label ?? "Avatar"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  {/* Player info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm truncate">
+                      {player.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      {maskPhone(player.phone)}
+                      {alreadyCredited && (
+                        <span className="text-green-500 font-medium">
+                          \u2022 Credited \u2713
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  {/* Prize input */}
+                  <Input
+                    type="number"
+                    value={playerPrizes[player.phone] ?? ""}
+                    onChange={(e) =>
+                      setPlayerPrizes((prev) => ({
+                        ...prev,
+                        [player.phone]: e.target.value,
+                      }))
+                    }
+                    placeholder="\u20b9 Prize"
+                    className="w-24 text-sm"
+                    disabled={alreadyCredited}
+                    data-ocid={`admin-tournaments.results.player-prize.input.${i + 1}`}
+                  />
+                </div>
+              );
+            })}
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={setLeaderboardMutation.isPending}
+              data-ocid="admin-tournaments.results.save.button"
+            >
+              {setLeaderboardMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              \uD83D\uDCB8 Prizes Save Karo & Wallets Credit Karo
+            </Button>
+          </div>
+        ) : (
+          /* No players joined — fallback manual entry */
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Abhi koi player join nahi kiya. Manually enter karo:
+            </p>
+            {rows.map((row, i) => (
+              <div
+                key={row.id}
+                className="flex items-center gap-2"
+                data-ocid={`admin-tournaments.results.item.${i + 1}`}
+              >
+                <Input
+                  type="number"
+                  value={row.position}
+                  onChange={(e) => updateRow(i, "position", e.target.value)}
+                  className="w-16 text-center"
+                  placeholder="#"
+                  data-ocid={`admin-tournaments.results.position.input.${i + 1}`}
+                />
+                <Input
+                  value={row.playerName}
+                  onChange={(e) => updateRow(i, "playerName", e.target.value)}
+                  placeholder="Player name"
+                  className="flex-1"
+                  data-ocid={`admin-tournaments.results.playername.input.${i + 1}`}
+                />
+                <Input
+                  type="number"
+                  value={row.prize}
+                  onChange={(e) => updateRow(i, "prize", e.target.value)}
+                  placeholder="\u20b9 Prize"
+                  className="w-24"
+                  data-ocid={`admin-tournaments.results.prize.input.${i + 1}`}
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="px-1.5 text-destructive hover:text-destructive"
+                  onClick={() => removeRow(i)}
+                  data-ocid={`admin-tournaments.results.delete_button.${i + 1}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full gap-1"
+              onClick={addRow}
+              data-ocid="admin-tournaments.results.add.button"
+            >
+              <Plus className="w-3 h-3" /> Add Player
+            </Button>
+            <Button
+              className="w-full"
+              onClick={handleSave}
+              disabled={setLeaderboardMutation.isPending}
+              data-ocid="admin-tournaments.results.save.button"
+            >
+              {setLeaderboardMutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : null}
+              Leaderboard Save Karo
+            </Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export default function AdminTournaments() {
+  const { data: allTournaments = [], refetch } = useAllTournaments();
+  const [localDeleted, setLocalDeleted] = useState<string[]>(getDeleted);
+  const [, forceUpdate] = useState(0);
+  const [localCreated, setLocalCreated] =
+    useState<LocalTournament[]>(getLocalTournaments);
+
+  const tournaments = allTournaments.filter(
+    (t) => !localDeleted.includes(t.id.toString()),
+  );
+
+  const handleDelete = (id: string) => {
+    if (id.startsWith("local_")) {
+      deleteLocalTournament(id);
+      setLocalCreated(getLocalTournaments());
+    } else {
+      addDeleted(id);
+      setLocalDeleted(getDeleted());
+    }
+    toast.success("Tournament delete ho gaya!");
+  };
+
+  // Refresh local state on refetch
+  const handleRefetch = () => {
+    refetch();
+    setLocalCreated(getLocalTournaments());
+    forceUpdate((n) => n + 1);
+  };
+
+  // Apply local overrides to backend tournaments
+  const displayBackend = tournaments.map((t) => {
+    const ov = getOverride(t.id.toString());
+    if (!ov) return t;
+    return {
+      ...t,
+      title: ov.title ?? t.title,
+      gameMode: ov.gameMode ?? t.gameMode,
+      entryFee: ov.entryFee ? BigInt(Number(ov.entryFee)) : t.entryFee,
+      prizePool: ov.prizePool ? BigInt(Number(ov.prizePool)) : t.prizePool,
+      maxPlayers: ov.maxPlayers ? BigInt(Number(ov.maxPlayers)) : t.maxPlayers,
+      minPlayers: ov.minPlayers ? BigInt(Number(ov.minPlayers)) : t.minPlayers,
+      status: (ov.status ?? t.status) as Tournament["status"],
+      description: ov.description ?? t.description,
+    };
+  });
+
+  // Merge local tournaments (shown first) with backend tournaments
+  const localAsDisplay = localCreated.map((lt) => ({
+    id: lt.id as unknown as bigint,
+    title: lt.title,
+    gameMode: lt.gameMode,
+    entryFee: BigInt(lt.entryFee),
+    prizePool: BigInt(lt.prizePool),
+    maxPlayers: BigInt(lt.maxPlayers),
+    minPlayers: BigInt(lt.minPlayers),
+    status: lt.status as Tournament["status"],
+    description: lt.description,
+    startTime: BigInt(lt.startTime * 1_000_000),
+    playerCount: BigInt(lt.playerCount),
+  }));
+
+  const displayTournaments = [...localAsDisplay, ...displayBackend];
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h1 className="font-display font-bold text-2xl">
+          Free Fire Tournaments
+        </h1>
+        <TournamentFormModal onCreated={handleRefetch} />
+      </div>
+
+      {displayTournaments.length === 0 ? (
+        <div
+          className="text-center py-20"
+          data-ocid="admin-tournaments.empty_state"
+        >
+          <Trophy className="w-12 h-12 mx-auto mb-3 text-muted-foreground/30" />
+          <p className="text-muted-foreground">
+            No tournaments yet. Create one!
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {displayTournaments.map((t: Tournament, i: number) => (
+            <div
+              key={t.id.toString()}
+              className="bg-card border border-border rounded-2xl p-4"
+              data-ocid={`admin-tournaments.item.${i + 1}`}
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  {(() => {
+                    const b = getTournamentBanners()[t.id.toString()];
+                    return b ? (
+                      <img
+                        src={b}
+                        alt="banner"
+                        className="w-8 h-8 rounded object-cover border border-border shrink-0"
+                      />
+                    ) : null;
+                  })()}
+                  <div>
+                    <h3 className="font-display font-bold text-sm">
+                      {t.title}
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      {t.gameMode}
+                    </p>
+                  </div>
+                </div>
+                <Badge
+                  className={`text-xs shrink-0 ${
+                    t.status === "ongoing"
+                      ? "bg-success/20 text-success border-0"
+                      : t.status === "upcoming"
+                        ? "bg-warning/20 text-warning border-0"
+                        : "bg-muted text-muted-foreground border-0"
+                  }`}
+                >
+                  {t.status as string}
+                </Badge>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-3">
+                <div className="text-center bg-background rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">Entry</p>
+                  <p className="text-sm font-bold">
+                    \u20b9{Number(t.entryFee)}
+                  </p>
+                </div>
+                <div className="text-center bg-background rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">Prize</p>
+                  <p className="text-sm font-bold text-warning">
+                    \u20b9{Number(t.prizePool)}
+                  </p>
+                </div>
+                <div className="text-center bg-background rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">Players</p>
+                  <p className="text-sm font-bold">
+                    {Number(t.playerCount)}/{Number(t.maxPlayers)}
+                  </p>
+                </div>
+                <div className="text-center bg-background rounded-lg p-2">
+                  <p className="text-xs text-muted-foreground">Min</p>
+                  <p className="text-sm font-bold text-warning">
+                    {Number(t.minPlayers) > 0 ? Number(t.minPlayers) : "--"}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="flex-1 gap-1 text-xs"
+                  data-ocid={`admin-tournaments.verify.button.${i + 1}`}
+                >
+                  <Users className="w-3 h-3" /> Players
+                </Button>
+                <ResultsModal tournament={t} />
+                <EditTournamentModal
+                  tournament={t}
+                  onSaved={() => forceUpdate((n) => n + 1)}
+                />
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="px-2"
+                      data-ocid={`admin-tournaments.delete.button.${i + 1}`}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent data-ocid="admin-tournaments.delete.dialog">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>
+                        Tournament Delete Karo?
+                      </AlertDialogTitle>
+                      <AlertDialogDescription>
+                        &ldquo;{t.title}&rdquo; ko delete karne par woh list se
+                        hat jaega. Kya aap sure hain?
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel data-ocid="admin-tournaments.delete.cancel_button">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(t.id.toString())}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        data-ocid="admin-tournaments.delete.confirm_button"
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminUsers.tsx
+// ============================================================
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Loader2,
+  MinusCircle,
+  Phone,
+  PlusCircle,
+  Search,
+  Users,
+  Wallet,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { UserProfile } from "../../backend.d";
+import { useAdminAdjustWallet, useAllUsers } from "../../hooks/useQueries";
+
+interface RegisteredPlayer {
+  name: string;
+  email: string;
+  phone: string;
+  passwordHash: string;
+}
+
+function getRegisteredPlayers(): RegisteredPlayer[] {
+  try {
+    return JSON.parse(localStorage.getItem("srff_users") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function decodePassword(passwordHash: string): string {
+  try {
+    return atob(passwordHash);
+  } catch {
+    return passwordHash;
+  }
+}
+
+function MobilePaySection({ users }: { users: UserProfile[] }) {
+  const [mobile, setMobile] = useState("");
+  const [foundPlayer, setFoundPlayer] = useState<RegisteredPlayer | null>(null);
+  const [matchedIcpUser, setMatchedIcpUser] = useState<UserProfile | null>(
+    null,
+  );
+  const [amount, setAmount] = useState("");
+  const [searched, setSearched] = useState(false);
+  const adjustMutation = useAdminAdjustWallet();
+
+  const handleSearch = () => {
+    const trimmed = mobile.trim();
+    if (!trimmed) {
+      toast.error("Mobile number daalo");
+      return;
+    }
+    const players = getRegisteredPlayers();
+    const found = players.find((p) => p.phone === trimmed);
+    setSearched(true);
+    if (!found) {
+      setFoundPlayer(null);
+      setMatchedIcpUser(null);
+      toast.error("Is mobile number ka koi user nahi mila");
+      return;
+    }
+    setFoundPlayer(found);
+    // Match by name (username) in ICP users
+    const icpMatch = users.find(
+      (u) => u.username.toLowerCase() === (found.name || "").toLowerCase(),
+    );
+    setMatchedIcpUser(icpMatch ?? null);
+  };
+
+  const handleAdjust = async (isAdd: boolean) => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) {
+      toast.error("Valid amount daalo");
+      return;
+    }
+    if (!matchedIcpUser) {
+      toast.error("ICP user nahi mila — wallet adjust nahi ho sakta");
+      return;
+    }
+    try {
+      await adjustMutation.mutateAsync({
+        userId: matchedIcpUser.principal,
+        amount: BigInt(amt),
+        isAdd,
+      });
+      toast.success(
+        `\u20b9${amt} ${isAdd ? "add" : "cut"} ho gaya — ${matchedIcpUser.username} ke wallet mein!`,
+      );
+      setAmount("");
+    } catch (e: any) {
+      toast.error(
+        e?.message?.includes("Insufficient")
+          ? "Insufficient balance"
+          : "Wallet adjust nahi ho saka",
+      );
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/30 via-card to-blue-950/20 overflow-hidden">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-cyan-500/20">
+        <div className="w-9 h-9 rounded-xl bg-cyan-500/20 flex items-center justify-center">
+          <Phone className="w-5 h-5 text-cyan-400" />
+        </div>
+        <div>
+          <h2 className="font-display font-bold text-base text-cyan-300">
+            📱 Mobile Se Wallet Mein Amount Daalo
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Mobile number se user dhundho aur balance add/cut karo
+          </p>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Mobile Search */}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Label className="text-xs text-cyan-300 mb-1 block">
+              Mobile Number
+            </Label>
+            <Input
+              value={mobile}
+              onChange={(e) => {
+                setMobile(e.target.value);
+                setSearched(false);
+                setFoundPlayer(null);
+                setMatchedIcpUser(null);
+              }}
+              placeholder="User ka mobile number daalo..."
+              type="tel"
+              className="bg-background/50 border-cyan-500/30 focus:border-cyan-400"
+              data-ocid="admin-mobile-pay.mobile.input"
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="gap-1.5 border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/10"
+              onClick={handleSearch}
+              data-ocid="admin-mobile-pay.search.button"
+            >
+              <Search className="w-4 h-4" /> Search
+            </Button>
+          </div>
+        </div>
+
+        {/* Found User Card */}
+        {searched && foundPlayer && (
+          <div
+            className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-4 space-y-3"
+            data-ocid="admin-mobile-pay.found.card"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
+                <span className="font-bold text-white text-sm">
+                  {foundPlayer.name?.charAt(0)?.toUpperCase() ?? "?"}
+                </span>
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-foreground">
+                  {foundPlayer.name || "—"}
+                </p>
+                <p className="text-xs text-cyan-400 font-mono">
+                  📱 {foundPlayer.phone}
+                </p>
+                {matchedIcpUser ? (
+                  <p className="text-xs text-green-400 font-bold mt-0.5">
+                    💰 Balance: ₹{Number(matchedIcpUser.walletBalance)}
+                  </p>
+                ) : (
+                  <p className="text-xs text-yellow-400 mt-0.5">
+                    ⚠️ ICP wallet nahi mila (user ne abhi login nahi kiya)
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {matchedIcpUser && (
+              <div className="space-y-3 pt-1 border-t border-cyan-500/20">
+                <div>
+                  <Label className="text-xs text-cyan-300 mb-1 block">
+                    Amount (₹)
+                  </Label>
+                  <Input
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="Kitna add ya cut karna hai?"
+                    className="bg-background/50 border-cyan-500/30"
+                    data-ocid="admin-mobile-pay.amount.input"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleAdjust(true)}
+                    disabled={adjustMutation.isPending || !amount}
+                    data-ocid="admin-mobile-pay.add.button"
+                  >
+                    {adjustMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <PlusCircle className="w-4 h-4" />
+                    )}
+                    ➕ Add to Wallet
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="gap-2"
+                    onClick={() => handleAdjust(false)}
+                    disabled={adjustMutation.isPending || !amount}
+                    data-ocid="admin-mobile-pay.cut.button"
+                  >
+                    {adjustMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <MinusCircle className="w-4 h-4" />
+                    )}
+                    ✂️ Cut from Wallet
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {searched && !foundPlayer && (
+          <div
+            className="text-center py-6 rounded-xl bg-red-950/20 border border-red-500/20"
+            data-ocid="admin-mobile-pay.not-found.error_state"
+          >
+            <p className="text-sm text-red-400 font-semibold">
+              ❌ Is mobile number ka koi user nahi mila
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Phone number check karke dobara try karo
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function AdminUsers() {
+  const { data: users = [] } = useAllUsers();
+
+  const [playersExpanded, setPlayersExpanded] = useState(true);
+  const [playerSearch, setPlayerSearch] = useState("");
+  const [revealedPasswords, setRevealedPasswords] = useState<Set<number>>(
+    new Set(),
+  );
+
+  const registeredPlayers = getRegisteredPlayers();
+  const filteredPlayers = registeredPlayers.filter(
+    (p) =>
+      p.name?.toLowerCase().includes(playerSearch.toLowerCase()) ||
+      p.phone?.includes(playerSearch),
+  );
+
+  const togglePasswordReveal = (index: number) => {
+    setRevealedPasswords((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="font-display font-bold text-2xl">Users</h1>
+
+      {/* Mobile Pay Section — TOP */}
+      <MobilePaySection users={users} />
+
+      {/* Registered Players Section */}
+      <div className="rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-950/30 via-card to-yellow-950/20 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-orange-500/20">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/20 flex items-center justify-center">
+              <Users className="w-5 h-5 text-orange-400" />
+            </div>
+            <div>
+              <h2 className="font-display font-bold text-base text-orange-300">
+                Registered Players
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Mobile se register hue players
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30 font-mono">
+              {registeredPlayers.length} Players
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="gap-1 border-orange-500/30 text-orange-300 hover:bg-orange-500/10 text-xs"
+              onClick={() => setPlayersExpanded((v) => !v)}
+              data-ocid="admin-players.toggle.button"
+            >
+              {playersExpanded ? (
+                <>
+                  <ChevronUp className="w-3 h-3" /> Hide
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3" /> Players Data Dekhein
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+
+        {playersExpanded && (
+          <div className="p-5 space-y-4">
+            <div className="relative max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={playerSearch}
+                onChange={(e) => setPlayerSearch(e.target.value)}
+                placeholder="Naam ya mobile number se dhundho..."
+                className="pl-9 bg-background/50 border-orange-500/20 text-sm"
+                data-ocid="admin-players.search.search_input"
+              />
+            </div>
+
+            {filteredPlayers.length === 0 ? (
+              <div
+                className="text-center py-14 rounded-xl bg-background/30 border border-orange-500/10"
+                data-ocid="admin-players.empty_state"
+              >
+                <Users className="w-10 h-10 mx-auto mb-3 text-orange-400/20" />
+                <p className="text-muted-foreground text-sm">
+                  {registeredPlayers.length === 0
+                    ? "Abhi koi player registered nahi hai"
+                    : "Koi player nahi mila"}
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-xl overflow-hidden border border-orange-500/20">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-orange-950/40 hover:bg-orange-950/40 border-orange-500/20">
+                      <TableHead className="text-orange-300 font-bold text-xs w-10">
+                        #
+                      </TableHead>
+                      <TableHead className="text-orange-300 font-bold text-xs">
+                        Naam
+                      </TableHead>
+                      <TableHead className="text-orange-300 font-bold text-xs">
+                        Mobile
+                      </TableHead>
+                      <TableHead className="text-orange-300 font-bold text-xs">
+                        FF Name
+                      </TableHead>
+                      <TableHead className="text-orange-300 font-bold text-xs">
+                        Password
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPlayers.map((player, i) => (
+                      <TableRow
+                        key={player.phone || player.name || String(i)}
+                        className="border-orange-500/10 hover:bg-orange-500/5"
+                        data-ocid={`admin-players.item.${i + 1}`}
+                      >
+                        <TableCell className="text-muted-foreground text-xs font-mono">
+                          {i + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shrink-0">
+                              <span className="text-xs font-bold text-white">
+                                {player.name?.charAt(0)?.toUpperCase() ?? "?"}
+                              </span>
+                            </div>
+                            <span className="font-semibold text-sm">
+                              {player.name || "\u2014"}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm text-cyan-400">
+                            {player.phone || "\u2014"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {player.email || "\u2014"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs text-yellow-300">
+                              {revealedPasswords.has(i)
+                                ? decodePassword(player.passwordHash)
+                                : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordReveal(i)}
+                              className="text-muted-foreground hover:text-orange-300 transition-colors"
+                            >
+                              {revealedPasswords.has(i) ? (
+                                <EyeOff className="w-3.5 h-3.5" />
+                              ) : (
+                                <Eye className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminPayments.tsx
+// ============================================================
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  CheckCircle,
+  Clock,
+  Loader2,
+  ReceiptText,
+  Wallet,
+  XCircle,
+} from "lucide-react";
+import { toast } from "sonner";
+import type { PaymentRequest } from "../../hooks/useQueries";
+import {
+  useAllPaymentRequests,
+  useUpdatePaymentRequestStatus,
+} from "../../hooks/useQueries";
+
+function formatDate(timestamp: number) {
+  const ms = timestamp;
+  return new Date(ms).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function StatusBadge({ status }: { status: PaymentRequest["status"] }) {
+  if ("pending" in status) {
+    return (
+      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 gap-1">
+        <Clock className="w-3 h-3" /> Pending
+      </Badge>
+    );
+  }
+  if ("accepted" in status) {
+    return (
+      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 gap-1">
+        <CheckCircle className="w-3 h-3" /> Accepted
+      </Badge>
+    );
+  }
+  return (
+    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 gap-1">
+      <XCircle className="w-3 h-3" /> Rejected
+    </Badge>
+  );
+}
+
+function PaymentCard({
+  req,
+  onAccept,
+  onReject,
+  isPending,
+  index,
+}: {
+  req: PaymentRequest;
+  onAccept: () => void;
+  onReject: () => void;
+  isPending: boolean;
+  index: number;
+}) {
+  const isDeposit = "deposit" in req.requestType;
+  const isPendingStatus = "pending" in req.status;
+
+  return (
+    <div
+      className="bg-card border border-border rounded-xl p-4 space-y-3"
+      data-ocid={`payments.${isDeposit ? "deposit" : "withdraw"}.item.${index}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-foreground">{req.username}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {formatDate(req.timestamp)}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-lg text-foreground">
+            ₹{Number(req.amount)}
+          </p>
+          <StatusBadge status={req.status} />
+        </div>
+      </div>
+
+      {req.note && (
+        <div className="bg-background rounded-lg px-3 py-2">
+          <p className="text-xs text-muted-foreground">UTR / Transaction ID</p>
+          <p className="text-sm font-mono text-foreground mt-0.5">{req.note}</p>
+        </div>
+      )}
+
+      {!isDeposit && req.upiId && (
+        <div className="bg-background rounded-lg px-3 py-2">
+          <p className="text-xs text-muted-foreground">UPI ID (send to)</p>
+          <p className="text-sm font-mono text-foreground mt-0.5">
+            {req.upiId}
+          </p>
+        </div>
+      )}
+
+      {isPendingStatus && (
+        <div className="flex gap-2 pt-1">
+          <Button
+            size="sm"
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            onClick={onAccept}
+            disabled={isPending}
+            data-ocid={`payments.${isDeposit ? "deposit" : "withdraw"}.confirm_button.${index}`}
+          >
+            {isPending ? (
+              <Loader2 className="w-3 h-3 animate-spin mr-1" />
+            ) : (
+              <CheckCircle className="w-3 h-3 mr-1" />
+            )}
+            Accept
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
+            onClick={onReject}
+            disabled={isPending}
+            data-ocid={`payments.${isDeposit ? "deposit" : "withdraw"}.delete_button.${index}`}
+          >
+            <XCircle className="w-3 h-3 mr-1" />
+            Reject
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RequestList({
+  requests,
+  type,
+}: {
+  requests: PaymentRequest[];
+  type: "deposit" | "withdraw";
+}) {
+  const { mutate: updateStatus, isPending } = useUpdatePaymentRequestStatus();
+
+  const filtered = requests.filter((r) =>
+    type === "deposit"
+      ? "deposit" in r.requestType
+      : "withdraw" in r.requestType,
+  );
+
+  if (filtered.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center py-16 text-center"
+        data-ocid={`payments.${type}.empty_state`}
+      >
+        <ReceiptText className="w-10 h-10 text-muted-foreground/30 mb-3" />
+        <p className="text-muted-foreground text-sm">No {type} requests yet</p>
+      </div>
+    );
+  }
+
+  const handleAccept = (id: number) => {
+    updateStatus(
+      { requestId: id, status: { accepted: null } },
+      {
+        onSuccess: () => toast.success("Request accepted!"),
+        onError: () => toast.error("Failed to update status"),
+      },
+    );
+  };
+
+  const handleReject = (id: number) => {
+    updateStatus(
+      { requestId: id, status: { rejected: null } },
+      {
+        onSuccess: () => toast.success("Request rejected"),
+        onError: () => toast.error("Failed to update status"),
+      },
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      {filtered.map((req, i) => (
+        <PaymentCard
+          key={req.id.toString()}
+          req={req}
+          index={i + 1}
+          onAccept={() => handleAccept(req.id)}
+          onReject={() => handleReject(req.id)}
+          isPending={isPending}
+        />
+      ))}
+    </div>
+  );
+}
+
+export default function AdminPayments() {
+  const { data: requests, isLoading } = useAllPaymentRequests();
+
+  const allRequests = requests ?? [];
+  const pendingCount = allRequests.filter((r) => "pending" in r.status).length;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <Wallet className="w-6 h-6 text-primary" />
+        <div>
+          <h1 className="font-display font-bold text-xl">Payment Requests</h1>
+          <p className="text-muted-foreground text-sm">
+            {pendingCount > 0
+              ? `${pendingCount} pending request${pendingCount > 1 ? "s" : ""}`
+              : "All requests reviewed"}
+          </p>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-3" data-ocid="payments.loading_state">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <Tabs defaultValue="deposits" data-ocid="payments.tab">
+          <TabsList className="w-full">
+            <TabsTrigger
+              value="deposits"
+              className="flex-1"
+              data-ocid="payments.deposits.tab"
+            >
+              Deposits
+              {allRequests.filter(
+                (r) => "deposit" in r.requestType && "pending" in r.status,
+              ).length > 0 && (
+                <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full px-1.5 py-0.5 font-bold">
+                  {
+                    allRequests.filter(
+                      (r) =>
+                        "deposit" in r.requestType && "pending" in r.status,
+                    ).length
+                  }
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="withdrawals"
+              className="flex-1"
+              data-ocid="payments.withdrawals.tab"
+            >
+              Withdrawals
+              {allRequests.filter(
+                (r) => "withdraw" in r.requestType && "pending" in r.status,
+              ).length > 0 && (
+                <span className="ml-2 bg-yellow-500 text-black text-xs rounded-full px-1.5 py-0.5 font-bold">
+                  {
+                    allRequests.filter(
+                      (r) =>
+                        "withdraw" in r.requestType && "pending" in r.status,
+                    ).length
+                  }
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="deposits" className="mt-4">
+            <RequestList requests={allRequests} type="deposit" />
+          </TabsContent>
+          <TabsContent value="withdrawals" className="mt-4">
+            <RequestList requests={allRequests} type="withdraw" />
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminBanners.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ImageIcon, Link2, Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+
+export interface PromoBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  imageUrl: string;
+  buttonText: string;
+  buttonLink: string;
+  active: boolean;
+}
+
+const STORAGE_KEY = "srff_promo_banners";
+
+function loadBanners(): PromoBanner[] {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveBanners(banners: PromoBanner[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(banners));
+}
+
+const EMPTY: Omit<PromoBanner, "id"> = {
+  title: "",
+  subtitle: "",
+  imageUrl: "",
+  buttonText: "Join Now",
+  buttonLink: "/tournaments",
+  active: true,
+};
+
+export default function AdminBanners() {
+  const [banners, setBanners] = useState<PromoBanner[]>(loadBanners);
+  const [form, setForm] = useState({ ...EMPTY });
+  const [editId, setEditId] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    saveBanners(banners);
+  }, [banners]);
+
+  const handleChange = (field: keyof typeof EMPTY, value: string | boolean) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSave = () => {
+    if (!form.title.trim()) {
+      toast.error("Banner title is required");
+      return;
+    }
+    if (editId) {
+      setBanners((prev) =>
+        prev.map((b) => (b.id === editId ? { ...form, id: editId } : b)),
+      );
+      toast.success("Banner updated!");
+    } else {
+      const newBanner: PromoBanner = {
+        ...form,
+        id: Date.now().toString(),
+      };
+      setBanners((prev) => [...prev, newBanner]);
+      toast.success("Banner added!");
+    }
+    setForm({ ...EMPTY });
+    setEditId(null);
+    setShowForm(false);
+  };
+
+  const handleEdit = (b: PromoBanner) => {
+    setForm({
+      title: b.title,
+      subtitle: b.subtitle,
+      imageUrl: b.imageUrl,
+      buttonText: b.buttonText,
+      buttonLink: b.buttonLink,
+      active: b.active,
+    });
+    setEditId(b.id);
+    setShowForm(true);
+  };
+
+  const handleDelete = (id: string) => {
+    setBanners((prev) => prev.filter((b) => b.id !== id));
+    toast.success("Banner deleted");
+  };
+
+  const toggleActive = (id: string) => {
+    setBanners((prev) =>
+      prev.map((b) => (b.id === id ? { ...b, active: !b.active } : b)),
+    );
+  };
+
+  const handleCancel = () => {
+    setForm({ ...EMPTY });
+    setEditId(null);
+    setShowForm(false);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display font-bold text-2xl">Promotion Banners</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Manage banners shown on the home page
+          </p>
+        </div>
+        {!showForm && (
+          <Button
+            size="sm"
+            onClick={() => setShowForm(true)}
+            data-ocid="banners.add.primary_button"
+          >
+            <Plus className="w-4 h-4 mr-1" /> Add Banner
+          </Button>
+        )}
+      </div>
+
+      {showForm && (
+        <div
+          className="bg-card border border-border rounded-2xl p-5 space-y-4"
+          data-ocid="banners.form.panel"
+        >
+          <h2 className="font-display font-semibold text-base">
+            {editId ? "Edit Banner" : "New Banner"}
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="b-title">Banner Title *</Label>
+              <Input
+                id="b-title"
+                placeholder="e.g. Grand Tournament 2026"
+                value={form.title}
+                onChange={(e) => handleChange("title", e.target.value)}
+                data-ocid="banners.title.input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="b-subtitle">Subtitle</Label>
+              <Input
+                id="b-subtitle"
+                placeholder="e.g. Win ₹10,000 prize pool"
+                value={form.subtitle}
+                onChange={(e) => handleChange("subtitle", e.target.value)}
+                data-ocid="banners.subtitle.input"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="b-image">
+              <ImageIcon className="inline w-3.5 h-3.5 mr-1" />
+              Image URL
+            </Label>
+            <Input
+              id="b-image"
+              placeholder="https://example.com/banner.jpg"
+              value={form.imageUrl}
+              onChange={(e) => handleChange("imageUrl", e.target.value)}
+              data-ocid="banners.image.input"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="b-btn-text">
+                <Link2 className="inline w-3.5 h-3.5 mr-1" />
+                Button Text
+              </Label>
+              <Input
+                id="b-btn-text"
+                placeholder="Join Now"
+                value={form.buttonText}
+                onChange={(e) => handleChange("buttonText", e.target.value)}
+                data-ocid="banners.button-text.input"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="b-btn-link">Button Link / URL</Label>
+              <Input
+                id="b-btn-link"
+                placeholder="/tournaments or https://..."
+                value={form.buttonLink}
+                onChange={(e) => handleChange("buttonLink", e.target.value)}
+                data-ocid="banners.button-link.input"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-1">
+            <Button onClick={handleSave} data-ocid="banners.form.save_button">
+              {editId ? "Update Banner" : "Save Banner"}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleCancel}
+              data-ocid="banners.form.cancel_button"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {banners.length === 0 ? (
+          <div
+            className="text-center py-12 text-muted-foreground bg-card border border-dashed border-border rounded-2xl"
+            data-ocid="banners.empty_state"
+          >
+            <ImageIcon className="w-10 h-10 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">
+              No banners yet. Add your first promotion banner.
+            </p>
+          </div>
+        ) : (
+          banners.map((b, i) => (
+            <div
+              key={b.id}
+              className={`bg-card border rounded-2xl overflow-hidden transition-opacity ${
+                b.active ? "border-border" : "border-border opacity-50"
+              }`}
+              data-ocid={`banners.item.${i + 1}`}
+            >
+              <div className="flex items-stretch">
+                {b.imageUrl ? (
+                  <img
+                    src={b.imageUrl}
+                    alt={b.title}
+                    className="w-24 h-20 object-cover shrink-0"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <div className="w-24 h-20 bg-muted/40 flex items-center justify-center shrink-0">
+                    <ImageIcon className="w-6 h-6 text-muted-foreground/40" />
+                  </div>
+                )}
+                <div className="flex-1 px-4 py-3 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">
+                        {b.title}
+                      </p>
+                      {b.subtitle && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {b.subtitle}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <span className="inline-flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium border border-primary/20">
+                          <Link2 className="w-3 h-3" />
+                          {b.buttonText || "Button"}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                          {b.buttonLink}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => toggleActive(b.id)}
+                        className={`text-xs px-2 py-1 rounded-full font-medium transition-colors ${
+                          b.active
+                            ? "bg-success/20 text-success"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                        data-ocid={`banners.toggle.${i + 1}`}
+                      >
+                        {b.active ? "ON" : "OFF"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleEdit(b)}
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+                        aria-label="Edit banner"
+                        data-ocid={`banners.edit_button.${i + 1}`}
+                      >
+                        <svg
+                          className="w-3.5 h-3.5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <title>Edit</title>
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(b.id)}
+                        className="p-1.5 rounded-lg hover:bg-destructive/10 text-destructive transition-colors"
+                        data-ocid={`banners.delete_button.${i + 1}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminNotifications.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Bell, Clock, Loader2, RefreshCw, Send } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  useAllNotifications,
+  useCreateNotification,
+} from "../../hooks/useQueries";
+
+export default function AdminNotifications() {
+  const { data: notifications = [] } = useAllNotifications();
+  const createMutation = useCreateNotification();
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [isSendingUpdate, setIsSendingUpdate] = useState(false);
+
+  const handleSendUpdateNotification = async () => {
+    setIsSendingUpdate(true);
+    try {
+      await createMutation.mutateAsync({
+        title: "🔄 Naya Update Aaya Hai!",
+        message:
+          "SR-FF-TOURNAMENT app mein naya update aaya hai! 🎉\n\nLatest version lene ke liye:\n\n✅ Step 1: Notification band karo\n✅ Step 2: Niche 'Update App' button dhundho\n✅ Step 3: Update App button par click karo\n✅ Step 4: App automatic reload ho jaayega\n\nUpdate karne ke baad aapko saare naye features milenge! 🚀",
+        imageUrl: "",
+      });
+      toast.success("Update notification sabko bhej di gayi!");
+    } catch {
+      toast.error("Update notification bhejne mein error aaya");
+    } finally {
+      setIsSendingUpdate(false);
+    }
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await createMutation.mutateAsync({ title, message, imageUrl });
+      toast.success("Notification sent to all users!");
+      setTitle("");
+      setMessage("");
+      setImageUrl("");
+    } catch {
+      toast.error("Failed to send notification");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display font-bold text-2xl">Notifications</h1>
+
+      {/* App Update Notification Button */}
+      <div className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border border-orange-500/40 rounded-2xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="text-2xl">🔄</div>
+          <div className="flex-1">
+            <h2 className="font-display font-bold text-sm text-orange-400 mb-1">
+              App Update Notification
+            </h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              Jab bhi app mein koi naya update aaye, yeh button dabao — sab
+              users ko automatically update notification jaayegi aur unhe ek
+              &ldquo;Update App&rdquo; button dikhega.
+            </p>
+            <Button
+              onClick={handleSendUpdateNotification}
+              disabled={isSendingUpdate}
+              className="w-full gap-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold"
+              data-ocid="admin-notifications.update_app.button"
+            >
+              {isSendingUpdate ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              🔄 App Update Notification Bhejo
+            </Button>
+            <div
+              className="mt-3 rounded-xl p-3"
+              style={{
+                background: "rgba(249,115,22,0.08)",
+                border: "1px solid rgba(249,115,22,0.2)",
+              }}
+            >
+              <p className="text-xs font-semibold text-orange-400 mb-1">
+                📱 Play Store jaisa Update Modal
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Yeh button dabane par{" "}
+                <strong className="text-orange-300">sab users</strong> ke app
+                mein ek
+                <strong className="text-orange-300">
+                  {" "}
+                  Play Store jaisa "Naya Update Aaya Hai!" modal
+                </strong>{" "}
+                dikhega. Users "Update Karo" click karenge to app latest version
+                load karega — bina kuch download kiye.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Send form */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <h2 className="font-display font-semibold text-sm mb-4">
+          Send Global Notification
+        </h2>
+        <form
+          onSubmit={handleSend}
+          className="space-y-3"
+          data-ocid="admin-notifications.form"
+        >
+          <div>
+            <Label>Title</Label>
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Notification title"
+              required
+              className="mt-1"
+              data-ocid="admin-notifications.title.input"
+            />
+          </div>
+          <div>
+            <Label>Message</Label>
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Write your message..."
+              required
+              rows={3}
+              className="mt-1"
+              data-ocid="admin-notifications.message.textarea"
+            />
+          </div>
+          <div>
+            <Label>Image URL (optional)</Label>
+            <Input
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+              className="mt-1"
+              data-ocid="admin-notifications.imageurl.input"
+            />
+          </div>
+          <Button
+            type="submit"
+            className="w-full gap-2"
+            disabled={createMutation.isPending}
+            data-ocid="admin-notifications.send.submit_button"
+          >
+            {createMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            Send to All Users
+          </Button>
+        </form>
+      </div>
+
+      {/* History */}
+      <div className="bg-card border border-border rounded-2xl p-4">
+        <h2 className="font-display font-semibold text-sm mb-4">
+          Notification History
+        </h2>
+        {notifications.length === 0 ? (
+          <div
+            className="text-center py-8"
+            data-ocid="admin-notifications.empty_state"
+          >
+            <Bell className="w-10 h-10 mx-auto mb-2 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground">
+              No notifications sent yet
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {notifications.map((n, i) => (
+              <div
+                key={n.id.toString()}
+                className="border border-border rounded-xl p-3"
+                data-ocid={`admin-notifications.item.${i + 1}`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-semibold text-sm">{n.title}</p>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                    <Clock className="w-3 h-3" />
+                    {new Date(n.timestamp).toLocaleDateString()}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                  {n.message}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminSettings.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Eye, EyeOff, KeyRound, Loader2, Save, Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import type { AppSettings } from "../../backend.d";
+import { useSettings, useUpdateSettings } from "../../hooks/useQueries";
+
+const MIN_DEPOSIT_KEY = "srff_min_deposit";
+const ADMIN_PASSWORD_KEY = "srff_admin_password";
+const FOOTER_TEXT_KEY = "srff_footer_text";
+const SUPPORT_NUMBER_KEY = "srff_support_number";
+const CONTACT_US_KEY = "srff_contact_us";
+const FAIR_PLAY_KEY = "srff_fair_play_policy";
+const MATCH_HISTORY_KEY = "srff_match_history_note";
+const GAME_RULES_KEY = "srff_game_rules";
+const DEFAULT_ADMIN_PASSWORD = "7477661867Ss";
+const UPI_ID_KEY = "srff_upi_id";
+const BANK_ACCOUNT_KEY = "srff_bank_account";
+const BANK_HOLDER_KEY = "srff_bank_holder";
+const BANK_NAME_KEY = "srff_bank_name";
+
+const DEFAULT_SETTINGS: AppSettings = {
+  appName: "SR-FF-TOURNAMENT",
+  minWithdraw: BigInt(100),
+  referralBonus: BigInt(50),
+  supportContact: "9104414372",
+  upiDetails: "",
+  privacyPolicy: "",
+  termsAndConditions: "",
+  refundPolicy: "",
+  announcementText: "Welcome to SR-FF-TOURNAMENT!",
+};
+
+function getStoredMinDeposit(): number {
+  try {
+    const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
+    if (raw === null) return 10;
+    const val = Number(raw);
+    return Number.isNaN(val) ? 10 : val;
+  } catch {
+    return 10;
+  }
+}
+
+function getAdminPassword(): string {
+  return localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+}
+
+function getFooterText(): string {
+  return (
+    localStorage.getItem(FOOTER_TEXT_KEY) ||
+    "SR-FF-TURNAMENT — Free Fire Tournament Platform"
+  );
+}
+
+function AdminPasswordSection() {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const handleChange = () => {
+    const stored = getAdminPassword();
+    if (currentPw !== stored) {
+      toast.error("Current password galat hai");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("New password minimum 6 characters ka hona chahiye");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("New password aur Confirm password match nahi karte");
+      return;
+    }
+    localStorage.setItem(ADMIN_PASSWORD_KEY, newPw);
+    toast.success("Admin password change ho gaya!");
+    setCurrentPw("");
+    setNewPw("");
+    setConfirmPw("");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-base">
+          Admin Password Change
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Admin panel ka password yahan se change karo.
+      </p>
+      <div>
+        <Label>Current Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showCurrent ? "text" : "password"}
+            value={currentPw}
+            onChange={(e) => setCurrentPw(e.target.value)}
+            placeholder="Current password"
+            className="pr-10"
+            data-ocid="admin-settings.current-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowCurrent((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showCurrent ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>New Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showNew ? "text" : "password"}
+            value={newPw}
+            onChange={(e) => setNewPw(e.target.value)}
+            placeholder="New password (min 6 chars)"
+            className="pr-10"
+            data-ocid="admin-settings.new-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowNew((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showNew ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <div>
+        <Label>Confirm New Password</Label>
+        <div className="relative mt-1">
+          <Input
+            type={showConfirm ? "text" : "password"}
+            value={confirmPw}
+            onChange={(e) => setConfirmPw(e.target.value)}
+            placeholder="Repeat new password"
+            className="pr-10"
+            data-ocid="admin-settings.confirm-password.input"
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirm((v) => !v)}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+          >
+            {showConfirm ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </button>
+        </div>
+      </div>
+      <Button
+        type="button"
+        onClick={handleChange}
+        className="w-full gap-2"
+        data-ocid="admin-settings.change-password.button"
+      >
+        <KeyRound className="w-4 h-4" /> Change Password
+      </Button>
+    </div>
+  );
+}
+
+function FooterTextSection() {
+  const [footerText, setFooterText] = useState(getFooterText);
+
+  const handleSave = () => {
+    localStorage.setItem(FOOTER_TEXT_KEY, footerText);
+    toast.success("Footer text saved!");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+        Footer Text
+      </h2>
+      <div>
+        <Label>Footer Text</Label>
+        <Input
+          value={footerText}
+          onChange={(e) => setFooterText(e.target.value)}
+          className="mt-1"
+          placeholder="SR-FF-TURNAMENT — Free Fire Tournament Platform"
+          data-ocid="admin-settings.footer-text.input"
+        />
+      </div>
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid="admin-settings.footer-text.save_button"
+      >
+        <Save className="w-4 h-4" /> Save Footer Text
+      </Button>
+    </div>
+  );
+}
+
+const UI_FORM_SIZE_KEY = "srff_form_size";
+const UI_MODAL_SIZE_KEY = "srff_modal_size";
+const UI_NEW_WELCOME_KEY = "srff_new_welcome_lines";
+const UI_LOGIN_WELCOME_KEY = "srff_login_welcome_lines";
+
+const DEFAULT_NEW_WELCOME = [
+  "🎮 Welcome to SR-FF-TURNAMENT!",
+  "🔥 Ready for Free Fire action?",
+  "💰 Win big prizes in tournaments!",
+  "🏆 Best of luck, warrior!",
+];
+
+const DEFAULT_LOGIN_WELCOME = [
+  "🎯 Welcome Back!",
+  "🔥 Time to dominate the arena!",
+  "💪 Your victories await!",
+  "🏅 Let's go, champion!",
+];
+
+function UICustomizationSection() {
+  const [formSize, setFormSize] = useState<string>(
+    () => localStorage.getItem(UI_FORM_SIZE_KEY) || "large",
+  );
+  const [modalSize, setModalSize] = useState<string>(
+    () => localStorage.getItem(UI_MODAL_SIZE_KEY) || "medium",
+  );
+  const [newWelcomeLines, setNewWelcomeLines] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_NEW_WELCOME_KEY);
+      const arr: string[] = raw
+        ? (JSON.parse(raw) as string[])
+        : DEFAULT_NEW_WELCOME;
+      return arr.join("\n");
+    } catch {
+      return DEFAULT_NEW_WELCOME.join("\n");
+    }
+  });
+  const [loginWelcomeLines, setLoginWelcomeLines] = useState<string>(() => {
+    try {
+      const raw = localStorage.getItem(UI_LOGIN_WELCOME_KEY);
+      const arr: string[] = raw
+        ? (JSON.parse(raw) as string[])
+        : DEFAULT_LOGIN_WELCOME;
+      return arr.join("\n");
+    } catch {
+      return DEFAULT_LOGIN_WELCOME.join("\n");
+    }
+  });
+
+  const handleSave = () => {
+    localStorage.setItem(UI_FORM_SIZE_KEY, formSize);
+    localStorage.setItem(UI_MODAL_SIZE_KEY, modalSize);
+    const newLines = newWelcomeLines
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    const loginLines = loginWelcomeLines
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    localStorage.setItem(UI_NEW_WELCOME_KEY, JSON.stringify(newLines));
+    localStorage.setItem(UI_LOGIN_WELCOME_KEY, JSON.stringify(loginLines));
+    toast.success("UI settings saved! Reload karke changes dekho.");
+  };
+
+  return (
+    <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Settings2 className="w-5 h-5 text-primary" />
+        <h2 className="font-display font-semibold text-base">
+          UI Customization
+        </h2>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Login/Register form ka size, welcome modal ka size, aur welcome messages
+        yahan se set karo.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Form Size (Login/Register)</Label>
+          <Select value={formSize} onValueChange={setFormSize}>
+            <SelectTrigger
+              className="mt-1"
+              data-ocid="admin-settings.form-size.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Welcome Modal Size</Label>
+          <Select value={modalSize} onValueChange={setModalSize}>
+            <SelectTrigger
+              className="mt-1"
+              data-ocid="admin-settings.modal-size.select"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <Label>New User Welcome Lines</Label>
+        <p className="text-xs text-muted-foreground mb-1">
+          Ek line = ek welcome message. Emojis bhi likh sakte ho.
+        </p>
+        <Textarea
+          value={newWelcomeLines}
+          onChange={(e) => setNewWelcomeLines(e.target.value)}
+          rows={5}
+          placeholder="🎮 Welcome to SR-FF-TURNAMENT!&#10;🔥 Ready for action?"
+          className="mt-1 font-mono text-sm"
+          data-ocid="admin-settings.new-welcome-lines.textarea"
+        />
+      </div>
+
+      <div>
+        <Label>Returning User Welcome Lines (Login)</Label>
+        <p className="text-xs text-muted-foreground mb-1">
+          Ek line = ek message. Yeh login ke baad dikhega.
+        </p>
+        <Textarea
+          value={loginWelcomeLines}
+          onChange={(e) => setLoginWelcomeLines(e.target.value)}
+          rows={5}
+          placeholder="🎯 Welcome Back!&#10;🔥 Time to dominate!"
+          className="mt-1 font-mono text-sm"
+          data-ocid="admin-settings.login-welcome-lines.textarea"
+        />
+      </div>
+
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid="admin-settings.ui-customization.save_button"
+      >
+        <Save className="w-4 h-4" /> Save UI Settings
+      </Button>
+    </div>
+  );
+}
+
+export default function AdminSettings() {
+  const { data: settings } = useSettings();
+  const updateMutation = useUpdateSettings();
+  const [form, setForm] = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [minDeposit, setMinDeposit] = useState<number>(getStoredMinDeposit);
+
+  // Local-only fields (not in AppSettings backend type)
+  const [referEarn, setReferEarn] = useState<string>(
+    () => localStorage.getItem("srff_refer_earn") || "",
+  );
+  const [contactUs, setContactUs] = useState<string>(
+    () => localStorage.getItem(CONTACT_US_KEY) || "",
+  );
+  const [fairPlayPolicy, setFairPlayPolicy] = useState<string>(
+    () => localStorage.getItem(FAIR_PLAY_KEY) || "",
+  );
+  const [matchHistoryNote, setMatchHistoryNote] = useState<string>(
+    () => localStorage.getItem(MATCH_HISTORY_KEY) || "",
+  );
+  const [gameRules, setGameRules] = useState<string>(
+    () => localStorage.getItem(GAME_RULES_KEY) || "",
+  );
+
+  useEffect(() => {
+    if (settings) setForm(settings);
+  }, [settings]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    // Save local-only fields FIRST so they always get persisted
+    localStorage.setItem(MIN_DEPOSIT_KEY, String(minDeposit));
+    localStorage.setItem("srff_refer_earn", referEarn);
+    localStorage.setItem(CONTACT_US_KEY, contactUs);
+    localStorage.setItem(FAIR_PLAY_KEY, fairPlayPolicy);
+    localStorage.setItem(MATCH_HISTORY_KEY, matchHistoryNote);
+    localStorage.setItem(GAME_RULES_KEY, gameRules);
+    localStorage.setItem("srff_privacy_policy", form.privacyPolicy || "");
+    localStorage.setItem(
+      "srff_terms_conditions",
+      form.termsAndConditions || "",
+    );
+    localStorage.setItem("srff_refund_policy", form.refundPolicy || "");
+    if (form.supportContact) {
+      localStorage.setItem(
+        SUPPORT_NUMBER_KEY,
+        form.supportContact.replace(/\D/g, ""),
+      );
+    }
+    // Try backend (ignore failure — local save already done)
+    const backendPayload: AppSettings = {
+      appName: form.appName,
+      minWithdraw: form.minWithdraw,
+      referralBonus: form.referralBonus,
+      supportContact: form.supportContact,
+      upiDetails: form.upiDetails,
+      privacyPolicy: form.privacyPolicy,
+      termsAndConditions: form.termsAndConditions,
+      refundPolicy: form.refundPolicy,
+      announcementText: form.announcementText,
+    };
+    try {
+      await updateMutation.mutateAsync(backendPayload);
+    } catch {
+      // Backend failed but local save already succeeded — that's fine
+    }
+    toast.success("Settings saved!");
+  };
+
+  const f = (key: keyof AppSettings, val: string) => {
+    if (key === "minWithdraw" || key === "referralBonus") {
+      setForm((prev) => ({ ...prev, [key]: BigInt(Number(val) || 0) }));
+    } else {
+      setForm((prev) => ({ ...prev, [key]: val }));
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <h1 className="font-display font-bold text-2xl">App Settings</h1>
+
+      <form
+        onSubmit={handleSave}
+        className="space-y-4"
+        data-ocid="admin-settings.form"
+      >
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            General
+          </h2>
+          <div>
+            <Label>App Name</Label>
+            <Input
+              value={form.appName}
+              onChange={(e) => f("appName", e.target.value)}
+              className="mt-1"
+              data-ocid="admin-settings.appname.input"
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Min Deposit (₹)</Label>
+              <Input
+                type="number"
+                value={minDeposit}
+                onChange={(e) => setMinDeposit(Number(e.target.value) || 0)}
+                className="mt-1"
+                placeholder="50"
+                data-ocid="admin-settings.mindeposit.input"
+              />
+            </div>
+            <div>
+              <Label>Min Withdrawal (₹)</Label>
+              <Input
+                type="number"
+                value={Number(form.minWithdraw)}
+                onChange={(e) => f("minWithdraw", e.target.value)}
+                className="mt-1"
+                data-ocid="admin-settings.minwithdraw.input"
+              />
+            </div>
+            <div>
+              <Label>Referral Bonus (₹)</Label>
+              <Input
+                type="number"
+                value={Number(form.referralBonus)}
+                onChange={(e) => f("referralBonus", e.target.value)}
+                className="mt-1"
+                data-ocid="admin-settings.referralbonus.input"
+              />
+            </div>
+          </div>
+          <div>
+            <Label>Announcement Text</Label>
+            <Input
+              value={form.announcementText}
+              onChange={(e) => f("announcementText", e.target.value)}
+              className="mt-1"
+              data-ocid="admin-settings.announcement.input"
+            />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            Support &amp; Payment
+          </h2>
+          <div>
+            <Label>WhatsApp Support Number</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Yeh number Login/Register page par WhatsApp support button mein
+              dikhega. Sirf digits daalo (e.g. 9104414372).
+            </p>
+            <Input
+              value={form.supportContact}
+              onChange={(e) => f("supportContact", e.target.value)}
+              placeholder="9104414372"
+              className="mt-1"
+              data-ocid="admin-settings.support.input"
+            />
+          </div>
+          <div>
+            <Label>UPI ID</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Users deposit page par UPI ID copy karenge is se payment karenge.
+            </p>
+            <Input
+              value={localStorage.getItem(UPI_ID_KEY) ?? "sk190rihan@mvhdfc"}
+              onChange={(e) => {
+                localStorage.setItem(UPI_ID_KEY, e.target.value);
+                f("upiDetails", e.target.value);
+              }}
+              placeholder="yourname@upi"
+              className="mt-1"
+              data-ocid="admin-settings.upi.input"
+            />
+          </div>
+          <div>
+            <Label>Bank Account Number</Label>
+            <Input
+              defaultValue={
+                localStorage.getItem(BANK_ACCOUNT_KEY) ?? "7477661867"
+              }
+              onChange={(e) =>
+                localStorage.setItem(BANK_ACCOUNT_KEY, e.target.value)
+              }
+              placeholder="Bank account number"
+              className="mt-1"
+              data-ocid="admin-settings.bank_account.input"
+            />
+          </div>
+          <div>
+            <Label>Account Holder Name</Label>
+            <Input
+              defaultValue={localStorage.getItem(BANK_HOLDER_KEY) ?? "SK SAHIL"}
+              onChange={(e) =>
+                localStorage.setItem(BANK_HOLDER_KEY, e.target.value)
+              }
+              placeholder="Account holder ka naam"
+              className="mt-1"
+              data-ocid="admin-settings.bank_holder.input"
+            />
+          </div>
+          <div>
+            <Label>Bank Name</Label>
+            <Input
+              defaultValue={
+                localStorage.getItem(BANK_NAME_KEY) ?? "Airtel Payment Bank"
+              }
+              onChange={(e) =>
+                localStorage.setItem(BANK_NAME_KEY, e.target.value)
+              }
+              placeholder="e.g. Airtel Payment Bank, SBI"
+              className="mt-1"
+              data-ocid="admin-settings.bank_name.input"
+            />
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            Policies (Backend Stored)
+          </h2>
+          <div>
+            <Label>Privacy Policy</Label>
+            <Textarea
+              value={form.privacyPolicy}
+              onChange={(e) => f("privacyPolicy", e.target.value)}
+              rows={4}
+              className="mt-1"
+              data-ocid="admin-settings.privacy.textarea"
+            />
+          </div>
+          <div>
+            <Label>Terms &amp; Conditions</Label>
+            <Textarea
+              value={form.termsAndConditions}
+              onChange={(e) => f("termsAndConditions", e.target.value)}
+              rows={4}
+              className="mt-1"
+              data-ocid="admin-settings.terms.textarea"
+            />
+          </div>
+          <div>
+            <Label>Refund Policy</Label>
+            <Textarea
+              value={form.refundPolicy}
+              onChange={(e) => f("refundPolicy", e.target.value)}
+              rows={4}
+              className="mt-1"
+              data-ocid="admin-settings.refund.textarea"
+            />
+          </div>
+        </div>
+
+        {/* Local-only fields — stored in localStorage, NOT sent to backend */}
+        <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+          <h2 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wide">
+            Extra Policies (Local Stored)
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Yeh fields locally save hote hain aur profile page par dikhte hain.
+          </p>
+          <div>
+            <Label>🎁 Refer &amp; Earn Text</Label>
+            <Textarea
+              value={referEarn}
+              onChange={(e) => setReferEarn(e.target.value)}
+              rows={3}
+              placeholder="Refer karne ka process, reward amount, aur instructions..."
+              className="mt-1"
+              data-ocid="admin-settings.referEarn.textarea"
+            />
+          </div>
+          <div>
+            <Label>📞 Contact Us</Label>
+            <Textarea
+              value={contactUs}
+              onChange={(e) => setContactUs(e.target.value)}
+              rows={3}
+              placeholder="Contact details, WhatsApp number, email..."
+              className="mt-1"
+              data-ocid="admin-settings.contactus.textarea"
+            />
+          </div>
+          <div>
+            <Label>Fair Play Policy</Label>
+            <Textarea
+              value={fairPlayPolicy}
+              onChange={(e) => setFairPlayPolicy(e.target.value)}
+              rows={4}
+              placeholder="Fair play rules aur guidelines..."
+              className="mt-1"
+              data-ocid="admin-settings.fairplay.textarea"
+            />
+          </div>
+          <div>
+            <Label>Match History Note</Label>
+            <Textarea
+              value={matchHistoryNote}
+              onChange={(e) => setMatchHistoryNote(e.target.value)}
+              rows={2}
+              placeholder="Match history ke baare mein note..."
+              className="mt-1"
+              data-ocid="admin-settings.matchhistory.textarea"
+            />
+          </div>
+          <div>
+            <Label>📜 Game Rules (Tournament Rules)</Label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Tournament ke rules likho — users profile page par dekh payenge.
+            </p>
+            <Textarea
+              value={gameRules}
+              onChange={(e) => setGameRules(e.target.value)}
+              rows={5}
+              placeholder="Tournament ke liye rules likhein...&#10;e.g. 1. Cheating strictly banned hai.&#10;2. Winner screenshot submit karna hoga."
+              className="mt-1"
+              data-ocid="admin-settings.gamerules.textarea"
+            />
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full glow-orange gap-2"
+          disabled={updateMutation.isPending}
+          data-ocid="admin-settings.save.button"
+        >
+          {updateMutation.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Save className="w-4 h-4" />
+          )}
+          Save Settings
+        </Button>
+      </form>
+
+      <AdminPasswordSection />
+      <FooterTextSection />
+      <UICustomizationSection />
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminTheme.tsx
+// ============================================================
+import { Check, Palette, Pipette, Type } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import {
+  APP_THEMES,
+  FONT_COLOR_KEY,
+  applyTheme,
+  getStoredThemeId,
+} from "../../lib/themes";
+
+const HEADER_COLORS_KEY = "srff_header_colors";
+
+const PRESET_COLORS = [
+  { label: "Orange (Default)", value: "#f97316" },
+  { label: "Gold", value: "#eab308" },
+  { label: "Cyan", value: "#22d3ee" },
+  { label: "Red", value: "#ef4444" },
+  { label: "Purple", value: "#a855f7" },
+  { label: "Green", value: "#22c55e" },
+  { label: "Pink", value: "#ec4899" },
+  { label: "Blue", value: "#3b82f6" },
+  { label: "White", value: "#ffffff" },
+  { label: "Lime", value: "#84cc16" },
+  { label: "Yellow", value: "#facc15" },
+  { label: "Teal", value: "#14b8a6" },
+];
+
+function getStoredHeaderColors() {
+  try {
+    const data = JSON.parse(localStorage.getItem(HEADER_COLORS_KEY) || "null");
+    if (data?.color1 && data.color2)
+      return data as { color1: string; color2: string; color3: string };
+  } catch {}
+  return { color1: "#f97316", color2: "#eab308", color3: "#22d3ee" };
+}
+
+function getStoredFontColor(): string {
+  return localStorage.getItem(FONT_COLOR_KEY) || "";
+}
+
+export default function AdminTheme() {
+  const [selected, setSelected] = useState<string>(getStoredThemeId());
+  const [headerColors, setHeaderColors] = useState(getStoredHeaderColors);
+  const [fontColor, setFontColor] = useState<string>(getStoredFontColor);
+
+  const handleSelect = (themeId: string) => {
+    setSelected(themeId);
+    applyTheme(themeId);
+    const name = APP_THEMES.find((t) => t.id === themeId)?.name ?? themeId;
+    toast.success(`Theme "${name}" applied!`);
+  };
+
+  const handleSaveHeaderColors = () => {
+    localStorage.setItem(HEADER_COLORS_KEY, JSON.stringify(headerColors));
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: HEADER_COLORS_KEY,
+        newValue: JSON.stringify(headerColors),
+      }),
+    );
+    toast.success("Header colors saved! User panel par dikh jaayenge.");
+  };
+
+  const handleSaveFontColor = () => {
+    if (fontColor) {
+      localStorage.setItem(FONT_COLOR_KEY, fontColor);
+      document.body.style.color = fontColor;
+    } else {
+      localStorage.removeItem(FONT_COLOR_KEY);
+      document.body.style.color = "";
+    }
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: FONT_COLOR_KEY,
+        newValue: fontColor || null,
+      }),
+    );
+    toast.success(
+      "Font color saved! User panel par text ka color change ho jaayega.",
+    );
+  };
+
+  const handleResetFontColor = () => {
+    setFontColor("");
+    localStorage.removeItem(FONT_COLOR_KEY);
+    document.body.style.color = "";
+    window.dispatchEvent(
+      new StorageEvent("storage", {
+        key: FONT_COLOR_KEY,
+        newValue: null,
+      }),
+    );
+    toast.success("Font color reset to theme default.");
+  };
+
+  return (
+    <div className="space-y-6" data-ocid="admin-theme.page">
+      <div className="flex items-center gap-3">
+        <Palette
+          className="w-6 h-6"
+          style={{ color: "oklch(var(--primary))" }}
+        />
+        <h1 className="font-display font-bold text-2xl">App Theme</h1>
+      </div>
+
+      {/* Header Name Colors */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Pipette
+            className="w-4 h-4"
+            style={{ color: "oklch(var(--primary))" }}
+          />
+          <h2 className="font-display font-semibold text-sm">
+            Header App Name Colors
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          User panel ke top header mein app name ka gradient color yahan se set
+          karo.
+        </p>
+
+        <div className="rounded-xl border border-border px-4 py-3 bg-background">
+          <p className="text-xs text-muted-foreground mb-1">Preview:</p>
+          <span
+            className="text-sm font-bold uppercase"
+            style={{
+              background: `linear-gradient(90deg, ${headerColors.color1}, ${headerColors.color2}, ${headerColors.color3})`,
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              letterSpacing: "0.05em",
+            }}
+          >
+            SR-FF-TURNAMENT
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {(["color1", "color2", "color3"] as const).map((key, idx) => (
+            <div key={key} className="space-y-2">
+              <p className="text-xs text-muted-foreground">Color {idx + 1}</p>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-8 h-8 rounded-lg border border-border flex-shrink-0"
+                  style={{ backgroundColor: headerColors[key] }}
+                />
+                <input
+                  type="color"
+                  value={headerColors[key]}
+                  onChange={(e) =>
+                    setHeaderColors((prev) => ({
+                      ...prev,
+                      [key]: e.target.value,
+                    }))
+                  }
+                  className="w-10 h-8 rounded cursor-pointer bg-transparent border-0"
+                  data-ocid="admin-theme.header-color.input"
+                />
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {PRESET_COLORS.map((pc) => (
+                  <button
+                    key={pc.value}
+                    type="button"
+                    title={pc.label}
+                    onClick={() =>
+                      setHeaderColors((prev) => ({ ...prev, [key]: pc.value }))
+                    }
+                    className={`w-5 h-5 rounded-full border-2 transition-all ${
+                      headerColors[key] === pc.value
+                        ? "border-white scale-110"
+                        : "border-transparent hover:border-white/50"
+                    }`}
+                    style={{ backgroundColor: pc.value }}
+                    data-ocid="admin-theme.header-preset.button"
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSaveHeaderColors}
+          className="w-full py-2.5 rounded-xl font-semibold text-sm text-black transition-all hover:opacity-90"
+          style={{
+            background: `linear-gradient(90deg, ${headerColors.color1}, ${headerColors.color2})`,
+          }}
+          data-ocid="admin-theme.header-colors-save.button"
+        >
+          Save Header Colors
+        </button>
+      </div>
+
+      {/* Font / Text Color */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Type
+            className="w-4 h-4"
+            style={{ color: "oklch(var(--primary))" }}
+          />
+          <h2 className="font-display font-semibold text-sm">
+            Font / Text Color
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          App ke andar text/font ka color change karo. Yeh user panel aur admin
+          panel dono par lagega.
+        </p>
+
+        {/* Live Preview */}
+        <div className="rounded-xl border border-border px-4 py-3 bg-background space-y-1">
+          <p className="text-xs text-muted-foreground">Preview:</p>
+          <p
+            className="text-base font-semibold"
+            style={{ color: fontColor || undefined }}
+          >
+            SR-FF-TURNAMENT — Free Fire Tournament
+          </p>
+          <p className="text-sm" style={{ color: fontColor || undefined }}>
+            Tournament join karo aur prizes jeeto!
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Custom Color:</p>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-xl border-2 border-border flex-shrink-0"
+              style={{ backgroundColor: fontColor || "#ffffff" }}
+            />
+            <input
+              type="color"
+              value={fontColor || "#ffffff"}
+              onChange={(e) => setFontColor(e.target.value)}
+              className="w-12 h-10 rounded cursor-pointer bg-transparent border-0"
+              data-ocid="admin-theme.font-color.input"
+            />
+            <span className="text-xs text-muted-foreground font-mono">
+              {fontColor || "(theme default)"}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Preset Colors:</p>
+          <div className="flex flex-wrap gap-2">
+            {PRESET_COLORS.map((pc) => (
+              <button
+                key={pc.value}
+                type="button"
+                title={pc.label}
+                onClick={() => setFontColor(pc.value)}
+                className={`w-7 h-7 rounded-full border-2 transition-all ${
+                  fontColor === pc.value
+                    ? "border-white scale-110 ring-2 ring-white/30"
+                    : "border-transparent hover:border-white/50"
+                }`}
+                style={{ backgroundColor: pc.value }}
+                data-ocid="admin-theme.font-preset.button"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSaveFontColor}
+            className="flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all hover:opacity-90"
+            style={{
+              backgroundColor: "oklch(var(--primary))",
+              color: "oklch(var(--primary-foreground))",
+            }}
+            data-ocid="admin-theme.font-color-save.button"
+          >
+            Save Font Color
+          </button>
+          <button
+            type="button"
+            onClick={handleResetFontColor}
+            className="px-4 py-2.5 rounded-xl font-semibold text-sm border border-border bg-muted hover:bg-muted/80 transition-all"
+            data-ocid="admin-theme.font-color-reset.button"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-sm">
+          Yahan se full app theme select karo -- yahi theme user panel par bhi
+          dikhegi.
+        </p>
+        <div className="grid grid-cols-1 gap-4" data-ocid="admin-theme.list">
+          {APP_THEMES.map((theme, i) => (
+            <button
+              key={theme.id}
+              type="button"
+              onClick={() => handleSelect(theme.id)}
+              data-ocid={`admin-theme.item.${i + 1}`}
+              className={`relative w-full text-left rounded-2xl border-2 p-4 transition-all ${
+                selected === theme.id
+                  ? "border-primary bg-card"
+                  : "border-border bg-card hover:border-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-sm">{theme.name}</p>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {theme.preview.map((color) => (
+                      <span
+                        key={color}
+                        className="w-5 h-5 rounded-full border border-white/20"
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                {selected === theme.id && (
+                  <span
+                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: "oklch(var(--primary))" }}
+                  >
+                    <Check className="w-4 h-4 text-black" />
+                  </span>
+                )}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// FILE: pages/admin/AdminHomeContent.tsx
+// ============================================================
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ExternalLink,
+  ImagePlus,
+  Megaphone,
+  MessageSquare,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const ANNOUNCEMENT_KEY = "srff_announcement";
+const PROMO_LINKS_KEY = "srff_promo_links";
+const WELCOME_NEW_KEY = "srff_welcome_new_lines";
+const WELCOME_RETURNING_KEY = "srff_welcome_returning_lines";
+
+const DEFAULT_ANNOUNCEMENT =
+  "Welcome to SR-FF-TOURNAMENT! Join now and win big prizes! New Free Fire tournaments added daily! Top players get exclusive rewards! BR Per Kill tournament starting soon!";
+
+const DEFAULT_NEW_WELCOME_LINES = [
+  "🎮 Welcome to SR-FF-TOURNAMENT! 🎮",
+  "🇮🇳 India ka #1 Free Fire Tournament Platform 🔥",
+  "💰 Ab compete karo aur jeeto REAL CASH prizes! 💰",
+  "🏆 Roz naye tournaments join karo... 🏆",
+  "⚡ Top players ko milte hain EXCLUSIVE rewards! ⚡",
+  "🤝 Apni team banao. Apna naam banao. 👑",
+  "💥 The Battle Begins NOW! 🚀",
+];
+
+const DEFAULT_RETURNING_WELCOME_LINES = [
+  "🌟 WELCOME BACK TO OUR PLATFORM! 🌟",
+  "☀️ WISH YOU A VERY GOOD DAY! ☀️",
+  "🍀 BEST OF LUCK, CHAMPION! 🍀",
+  "🔥 Go Dominate The Battlefield! 🔥",
+  "🏆 Today Is YOUR Victory Day! 🏆",
+];
+
+export interface PromoLink {
+  id: string;
+  photoUrl: string;
+  link: string;
+  label: string;
+  active: boolean;
+}
+
+function loadAnnouncement(): string {
+  return localStorage.getItem(ANNOUNCEMENT_KEY) ?? DEFAULT_ANNOUNCEMENT;
+}
+
+function loadPromoLinks(): PromoLink[] {
+  try {
+    return JSON.parse(
+      localStorage.getItem(PROMO_LINKS_KEY) ?? "[]",
+    ) as PromoLink[];
+  } catch {
+    return [];
+  }
+}
+
+// Welcome Lines Editor
+function WelcomeLinesEditor({
+  storageKey,
+  title,
+  defaultLines,
+  saveLabel,
+  ocidPrefix,
+}: {
+  storageKey: string;
+  title: string;
+  defaultLines: string[];
+  saveLabel: string;
+  ocidPrefix: string;
+}) {
+  const [lines, setLines] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (!raw) return [...defaultLines];
+      return JSON.parse(raw) as string[];
+    } catch {
+      return [...defaultLines];
+    }
+  });
+
+  const updateLine = (i: number, val: string) =>
+    setLines((prev) => prev.map((l, idx) => (idx === i ? val : l)));
+
+  const addLine = () => setLines((prev) => [...prev, ""]);
+
+  const removeLine = (i: number) =>
+    setLines((prev) => prev.filter((_, idx) => idx !== i));
+
+  const handleSave = () => {
+    localStorage.setItem(storageKey, JSON.stringify(lines));
+    toast.success(`${title} saved!`);
+  };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Har line ek alag message hai jo typing effect ke saath dikhega. Emoji
+        bhi add kar sakte ho.
+      </p>
+      {lines.map((line, i) => (
+        <div
+          key={`${ocidPrefix}-${i}-${line.slice(0, 8)}`}
+          className="flex gap-2 items-start"
+          data-ocid={`${ocidPrefix}.item.${i + 1}`}
+        >
+          <div className="flex-1">
+            <Textarea
+              value={line}
+              onChange={(e) => updateLine(i, e.target.value)}
+              rows={2}
+              placeholder={`Line ${i + 1}...`}
+              className="resize-none"
+              data-ocid={`${ocidPrefix}.textarea.${i + 1}`}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => removeLine(i)}
+            className="mt-1 text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
+            data-ocid={`${ocidPrefix}.delete_button.${i + 1}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={addLine}
+        className="w-full gap-1"
+        data-ocid={`${ocidPrefix}.add.button`}
+      >
+        <Plus className="w-3 h-3" /> Add Line
+      </Button>
+      <Button
+        type="button"
+        onClick={handleSave}
+        className="w-full gap-2"
+        data-ocid={`${ocidPrefix}.save_button`}
+      >
+        <Save className="w-4 h-4" /> {saveLabel}
+      </Button>
+    </div>
+  );
+}
+
+export default function AdminHomeContent() {
+  const [announcement, setAnnouncement] = useState(loadAnnouncement);
+  const [promoLinks, setPromoLinks] = useState<PromoLink[]>(loadPromoLinks);
+  const [newPhoto, setNewPhoto] = useState("");
+  const [newLink, setNewLink] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const saveAnnouncement = () => {
+    localStorage.setItem(ANNOUNCEMENT_KEY, announcement);
+    toast.success("Announcement saved!");
+  };
+
+  const addPromoLink = () => {
+    if (!newPhoto.trim() || !newLink.trim()) {
+      toast.error("Photo URL aur Link dono zaroori hain");
+      return;
+    }
+    const item: PromoLink = {
+      id: Date.now().toString(),
+      photoUrl: newPhoto.trim(),
+      link: newLink.trim(),
+      label: newLabel.trim() || "Promo",
+      active: true,
+    };
+    const updated = [...promoLinks, item];
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+    setNewPhoto("");
+    setNewLink("");
+    setNewLabel("");
+    toast.success("Promo photo added!");
+  };
+
+  const togglePromoLink = (id: string) => {
+    const updated = promoLinks.map((p) =>
+      p.id === id ? { ...p, active: !p.active } : p,
+    );
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+  };
+
+  const deletePromoLink = (id: string) => {
+    const updated = promoLinks.filter((p) => p.id !== id);
+    setPromoLinks(updated);
+    localStorage.setItem(PROMO_LINKS_KEY, JSON.stringify(updated));
+    toast.success("Promo photo removed");
+  };
+
+  return (
+    <div className="space-y-6" data-ocid="admin-homecontent.page">
+      <h1 className="font-display font-bold text-2xl">Home Content</h1>
+
+      {/* Announcement Ticker */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <Megaphone className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Announcement Ticker
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Yah text user panel ke upar scrolling ticker mein dikhega.
+        </p>
+        <div>
+          <Label>Announcement Text</Label>
+          <Textarea
+            value={announcement}
+            onChange={(e) => setAnnouncement(e.target.value)}
+            rows={3}
+            className="mt-1"
+            placeholder="Welcome message, offers, updates..."
+            data-ocid="admin-homecontent.announcement.textarea"
+          />
+        </div>
+        <Button
+          type="button"
+          onClick={saveAnnouncement}
+          className="gap-2 w-full"
+          data-ocid="admin-homecontent.announcement.save.button"
+        >
+          <Save className="w-4 h-4" /> Save Announcement
+        </Button>
+      </div>
+
+      {/* Promo Photo Links */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-4">
+        <div className="flex items-center gap-2">
+          <ImagePlus className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Promo Photo Links
+          </h2>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Photo add karo aur uska link do. User jab photo click karega to us
+          link par chala jaega.
+        </p>
+
+        {/* Add new */}
+        <div className="space-y-3 border border-dashed border-border rounded-xl p-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Naya Promo Add Karo
+          </p>
+          <div>
+            <Label>Photo URL</Label>
+            <Input
+              value={newPhoto}
+              onChange={(e) => setNewPhoto(e.target.value)}
+              placeholder="https://example.com/photo.jpg"
+              className="mt-1"
+              data-ocid="admin-homecontent.photurl.input"
+            />
+          </div>
+          <div>
+            <Label>Link (click karne par kahan jaega)</Label>
+            <Input
+              value={newLink}
+              onChange={(e) => setNewLink(e.target.value)}
+              placeholder="https://example.com ya /tournaments"
+              className="mt-1"
+              data-ocid="admin-homecontent.link.input"
+            />
+          </div>
+          <div>
+            <Label>Label (optional)</Label>
+            <Input
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              placeholder="Promo name"
+              className="mt-1"
+              data-ocid="admin-homecontent.label.input"
+            />
+          </div>
+          {newPhoto && (
+            <div className="rounded-xl overflow-hidden border border-border">
+              <img
+                src={newPhoto}
+                alt="Preview"
+                className="w-full h-32 object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
+            </div>
+          )}
+          <Button
+            type="button"
+            onClick={addPromoLink}
+            className="w-full gap-2"
+            data-ocid="admin-homecontent.add.button"
+          >
+            <Plus className="w-4 h-4" /> Add Promo Photo
+          </Button>
+        </div>
+
+        {/* List */}
+        {promoLinks.length === 0 ? (
+          <div
+            className="text-center py-6 text-muted-foreground"
+            data-ocid="admin-homecontent.promolinks.empty_state"
+          >
+            <ImagePlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
+            <p className="text-sm">Koi promo photo nahi hai</p>
+          </div>
+        ) : (
+          <div
+            className="space-y-3"
+            data-ocid="admin-homecontent.promolinks.list"
+          >
+            {promoLinks.map((item, i) => (
+              <div
+                key={item.id}
+                className="flex gap-3 bg-background border border-border rounded-xl p-3"
+                data-ocid={`admin-homecontent.promolink.item.${i + 1}`}
+              >
+                <img
+                  src={item.photoUrl}
+                  alt={item.label}
+                  className="w-16 h-16 rounded-lg object-cover shrink-0 border border-border"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.opacity = "0.3";
+                  }}
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{item.label}</p>
+                  <a
+                    href={item.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary flex items-center gap-1 truncate mt-0.5"
+                  >
+                    <ExternalLink className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{item.link}</span>
+                  </a>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Switch
+                      checked={item.active}
+                      onCheckedChange={() => togglePromoLink(item.id)}
+                      data-ocid={`admin-homecontent.promolink.switch.${i + 1}`}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {item.active ? "ON" : "OFF"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deletePromoLink(item.id)}
+                  className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors shrink-0"
+                  data-ocid={`admin-homecontent.promolink.delete.button.${i + 1}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Welcome Messages Editor */}
+      <div className="bg-card border border-border rounded-2xl p-4 space-y-6">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h2 className="font-display font-semibold text-base">
+            Welcome Messages
+          </h2>
+        </div>
+
+        {/* New User Welcome */}
+        <div className="space-y-3">
+          <div>
+            <h3 className="font-semibold text-sm">New User Welcome</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jab koi naya user register karta hai tab dikhne wala welcome
+              message.
+            </p>
+          </div>
+          <WelcomeLinesEditor
+            storageKey={WELCOME_NEW_KEY}
+            title="New User Welcome"
+            defaultLines={DEFAULT_NEW_WELCOME_LINES}
+            saveLabel="Save New User Welcome"
+            ocidPrefix="admin-homecontent.new-welcome"
+          />
+        </div>
+
+        <div className="border-t border-border pt-4 space-y-3">
+          <div>
+            <h3 className="font-semibold text-sm">Returning User Welcome</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Jab koi user login karta hai tab dikhne wala welcome back message.
+            </p>
+          </div>
+          <WelcomeLinesEditor
+            storageKey={WELCOME_RETURNING_KEY}
+            title="Returning User Welcome"
+            defaultLines={DEFAULT_RETURNING_WELCOME_LINES}
+            saveLabel="Save Returning Welcome"
+            ocidPrefix="admin-homecontent.returning-welcome"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+

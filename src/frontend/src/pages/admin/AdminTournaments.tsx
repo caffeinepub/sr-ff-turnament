@@ -340,6 +340,23 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Always save locally so user panel on same device sees it immediately
+    const localT: LocalTournament = {
+      id: `local_${Date.now()}`,
+      title: form.title,
+      gameMode: form.gameMode,
+      entryFee: Number(form.entryFee),
+      prizePool: Number(form.prizePool),
+      maxPlayers: Number(form.maxPlayers),
+      minPlayers: Number(form.minPlayers),
+      status: form.status,
+      description: form.description,
+      startTime: new Date(form.startTime).getTime(),
+      playerCount: 0,
+    };
+    saveLocalTournament(localT);
+    window.dispatchEvent(new Event("srff_tournament_updated"));
+    // Also try backend
     try {
       await createMutation.mutateAsync({
         title: form.title,
@@ -352,25 +369,10 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         status: form.status as TournamentStatus,
         description: form.description,
       });
-      toast.success("Tournament created!");
     } catch {
-      const localT: LocalTournament = {
-        id: `local_${Date.now()}`,
-        title: form.title,
-        gameMode: form.gameMode,
-        entryFee: Number(form.entryFee),
-        prizePool: Number(form.prizePool),
-        maxPlayers: Number(form.maxPlayers),
-        minPlayers: Number(form.minPlayers),
-        status: form.status,
-        description: form.description,
-        startTime: new Date(form.startTime).getTime(),
-        playerCount: 0,
-      };
-      saveLocalTournament(localT);
-      toast.success("Tournament created (locally)!");
-      window.dispatchEvent(new Event("srff_tournament_updated"));
+      // Backend failed but local save already succeeded
     }
+    toast.success("Tournament created!");
     setForm(EMPTY_FORM);
     setOpen(false);
     onCreated();

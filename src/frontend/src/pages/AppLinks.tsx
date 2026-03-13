@@ -68,210 +68,169 @@ THEME SYSTEM (6 THEMES):
 6. Golden Crown  — primary: #eab308 (gold)
 
 Admin can change theme from /admin/theme
-Admin can set header gradient colors (color1, color2, color3)
-stored in localStorage key: srff_header_colors
-format: { color1: "#f97316", color2: "#eab308", color3: "#22d3ee" }
 
 ===============================================
 AUTHENTICATION:
 ===============================================
 - No auto-login — always require mobile + password on open
 - Register fields: Mobile Number, Username, Free Fire Name, Password
-- Password has eye icon to show/hide
-- Only 1 account per mobile number — show error on duplicate
-- Login: mobile + password only
-- Session stored in localStorage key: srff_current_user
-- On logout: clear srff_current_user from localStorage completely
-- User must re-enter mobile + password every time
-
-Admin:
-- Admin login at /admin with password field
-- Default password: 7477661867Ss
-- Session stored in sessionStorage key: adminAuth = "true"
-- Password changeable from admin settings
-- Stored in localStorage key: srff_admin_password
-
-===============================================
-HEADER (User Panel):
-===============================================
-- Sticky, dark background with blur
-- Left: circular logo + gradient app name "SR-FF-TURNAMENT"
-- Right:
-  1. Bell icon button — notification bell
-     - Shows red badge with count when unread notifications exist
-     - On click: opens slide panel from right
-     - Panel shows list of admin global messages
-     - If no notifications: shows "Koi Notification Nahi Hai"
-  2. Balance button: coin icon + total balance
-     - Background: gradient using header colors
-     - On click: navigates to /profile (wallet section)
-
-===============================================
-LOGIN PAGE:
-===============================================
-- Full screen centered layout with ambient glow background
-- Circular logo (w-24 h-24) with orange glow box-shadow
-- App name gradient text below logo
-- Form card: background dark, border orange/30
-- Form size controlled by localStorage key: srff_form_size
-  values: "small" | "medium" | "large" (default: "large")
-  large: max-w-lg, p-7, py-3 inputs
-- Fields: Mobile Number (tel input), Password (with eye toggle)
-- Submit button: orange gradient, dark text, orange glow shadow
-- Below form: WhatsApp Customer Support green button
-  href: https://wa.me/91{supportNumber}
-  Support number from localStorage key: srff_support_number (default: 9104414372)
-
-===============================================
-REGISTER PAGE:
-===============================================
-- Same layout as login
-- Fields: Mobile Number, Username, Free Fire Name, Password (eye toggle)
-- On successful register:
-  - Save to localStorage key: srff_users (array)
-  - Set localStorage key: srff_new_user_welcome = { username }
-  - Redirect to /
-- WhatsApp Customer Support button (same as login)
-
-===============================================
-WELCOME MODALS:
-===============================================
-NEW USER WELCOME MODAL (after register):
-- Full screen overlay with spinning color ring around logo
-- 7 default animated typing lines (editable from admin)
-- Button: "Chalte Hain!"
-- Modal size from localStorage key: srff_modal_size
-
-RETURNING USER WELCOME BACK MODAL (after login):
-- Full screen overlay with spinning ring
-- 5 default animated typing lines (editable from admin)
-- Button: "Let's Play!"
-
-===============================================
-HOME PAGE:
-===============================================
-- Announcement Ticker: fire orange-gold gradient, black text
-- Promo Banners (switchable with dots, only active shown)
-- Quick stats, active tournaments list
-- Balance button in header: coin icon + amount, click goes to wallet
-- Notification bell with unread badge
-
-===============================================
-TOURNAMENTS PAGE:
-===============================================
-- List all tournaments by mode
-- Each card: mode name, entry fee, prize pool, players joined, small banner icon
-- Join button deducts entry fee from wallet automatically
-- Tournament detail: rules, prize breakdown, registered players, leaderboard
-
-===============================================
-WALLET SYSTEM:
-===============================================
-- Two balance cards: Regular Balance + Winning Cash
-- Deposit → admin approves → added to Regular Balance
-- Tournament winnings → go to Regular Balance
-- User converts Regular Balance to Winning Cash manually
-- Withdrawal only from Winning Cash
-
-===============================================
-EARN PAGE (Referral):
-===============================================
-- Shows user's unique referral link
-- Share button for WhatsApp, Instagram, Facebook etc.
-- Referral bonus system
-
-===============================================
-PROFILE PAGE (Modern Modal):
-===============================================
-Line-by-line buttons (exact order):
-1. Notifications >
-2. Life Time Match History >
-3. Refer & Earn >
-4. Contact Us >
-5. Privacy Policy >
-6. Terms and Conditions >
-7. Refund and Cancellation >
-8. Fair Play Policy >
-9. Rules >
-10. Logout (at the very bottom)
-
-- Avatar picker (12 avatars)
-- Show: username, mobile, FF name, wallet balance
+- Only 1 account per mobile number
+- Admin login at /admin with password: 7477661867Ss
 
 ===============================================
 ADMIN PANEL — Route: /admin — Password: 7477661867Ss
 ===============================================
 Sections:
-1. Dashboard — stats overview
-2. Registered Players — view all users, toggle password, search by mobile
-3. User Wallet Management — search by mobile → add or cut balance
-4. Tournaments — create/edit/delete; each has banner image URL field
-5. Payments — approve/reject deposit and withdrawal requests
-6. Promo Banners — add/edit/delete with ON/OFF toggle
-7. Notifications — send global message to all users
-8. Home Content — edit announcement ticker, add promo photo links
-9. Theme — change app theme, header gradient colors
-10. Settings — includes:
-    - Minimum deposit amount
-    - WhatsApp support number
-    - Privacy Policy (textarea)
-    - Terms and Conditions (textarea)
-    - Refund and Cancellation (textarea)
-    - Fair Play Policy (textarea)
-    - Contact Us (textarea)
-    - Game Rules (textarea)
-    - UI Customization:
-      * Login/Register form size (Small/Medium/Large)
-      * Welcome modal size (Small/Medium/Large)
-      * New user welcome message lines (editable)
-      * Login welcome back message lines (editable)
-    - Admin password change
-
-===============================================
-LINKS PAGE (/links):
-===============================================
-- User Panel link with copy button
-- Admin Panel link with copy button
-- Full App Prompt with one-click copy button
-- Full App Code download button
-
-===============================================
-IMPORTANT RULES:
-===============================================
-1. No extra login buttons after user is logged in
-2. Auto-login DISABLED — always show login screen on open
-3. Logout: clear localStorage srff_current_user → redirect /login
-4. Admin panel has NO ICP Wallet Management section
-   Only mobile number based wallet add/cut
-5. All policy content editable by admin, shown in profile
-6. Tournament winnings go to Regular Balance
-   User converts to Winning Cash manually
-   Withdrawal only from Winning Cash
-7. One mobile number = one account only (strict validation)
-8. Admin password default: 7477661867Ss
+1. Dashboard, 2. Players, 3. Wallet Management
+4. Tournaments, 5. Payments, 6. Banners
+7. Notifications, 8. Home Content, 9. Theme, 10. Settings
 
 === END OF PROMPT ===`;
 
 function CopyButton({
   text,
   label = "Copy Link",
-}: { text: string; label?: string }) {
+  color = "orange",
+}: { text: string; label?: string; color?: "orange" | "cyan" | "red" }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = async () => {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+  const colorMap = {
+    orange: "bg-orange-500 hover:bg-orange-600",
+    cyan: "bg-cyan-600 hover:bg-cyan-700",
+    red: "bg-red-600 hover:bg-red-700",
+  };
   return (
     <button
       type="button"
       onClick={handleCopy}
       data-ocid="applinks.copy_button"
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm transition-all duration-200 active:scale-95"
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg ${colorMap[color]} text-white font-semibold text-sm transition-all duration-200 active:scale-95`}
     >
       {copied ? <Check size={16} /> : <Copy size={16} />}
       {copied ? "Copied!" : label}
     </button>
+  );
+}
+
+function FetchCopyDownloadButton({
+  url,
+  filename,
+  label,
+  color,
+}: {
+  url: string;
+  filename: string;
+  label: string;
+  color: string;
+}) {
+  const [copyStatus, setCopyStatus] = useState<
+    "idle" | "loading" | "done" | "error"
+  >("idle");
+  const [dlStatus, setDlStatus] = useState<
+    "idle" | "loading" | "done" | "error"
+  >("idle");
+
+  const fetchText = async () => {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("fetch failed");
+    return res.text();
+  };
+
+  const handleCopy = async () => {
+    setCopyStatus("loading");
+    try {
+      const text = await fetchText();
+      await navigator.clipboard.writeText(text);
+      setCopyStatus("done");
+      setTimeout(() => setCopyStatus("idle"), 2500);
+    } catch {
+      setCopyStatus("error");
+      setTimeout(() => setCopyStatus("idle"), 2500);
+    }
+  };
+
+  const handleDownload = async () => {
+    setDlStatus("loading");
+    try {
+      const text = await fetchText();
+      const blob = new Blob([text], { type: "text/plain" });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+      setDlStatus("done");
+      setTimeout(() => setDlStatus("idle"), 2500);
+    } catch {
+      setDlStatus("error");
+      setTimeout(() => setDlStatus("idle"), 2500);
+    }
+  };
+
+  return (
+    <div className="flex gap-2 flex-wrap">
+      <button
+        type="button"
+        onClick={handleCopy}
+        disabled={copyStatus === "loading"}
+        data-ocid="applinks.copy_button"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 active:scale-95 disabled:opacity-60 text-white"
+        style={{ background: color }}
+      >
+        {copyStatus === "loading" ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Loading...
+          </>
+        ) : copyStatus === "done" ? (
+          <>
+            <Check size={16} /> Copied!
+          </>
+        ) : copyStatus === "error" ? (
+          <>
+            <span>⚠</span> Error
+          </>
+        ) : (
+          <>
+            <Copy size={16} /> {label}
+          </>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={handleDownload}
+        disabled={dlStatus === "loading"}
+        data-ocid="applinks.download_code_button"
+        className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-200 active:scale-95 disabled:opacity-60 text-white"
+        style={{
+          background:
+            dlStatus === "done"
+              ? "linear-gradient(135deg,#22c55e,#16a34a)"
+              : "linear-gradient(135deg,#374151,#1f2937)",
+          border: "1px solid #4b5563",
+        }}
+      >
+        {dlStatus === "loading" ? (
+          <>
+            <Loader2 size={16} className="animate-spin" /> Downloading...
+          </>
+        ) : dlStatus === "done" ? (
+          <>
+            <Check size={16} /> Downloaded!
+          </>
+        ) : (
+          <>
+            <Download size={16} /> Download .txt
+          </>
+        )}
+      </button>
+    </div>
   );
 }
 
@@ -343,8 +302,8 @@ function DownloadCodeButton() {
 }
 
 export default function AppLinks() {
-  const baseUrl = window.location.origin;
-  const userUrl = baseUrl;
+  const baseUrl = "https://sr-ff-turnament-zc1.caffeine.xyz";
+  const userUrl = `${baseUrl}/login`;
   const adminUrl = `${baseUrl}/admin`;
 
   return (
@@ -354,22 +313,22 @@ export default function AppLinks() {
           <h1 className="text-2xl font-bold text-orange-400 mb-1">
             SR-FF-TOURNAMENT
           </h1>
-          <p className="text-gray-400 text-sm">App Links</p>
+          <p className="text-gray-400 text-sm">App Links &amp; Code</p>
         </div>
 
-        {/* User App */}
+        {/* User Panel Link */}
         <div className="bg-gray-900 border border-orange-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-3">
             <div className="bg-orange-500/20 p-2 rounded-lg">
               <Users size={20} className="text-orange-400" />
             </div>
             <div>
-              <h2 className="text-white font-bold">User App</h2>
-              <p className="text-gray-400 text-xs">Players ka panel</p>
+              <h2 className="text-white font-bold">User Panel</h2>
+              <p className="text-gray-400 text-xs">Players ka permanent link</p>
             </div>
           </div>
           <div className="bg-gray-800 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-            <span className="text-cyan-400 text-sm truncate flex-1">
+            <span className="text-cyan-400 text-xs truncate flex-1 font-mono">
               {userUrl}
             </span>
             <a
@@ -384,10 +343,14 @@ export default function AppLinks() {
               />
             </a>
           </div>
-          <CopyButton text={userUrl} />
+          <CopyButton
+            text={userUrl}
+            label="Copy User Panel Link"
+            color="orange"
+          />
         </div>
 
-        {/* Admin App */}
+        {/* Admin Panel Link */}
         <div className="bg-gray-900 border border-red-500/30 rounded-2xl p-5 space-y-3">
           <div className="flex items-center gap-3">
             <div className="bg-red-500/20 p-2 rounded-lg">
@@ -395,11 +358,13 @@ export default function AppLinks() {
             </div>
             <div>
               <h2 className="text-white font-bold">Admin Panel</h2>
-              <p className="text-gray-400 text-xs">Admin access only</p>
+              <p className="text-gray-400 text-xs">
+                Admin access only — permanent link
+              </p>
             </div>
           </div>
           <div className="bg-gray-800 rounded-lg px-3 py-2 flex items-center justify-between gap-2">
-            <span className="text-cyan-400 text-sm truncate flex-1">
+            <span className="text-cyan-400 text-xs truncate flex-1 font-mono">
               {adminUrl}
             </span>
             <a
@@ -414,7 +379,66 @@ export default function AppLinks() {
               />
             </a>
           </div>
-          <CopyButton text={adminUrl} />
+          <CopyButton
+            text={adminUrl}
+            label="Copy Admin Panel Link"
+            color="red"
+          />
+        </div>
+
+        {/* User Panel Full Code */}
+        <div className="bg-gray-900 border border-cyan-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-cyan-500/20 p-2 rounded-lg">
+              <Users size={20} className="text-cyan-400" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold">User Panel — Full Code</h2>
+              <p className="text-gray-400 text-xs">
+                Login, Register, Home, Profile, Tournaments, Leaderboard — saara
+                code
+              </p>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-lg px-3 py-2">
+            <p className="text-gray-400 text-xs leading-relaxed">
+              User panel ke saare pages ka TypeScript/React source code — copy
+              ya download karo backup ke liye.
+            </p>
+          </div>
+          <FetchCopyDownloadButton
+            url="/assets/user-panel-code.txt"
+            filename="SR-FF-UserPanel-Code.txt"
+            label="Copy User Panel Code"
+            color="linear-gradient(135deg,#0e7490,#0891b2)"
+          />
+        </div>
+
+        {/* Admin Panel Full Code */}
+        <div className="bg-gray-900 border border-rose-500/30 rounded-2xl p-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-rose-500/20 p-2 rounded-lg">
+              <Shield size={20} className="text-rose-400" />
+            </div>
+            <div>
+              <h2 className="text-white font-bold">Admin Panel — Full Code</h2>
+              <p className="text-gray-400 text-xs">
+                Dashboard, Tournaments, Users, Payments, Settings — saara code
+              </p>
+            </div>
+          </div>
+          <div className="bg-gray-800 rounded-lg px-3 py-2">
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Admin panel ke saare pages ka TypeScript/React source code — copy
+              ya download karo backup ke liye.
+            </p>
+          </div>
+          <FetchCopyDownloadButton
+            url="/assets/admin-panel-code.txt"
+            filename="SR-FF-AdminPanel-Code.txt"
+            label="Copy Admin Panel Code"
+            color="linear-gradient(135deg,#9f1239,#be123c)"
+          />
         </div>
 
         {/* Full App Prompt */}
@@ -436,7 +460,11 @@ export default function AppLinks() {
               mein paste karo aur app ready ho jaayega.
             </p>
           </div>
-          <CopyButton text={FULL_PROMPT} label="Copy Full Prompt" />
+          <CopyButton
+            text={FULL_PROMPT}
+            label="Copy Full Prompt"
+            color="orange"
+          />
         </div>
 
         {/* Full App Code Download */}

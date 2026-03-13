@@ -53,8 +53,16 @@ function saveUsers(users: UserRecord[]) {
 }
 
 export function UserAuthProvider({ children }: { children: ReactNode }) {
-  // Auto-login disabled: always start as logged out
-  const [currentUser, setCurrentUser] = useState<UserRecord | null>(null);
+  // Initialize from localStorage so profile page works after refresh / app reopen
+  const [currentUser, setCurrentUser] = useState<UserRecord | null>(() => {
+    try {
+      const stored = localStorage.getItem("srff_current_user");
+      if (!stored) return null;
+      return JSON.parse(stored) as UserRecord;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     if (currentUser) {
