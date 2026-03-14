@@ -66,6 +66,8 @@ export function useAllTournaments() {
       return actor.getAllTournaments();
     },
     enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchInterval: 3000,
   });
 }
 

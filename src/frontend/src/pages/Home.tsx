@@ -614,7 +614,51 @@ function getLocalWalletBalance(): number {
 export default function Home() {
   const navigate = useNavigate();
   const [contestTab, setContestTab] = useState("ongoing");
-  const { data: tournaments = [] } = useAllTournaments();
+  const { data: backendTournaments = [] } = useAllTournaments();
+
+  // Merge backend tournaments with any locally created ones (fallback for same-device display)
+  const localCreated: Array<{
+    id: string;
+    title: string;
+    gameMode: string;
+    entryFee: number;
+    prizePool: number;
+    maxPlayers: number;
+    minPlayers: number;
+    status: string;
+    description: string;
+    startTime: number;
+    playerCount: number;
+  }> = (() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("srff_created_tournaments") || "[]",
+      );
+    } catch {
+      return [];
+    }
+  })();
+  const backendIds = new Set(
+    backendTournaments.map((t: any) => t.title + t.startTime),
+  );
+  const localOnly = localCreated
+    .filter((lt) => !backendIds.has(lt.title + lt.startTime))
+    .map((lt) => ({
+      id: BigInt(0),
+      title: lt.title,
+      gameMode: lt.gameMode,
+      entryFee: BigInt(lt.entryFee),
+      prizePool: BigInt(lt.prizePool),
+      maxPlayers: BigInt(lt.maxPlayers),
+      minPlayers: BigInt(lt.minPlayers),
+      status: lt.status as any,
+      description: lt.description,
+      startTime: BigInt(lt.startTime * 1_000_000),
+      playerCount: BigInt(lt.playerCount),
+      players: [],
+      createdAt: BigInt(Date.now() * 1_000_000),
+    }));
+  const tournaments = [...backendTournaments, ...localOnly];
   const { identity } = useInternetIdentity();
   const { data: notifications = [] } = useAllNotifications();
 

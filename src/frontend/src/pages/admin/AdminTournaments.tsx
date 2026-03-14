@@ -340,23 +340,7 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Always save locally so user panel on same device sees it immediately
-    const localT: LocalTournament = {
-      id: `local_${Date.now()}`,
-      title: form.title,
-      gameMode: form.gameMode,
-      entryFee: Number(form.entryFee),
-      prizePool: Number(form.prizePool),
-      maxPlayers: Number(form.maxPlayers),
-      minPlayers: Number(form.minPlayers),
-      status: form.status,
-      description: form.description,
-      startTime: new Date(form.startTime).getTime(),
-      playerCount: 0,
-    };
-    saveLocalTournament(localT);
-    window.dispatchEvent(new Event("srff_tournament_updated"));
-    // Also try backend
+    // Save to backend first — this makes tournament visible to ALL users on ALL devices
     try {
       await createMutation.mutateAsync({
         title: form.title,
@@ -369,13 +353,32 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         status: form.status as TournamentStatus,
         description: form.description,
       });
-    } catch {
-      // Backend failed but local save already succeeded
+      // Backend succeeded — also save locally for instant local display
+      const localT: LocalTournament = {
+        id: `local_${Date.now()}`,
+        title: form.title,
+        gameMode: form.gameMode,
+        entryFee: Number(form.entryFee),
+        prizePool: Number(form.prizePool),
+        maxPlayers: Number(form.maxPlayers),
+        minPlayers: Number(form.minPlayers),
+        status: form.status,
+        description: form.description,
+        startTime: new Date(form.startTime).getTime(),
+        playerCount: 0,
+      };
+      saveLocalTournament(localT);
+      window.dispatchEvent(new Event("srff_tournament_updated"));
+      toast.success(
+        "Tournament create ho gaya! Sabke user panel mein 3 second mein dikh jaayega.",
+      );
+      setForm(EMPTY_FORM);
+      setOpen(false);
+      onCreated();
+    } catch (err) {
+      console.error("Tournament create failed:", err);
+      toast.error("Tournament create nahi hua — dobara try karo.");
     }
-    toast.success("Tournament created!");
-    setForm(EMPTY_FORM);
-    setOpen(false);
-    onCreated();
   };
 
   return (
