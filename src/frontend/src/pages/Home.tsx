@@ -1157,6 +1157,60 @@ export default function Home() {
               </span>
             </button>
           </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("4 vs 4 Custom")}
+              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-violet-400/60 active:scale-95 transition-all"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(168,85,247,0.10))",
+                boxShadow: "0 0 12px rgba(139,92,246,0.15)",
+              }}
+              data-ocid="home.filter-4v4.button"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
+                }}
+              >
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span
+                className="text-[10px] font-bold text-center leading-tight"
+                style={{ color: "#8b5cf6" }}
+              >
+                4 vs 4 Custom
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("Sunday")}
+              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-yellow-400/60 active:scale-95 transition-all"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(245,158,11,0.10))",
+                boxShadow: "0 0 12px rgba(251,191,36,0.15)",
+              }}
+              data-ocid="home.filter-sunday.button"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                }}
+              >
+                <Star className="w-5 h-5 text-white" />
+              </div>
+              <span
+                className="text-[10px] font-bold text-center leading-tight"
+                style={{ color: "#fbbf24" }}
+              >
+                Sunday Special
+              </span>
+            </button>
+          </div>
         </section>
 
         {/* ── Category Filter Modal ── */}
@@ -1164,8 +1218,14 @@ export default function Home() {
           (() => {
             const modeMap: Record<string, string[]> = {
               "1 vs 1 Custom": ["1 vs 1 Custom"],
-              Squad: ["Squad", "BR Squad", "4v4 Clash Squad", "4 vs 4 Custom"],
+              Squad: ["Squad", "BR Squad"],
               Solo: ["Solo", "BR Solo", "BR Per Kill"],
+              "4 vs 4 Custom": [
+                "4 vs 4 Custom",
+                "4v4 Clash Squad",
+                "Clash Squad 4v4",
+              ],
+              Sunday: ["Sunday Special"],
             };
             const matchModes = modeMap[categoryFilter] ?? [];
             const catTournaments = tournaments.filter(
@@ -1180,7 +1240,11 @@ export default function Home() {
                 ? "1 vs 1 Custom"
                 : categoryFilter === "Squad"
                   ? "Full Map Squad"
-                  : "Full Map Solo";
+                  : categoryFilter === "Solo"
+                    ? "Full Map Solo"
+                    : categoryFilter === "4 vs 4 Custom"
+                      ? "4 vs 4 Custom"
+                      : "Sunday Special";
             return (
               <div
                 className="fixed inset-0 z-50 flex flex-col"
@@ -1352,6 +1416,60 @@ export default function Home() {
               </span>
             </button>
           </div>
+          <div className="grid grid-cols-2 gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("4 vs 4 Custom")}
+              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-violet-400/60 active:scale-95 transition-all"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(168,85,247,0.10))",
+                boxShadow: "0 0 12px rgba(139,92,246,0.15)",
+              }}
+              data-ocid="home.filter-4v4.button"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
+                }}
+              >
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <span
+                className="text-[10px] font-bold text-center leading-tight"
+                style={{ color: "#8b5cf6" }}
+              >
+                4 vs 4 Custom
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("Sunday")}
+              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-yellow-400/60 active:scale-95 transition-all"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(245,158,11,0.10))",
+                boxShadow: "0 0 12px rgba(251,191,36,0.15)",
+              }}
+              data-ocid="home.filter-sunday.button"
+            >
+              <div
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{
+                  background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
+                }}
+              >
+                <Star className="w-5 h-5 text-white" />
+              </div>
+              <span
+                className="text-[10px] font-bold text-center leading-tight"
+                style={{ color: "#fbbf24" }}
+              >
+                Sunday Special
+              </span>
+            </button>
+          </div>
         </section>
 
         {/* ── Category Filter Modal ── */}
@@ -1359,8 +1477,14 @@ export default function Home() {
           (() => {
             const modeMap: Record<string, string[]> = {
               "1 vs 1 Custom": ["1 vs 1 Custom"],
-              Squad: ["Squad", "BR Squad", "4v4 Clash Squad", "4 vs 4 Custom"],
+              Squad: ["Squad", "BR Squad"],
               Solo: ["Solo", "BR Solo", "BR Per Kill"],
+              "4 vs 4 Custom": [
+                "4 vs 4 Custom",
+                "4v4 Clash Squad",
+                "Clash Squad 4v4",
+              ],
+              Sunday: ["Sunday Special"],
             };
             const matchModes = modeMap[categoryFilter] ?? [];
             const catTournaments = tournaments.filter(
@@ -1375,7 +1499,11 @@ export default function Home() {
                 ? "1 vs 1 Custom"
                 : categoryFilter === "Squad"
                   ? "Full Map Squad"
-                  : "Full Map Solo";
+                  : categoryFilter === "Solo"
+                    ? "Full Map Solo"
+                    : categoryFilter === "4 vs 4 Custom"
+                      ? "4 vs 4 Custom"
+                      : "Sunday Special";
             return (
               <div
                 className="fixed inset-0 z-50 flex flex-col"

@@ -102,15 +102,61 @@ export default function TournamentDetail() {
   const params = useParams({ strict: false });
   const id = (params as Record<string, string>).id ?? "";
   const navigate = useNavigate();
-  const { data: tournaments = [] } = useAllTournaments();
+  const { data: tournaments = [], isLoading } = useAllTournaments();
   const { data: profile } = useCallerProfile();
   const { identity, login } = useInternetIdentity();
   const { currentUser } = useUserAuth();
   const joinMutation = useJoinTournament();
-  const tournament = tournaments.find((t) => t.id.toString() === id);
+
+  const localTournaments: typeof tournaments = (() => {
+    try {
+      const arr = JSON.parse(
+        localStorage.getItem("srff_created_tournaments") ?? "[]",
+      ) as Array<{
+        id: string;
+        title: string;
+        gameMode: string;
+        entryFee: number;
+        prizePool: number;
+        maxPlayers: number;
+        minPlayers: number;
+        status: string;
+        description: string;
+        startTime: number;
+        playerCount: number;
+      }>;
+      return arr.map((lt) => ({
+        id: lt.id as unknown as bigint,
+        title: lt.title,
+        gameMode: lt.gameMode,
+        entryFee: BigInt(lt.entryFee),
+        prizePool: BigInt(lt.prizePool),
+        maxPlayers: BigInt(lt.maxPlayers),
+        minPlayers: BigInt(lt.minPlayers),
+        status: lt.status as any,
+        description: lt.description,
+        startTime: BigInt(Math.floor(lt.startTime * 1_000_000)),
+        playerCount: BigInt(lt.playerCount),
+      }));
+    } catch {
+      return [];
+    }
+  })();
+  const allTournaments = [...tournaments, ...localTournaments];
+
+  const tournament = allTournaments.find((t) => t.id.toString() === id);
   const { data: leaderboard = [] } = useLeaderboard(
     tournament?.id ?? BigInt(0),
   );
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        <p className="text-muted-foreground">Tournament load ho raha hai...</p>
+      </div>
+    );
+  }
 
   if (!tournament) {
     return (
@@ -126,6 +172,17 @@ export default function TournamentDetail() {
       </div>
     );
   }
+
+  const bannerUrl = (() => {
+    try {
+      const banners = JSON.parse(
+        localStorage.getItem("srff_tournament_banners") ?? "{}",
+      ) as Record<string, string>;
+      return banners[tournament.id.toString()] ?? "";
+    } catch {
+      return "";
+    }
+  })();
 
   const start = new Date(Number(tournament.startTime) / 1_000_000);
   const canJoin = tournament.status !== "complete";
@@ -217,6 +274,15 @@ export default function TournamentDetail() {
       </header>
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+        {bannerUrl && (
+          <div className="w-full rounded-xl overflow-hidden">
+            <img
+              src={bannerUrl}
+              alt="Tournament Banner"
+              className="w-full h-40 object-cover"
+            />
+          </div>
+        )}
         {/* Tournament Card */}
         <div className="game-card-1 border border-primary/30 rounded-2xl p-5">
           <div className="flex items-start justify-between mb-4">

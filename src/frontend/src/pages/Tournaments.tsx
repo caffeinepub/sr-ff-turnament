@@ -71,6 +71,20 @@ function StatusBadge({ status }: { status: string }) {
 
 function TournamentCard({ t, index }: { t: Tournament; index: number }) {
   const start = new Date(Number(t.startTime) / 1_000_000);
+  const bannerUrl = (() => {
+    try {
+      const banners = JSON.parse(
+        localStorage.getItem("srff_tournament_banners") ?? "{}",
+      ) as Record<string, string>;
+      return (
+        banners[t.id.toString()] ??
+        banners[`${t.title}_${Number(t.startTime) / 1_000_000}`] ??
+        ""
+      );
+    } catch {
+      return "";
+    }
+  })();
   return (
     <Link
       to="/tournament/$id"
@@ -78,7 +92,15 @@ function TournamentCard({ t, index }: { t: Tournament; index: number }) {
       className="block bg-card border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all hover:glow-orange"
       data-ocid={`tournament.item.${index}`}
     >
-      <div className="game-card-1 h-2 w-full" />
+      {bannerUrl ? (
+        <img
+          src={bannerUrl}
+          alt="banner"
+          className="w-full h-28 object-cover"
+        />
+      ) : (
+        <div className="game-card-1 h-2 w-full" />
+      )}
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-3">
           <div>

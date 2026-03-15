@@ -354,8 +354,9 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         description: form.description,
       });
       // Backend succeeded — also save locally for instant local display
+      const localId = `local_${Date.now()}`;
       const localT: LocalTournament = {
-        id: `local_${Date.now()}`,
+        id: localId,
         title: form.title,
         gameMode: form.gameMode,
         entryFee: Number(form.entryFee),
@@ -366,8 +367,12 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         description: form.description,
         startTime: new Date(form.startTime).getTime(),
         playerCount: 0,
+        bannerUrl: form.bannerUrl,
       };
       saveLocalTournament(localT);
+      if (form.bannerUrl) {
+        saveTournamentBanner(localId, form.bannerUrl);
+      }
       window.dispatchEvent(new Event("srff_tournament_updated"));
       toast.success(
         "Tournament create ho gaya! Sabke user panel mein 3 second mein dikh jaayega.",
