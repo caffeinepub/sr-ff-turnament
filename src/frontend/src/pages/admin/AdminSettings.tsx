@@ -31,6 +31,7 @@ const BANK_NAME_KEY = "srff_bank_name";
 
 const DEFAULT_SETTINGS: AppSettings = {
   appName: "SR-FF-TOURNAMENT",
+  minDeposit: BigInt(10),
   minWithdraw: BigInt(100),
   referralBonus: BigInt(50),
   supportContact: "9104414372",
@@ -428,6 +429,7 @@ export default function AdminSettings() {
     // Try backend (ignore failure — local save already done)
     const backendPayload: AppSettings = {
       appName: form.appName,
+      minDeposit: BigInt(20),
       minWithdraw: form.minWithdraw,
       referralBonus: form.referralBonus,
       supportContact: form.supportContact,

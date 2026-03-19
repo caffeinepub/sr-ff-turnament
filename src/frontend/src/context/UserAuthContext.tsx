@@ -5,6 +5,7 @@ import {
   useEffect,
   useState,
 } from "react";
+import { createActorWithConfig } from "../config";
 
 export interface UserRecord {
   username: string;
@@ -22,11 +23,11 @@ interface UserAuthContextValue {
     password: string,
     username: string,
     ffName: string,
-  ) => { success: boolean; error?: string };
+  ) => Promise<{ success: boolean; error?: string }>;
   login: (
     phone: string,
     password: string,
-  ) => { success: boolean; error?: string; username?: string };
+  ) => Promise<{ success: boolean; error?: string; username?: string }>;
   logout: () => void;
   resetPassword: (
     phone: string,
@@ -53,7 +54,6 @@ function saveUsers(users: UserRecord[]) {
 }
 
 export function UserAuthProvider({ children }: { children: ReactNode }) {
-  // Initialize from localStorage so profile page works after refresh / app reopen
   const [currentUser, setCurrentUser] = useState<UserRecord | null>(() => {
     try {
       const stored = localStorage.getItem("srff_current_user");
@@ -72,40 +72,109 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [currentUser]);
 
-  function register(
+  async function register(
     phone: string,
     password: string,
     username: string,
     ffName: string,
-  ) {
+  ): Promise<{ success: boolean; error?: string }> {
+    const trimmedPhone = phone.trim();
+
+    // Check locally first
     const users = getUsers();
-    if (users.find((u) => u.phone === phone.trim())) {
+    if (users.find((u) => u.phone === trimmedPhone)) {
       return {
         success: false,
         error: "An account already exists with this mobile number",
       };
     }
+
     const newUser: UserRecord = {
       username: username.trim(),
       ffName: ffName.trim(),
-      phone: phone.trim(),
+      phone: trimmedPhone,
       passwordHash: hashPassword(password),
       name: username.trim(),
       email: "",
     };
+
+    // Try backend first
+    try {
+      const actor = await createActorWithConfig();
+      const exists = await actor.phoneUserExists(trimmedPhone);
+      if (exists) {
+        return {
+          success: false,
+          error: "An account already exists with this mobile number",
+        };
+      }
+      await actor.registerPhoneUser(
+        trimmedPhone,
+        username.trim(),
+        ffName.trim(),
+        hashPassword(password),
+      );
+    } catch (err) {
+      console.error(
+        "Backend register failed, saving to localStorage only:",
+        err,
+      );
+    }
+
+    // Always save locally too (backward compat + offline support)
     saveUsers([...users, newUser]);
     setCurrentUser(newUser);
     return { success: true };
   }
 
-  function login(phone: string, password: string) {
+  async function login(
+    phone: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string; username?: string }> {
+    const trimmedPhone = phone.trim();
+    const hashed = hashPassword(password);
+
+    // Try backend first
+    try {
+      const actor = await createActorWithConfig();
+      const backendUser = await actor.getPhoneUser(trimmedPhone);
+      if (backendUser && backendUser.passwordHash === hashed) {
+        const userRecord: UserRecord = {
+          username: backendUser.username,
+          ffName: backendUser.ffName,
+          phone: backendUser.phone,
+          passwordHash: backendUser.passwordHash,
+          name: backendUser.username,
+          email: "",
+        };
+        // Sync to localStorage
+        const users = getUsers();
+        const idx = users.findIndex((u) => u.phone === trimmedPhone);
+        if (idx !== -1) {
+          users[idx] = userRecord;
+        } else {
+          users.push(userRecord);
+        }
+        saveUsers(users);
+        setCurrentUser(userRecord);
+        return { success: true, username: userRecord.username };
+      }
+      // Backend user found but wrong password
+      if (backendUser) {
+        return { success: false, error: "Mobile number ya password galat hai" };
+      }
+    } catch (err) {
+      console.error("Backend login failed, trying localStorage:", err);
+    }
+
+    // Fallback to localStorage
     const users = getUsers();
     const user = users.find(
-      (u) =>
-        u.phone === phone.trim() && u.passwordHash === hashPassword(password),
+      (u) => u.phone === trimmedPhone && u.passwordHash === hashed,
     );
-    if (!user)
+    if (!user) {
       return { success: false, error: "Mobile number ya password galat hai" };
+    }
     setCurrentUser(user);
     return { success: true, username: user.username };
   }

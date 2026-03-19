@@ -41,7 +41,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import type { TournamentStatus } from "../../backend";
-import type { Tournament } from "../../backend.d";
+import type { TournamentView as Tournament } from "../../backend.d";
 import {
   useAllTournaments,
   useCreateTournament,
@@ -114,6 +114,7 @@ const AVATARS = [
 interface TournamentPlayer {
   phone: string;
   username: string;
+  gameName?: string;
   avatarId: number;
   joinedAt: string;
   winningAmount?: number;
@@ -198,7 +199,7 @@ function creditWinningCash(
   notifs.unshift({
     id: `win_${tournamentId}_${Date.now()}`,
     title: "🏆 Tournament Winning!",
-    message: `Congratulations! ₹${amount} winning amount has been credited to your Winning Cash wallet from "${tournamentTitle}". You can now withdraw it!`,
+    message: `🎉 Congratulations! Aapne "${tournamentTitle}" tournament mein ₹${amount} jite hain! Yeh amount aapke Winning Cash wallet mein credit ho gaya hai. Ab aap withdraw kar sakte hain. Badhai ho!`,
     time: new Date().toISOString(),
     read: false,
   });
@@ -1043,8 +1044,15 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
                   </div>
                   {/* Player info */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm truncate">
-                      {player.username}
+                    {player.gameName && (
+                      <p className="font-bold text-sm truncate text-orange-400">
+                        🎮 {player.gameName}
+                      </p>
+                    )}
+                    <p
+                      className={`${player.gameName ? "text-xs text-muted-foreground" : "font-bold text-sm"} truncate`}
+                    >
+                      👤 {player.username}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       {maskPhone(player.phone)}

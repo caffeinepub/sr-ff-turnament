@@ -41,7 +41,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!username.trim()) {
       toast.error("Username required");
@@ -56,7 +56,7 @@ export default function Register() {
       return;
     }
     setLoading(true);
-    const result = register(phone.trim(), password, username, ffName);
+    const result = await register(phone.trim(), password, username, ffName);
     setLoading(false);
     if (result.success) {
       localStorage.setItem(
@@ -118,108 +118,113 @@ export default function Register() {
                 SR-FF-TURNAMENT
               </h1>
               <p className="text-muted-foreground mt-1 text-xs tracking-wide">
-                Naya account banao aur tournament mein join karo
+                Naya account banao aur tournament mein participate karo
               </p>
             </div>
           </div>
         </div>
 
+        {/* Card */}
         <div
-          className={`rounded-2xl border ${sz.card}`}
+          className={`rounded-2xl border border-border/50 ${sz.card}`}
           style={{
-            background: "oklch(0.12 0.028 15)",
-            borderColor: "oklch(0.68 0.22 145 / 0.3)",
+            background: "oklch(0.14 0.02 260 / 0.95)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 8px 32px oklch(0 0 0 / 0.4)",
           }}
         >
-          <h2 className="text-xl font-semibold mb-5 flex items-center gap-2">
-            <UserPlus
-              className="w-5 h-5"
-              style={{ color: "oklch(0.68 0.22 145)" }}
-            />
+          <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-primary" />
             Register
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            {/* Phone */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="reg-phone"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="phone"
+                className="text-sm font-medium text-foreground/80"
               >
                 Mobile Number
               </label>
               <input
-                id="reg-phone"
-                data-ocid="register.phone.input"
+                id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                placeholder="+91 XXXXXXXXXX"
-                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                maxLength={10}
+                placeholder="10 digit mobile number"
+                className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 ${sz.input}`}
+                data-ocid="register.input"
               />
             </div>
 
-            <div>
+            {/* Username */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="reg-username"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="username"
+                className="text-sm font-medium text-foreground/80"
               >
                 Username
               </label>
               <input
-                id="reg-username"
-                data-ocid="register.username.input"
+                id="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                placeholder="Apna username likho"
-                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                placeholder="Apna username dalo"
+                className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 ${sz.input}`}
+                data-ocid="register.username.input"
               />
             </div>
 
-            <div>
+            {/* FF Name */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="reg-ffname"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="ffname"
+                className="text-sm font-medium text-foreground/80"
               >
                 Free Fire Name
               </label>
               <input
-                id="reg-ffname"
-                data-ocid="register.ffname.input"
+                id="ffname"
                 type="text"
                 value={ffName}
                 onChange={(e) => setFfName(e.target.value)}
                 required
-                placeholder="Apna Free Fire in-game name"
-                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                placeholder="Free Fire mein apna naam"
+                className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 ${sz.input}`}
+                data-ocid="register.ffname.input"
               />
             </div>
 
-            <div>
+            {/* Password */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="reg-password"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="password"
+                className="text-sm font-medium text-foreground/80"
               >
                 Password
               </label>
               <div className="relative">
                 <input
-                  id="reg-password"
-                  data-ocid="register.password.input"
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••"
-                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                  minLength={6}
+                  placeholder="Kam se kam 6 characters"
+                  className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 pr-12 ${sz.input}`}
+                  data-ocid="register.password.input"
                 />
                 <button
-                  data-ocid="register.password.toggle"
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  data-ocid="register.password.toggle"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -231,56 +236,68 @@ export default function Register() {
             </div>
 
             <button
-              data-ocid="register.submit_button"
               type="submit"
               disabled={loading}
-              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60 mt-2`}
+              className={`w-full rounded-xl font-bold text-white transition-all ${sz.btn} flex items-center justify-center gap-2 disabled:opacity-60`}
               style={{
                 background:
-                  "linear-gradient(90deg, oklch(0.68 0.22 145), oklch(0.72 0.18 200))",
-                color: "oklch(0.1 0.01 15)",
-                boxShadow: "0 0 16px oklch(0.68 0.22 145 / 0.4)",
+                  "linear-gradient(135deg, oklch(0.7 0.22 35), oklch(0.65 0.2 25))",
+                boxShadow: loading
+                  ? "none"
+                  : "0 4px 16px oklch(0.7 0.22 35 / 0.4)",
               }}
+              data-ocid="register.submit_button"
             >
-              {loading ? "Account ban raha hai..." : "Register Karo"}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Registering...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Register Karo
+                </>
+              )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-5">
+          <p className="text-center text-sm text-muted-foreground mt-4">
             Pehle se account hai?{" "}
             <Link
-              data-ocid="register.login.link"
               to="/login"
-              className="font-medium hover:underline"
-              style={{ color: "oklch(0.7 0.22 35)" }}
+              className="text-primary hover:underline font-medium"
+              data-ocid="register.login.link"
             >
-              Login karo
+              Login Karo
             </Link>
           </p>
         </div>
 
-        {/* Customer Support */}
-        <div className="mt-4">
+        {/* WhatsApp Support */}
+        <div className="mt-4 text-center">
           <a
-            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            href={`https://wa.me/91${supportNumber}`}
             target="_blank"
             rel="noopener noreferrer"
-            data-ocid="register.support.button"
-            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
-            style={{
-              background: "linear-gradient(135deg, #075e54, #25d366)",
-              borderColor: "#25d366",
-              color: "#fff",
-              boxShadow: "0 0 18px #25d36644",
-            }}
+            className="inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
+            data-ocid="register.whatsapp.link"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span>Customer Support — WhatsApp Karo</span>
+            <MessageCircle className="w-4 h-4" />
+            Deposit support ke liye WhatsApp karo
           </a>
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Register mein koi problem? Seedha support se baat karo 👆
-          </p>
         </div>
+
+        <p
+          className="text-center mt-4"
+          style={{
+            fontSize: "0.6rem",
+            color: "oklch(0.5 0.05 260)",
+            letterSpacing: "0.05em",
+          }}
+        >
+          This app created by SR TECHNOLOGY PVT LTD ™
+        </p>
       </div>
     </div>
   );

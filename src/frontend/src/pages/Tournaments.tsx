@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { Tournament } from "../backend.d";
+import type { TournamentView as Tournament } from "../backend.d";
 import { useAllTournaments } from "../hooks/useQueries";
 
 function parseLocalTournaments(): Tournament[] {

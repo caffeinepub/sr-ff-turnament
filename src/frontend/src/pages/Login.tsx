@@ -39,10 +39,10 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    const result = login(phone.trim(), password);
+    const result = await login(phone.trim(), password);
     setLoading(false);
     if (result.success) {
       localStorage.setItem(
@@ -102,71 +102,71 @@ export default function Login() {
               >
                 SR-FF-TURNAMENT
               </h1>
-              <p className="text-muted-foreground mt-0.5 text-xs tracking-wider">
-                Apne account mein login karo
+              <p className="text-muted-foreground mt-1 text-xs tracking-wide">
+                Professional Free Fire Tournament Platform
               </p>
             </div>
           </div>
         </div>
 
+        {/* Card */}
         <div
-          className={`rounded-2xl border ${sz.card}`}
+          className={`rounded-2xl border border-border/50 ${sz.card}`}
           style={{
-            background: "oklch(0.12 0.028 15)",
-            borderColor: "oklch(0.7 0.22 35 / 0.3)",
+            background: "oklch(0.14 0.02 260 / 0.95)",
+            backdropFilter: "blur(20px)",
+            boxShadow: "0 8px 32px oklch(0 0 0 / 0.4)",
           }}
         >
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <Flame
-              className="w-5 h-5"
-              style={{ color: "oklch(0.7 0.22 35)" }}
-            />
+          <h2 className="text-xl font-bold text-foreground mb-5 flex items-center gap-2">
+            <Flame className="w-5 h-5 text-primary" />
             Login
           </h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+            <div className="space-y-1.5">
               <label
-                htmlFor="login-phone"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="phone"
+                className="text-sm font-medium text-foreground/80"
               >
                 Mobile Number
               </label>
               <input
-                id="login-phone"
-                data-ocid="login.phone.input"
+                id="phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 required
-                placeholder="+91 XXXXXXXXXX"
-                className={`w-full rounded-lg px-3 ${sz.input} bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                maxLength={10}
+                placeholder="10 digit mobile number"
+                className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 ${sz.input}`}
+                data-ocid="login.input"
               />
             </div>
 
-            <div>
+            <div className="space-y-1.5">
               <label
-                htmlFor="login-password"
-                className="block text-sm font-medium text-muted-foreground mb-1.5"
+                htmlFor="password"
+                className="text-sm font-medium text-foreground/80"
               >
                 Password
               </label>
               <div className="relative">
                 <input
-                  id="login-password"
-                  data-ocid="login.password.input"
+                  id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  placeholder="••••••••"
-                  className={`w-full rounded-lg px-3 ${sz.input} pr-10 bg-muted border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 transition-all`}
+                  placeholder="Apna password dalo"
+                  className={`w-full rounded-xl border border-border/50 bg-background/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/40 px-4 pr-12 ${sz.input}`}
+                  data-ocid="login.password.input"
                 />
                 <button
-                  data-ocid="login.password.toggle"
                   type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  data-ocid="login.password.toggle"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -177,68 +177,78 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="text-right">
-              <Link
-                data-ocid="login.forgot.link"
-                to="/forgot-password"
-                className="text-xs hover:underline transition-colors"
-                style={{ color: "oklch(0.72 0.18 200)" }}
-              >
-                Password bhool gaye?
-              </Link>
-            </div>
-
             <button
-              data-ocid="login.submit_button"
               type="submit"
               disabled={loading}
-              className={`w-full ${sz.btn} rounded-lg font-semibold transition-all active:scale-95 disabled:opacity-60`}
+              className={`w-full rounded-xl font-bold text-white transition-all ${sz.btn} flex items-center justify-center gap-2 disabled:opacity-60`}
               style={{
                 background:
-                  "linear-gradient(90deg, oklch(0.7 0.22 35), oklch(0.75 0.18 75))",
-                color: "oklch(0.1 0.01 15)",
-                boxShadow: "0 0 16px oklch(0.7 0.22 35 / 0.4)",
+                  "linear-gradient(135deg, oklch(0.7 0.22 35), oklch(0.65 0.2 25))",
+                boxShadow: loading
+                  ? "none"
+                  : "0 4px 16px oklch(0.7 0.22 35 / 0.4)",
               }}
+              data-ocid="login.submit_button"
             >
-              {loading ? "Login ho raha hai..." : "Login Karo"}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                "Login Karo"
+              )}
             </button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground mt-5">
-            Account nahi hai?{" "}
-            <Link
-              data-ocid="login.register.link"
-              to="/register"
-              className="font-medium hover:underline"
-              style={{ color: "oklch(0.7 0.22 35)" }}
-            >
-              Naya account banao
-            </Link>
-          </p>
+          <div className="flex flex-col gap-2 mt-4">
+            <p className="text-center text-sm text-muted-foreground">
+              Naya account chahiye?{" "}
+              <Link
+                to="/register"
+                className="text-primary hover:underline font-medium"
+                data-ocid="login.register.link"
+              >
+                Register Karo
+              </Link>
+            </p>
+            <p className="text-center text-sm text-muted-foreground">
+              Password bhool gaye?{" "}
+              <Link
+                to="/forgot-password"
+                className="text-primary hover:underline font-medium"
+                data-ocid="login.forgot.link"
+              >
+                Reset karo
+              </Link>
+            </p>
+          </div>
         </div>
 
-        {/* Customer Support */}
-        <div className="mt-4">
+        {/* WhatsApp Support */}
+        <div className="mt-4 text-center">
           <a
-            href={`https://wa.me/91${supportNumber.replace(/\D/g, "")}`}
+            href={`https://wa.me/91${supportNumber}`}
             target="_blank"
             rel="noopener noreferrer"
-            data-ocid="login.support.button"
-            className="flex items-center justify-center gap-3 w-full py-3 rounded-2xl border font-semibold text-sm transition-all active:scale-95"
-            style={{
-              background: "linear-gradient(135deg, #075e54, #25d366)",
-              borderColor: "#25d366",
-              color: "#fff",
-              boxShadow: "0 0 18px #25d36644",
-            }}
+            className="inline-flex items-center gap-2 text-sm text-green-400 hover:text-green-300 transition-colors"
+            data-ocid="login.whatsapp.link"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span>Customer Support — WhatsApp Karo</span>
+            <MessageCircle className="w-4 h-4" />
+            Deposit support ke liye WhatsApp karo
           </a>
-          <p className="text-center text-xs text-muted-foreground mt-2">
-            Login mein problem? Seedha support se baat karo 👆
-          </p>
         </div>
+
+        <p
+          className="text-center mt-4"
+          style={{
+            fontSize: "0.6rem",
+            color: "oklch(0.5 0.05 260)",
+            letterSpacing: "0.05em",
+          }}
+        >
+          This app created by SR TECHNOLOGY PVT LTD ™
+        </p>
       </div>
     </div>
   );

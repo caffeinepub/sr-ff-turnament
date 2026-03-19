@@ -29,22 +29,58 @@ export const Notification = IDL.Record({
   'message' : IDL.Text,
   'timestamp' : IDL.Int,
 });
-export const LeaderboardEntry = IDL.Record({
-  'position' : IDL.Nat,
-  'playerName' : IDL.Text,
-  'prize' : IDL.Nat,
+export const OpenPaymentRequest = IDL.Record({
+  'id' : IDL.Nat,
+  'status' : IDL.Text,
+  'username' : IDL.Text,
+  'note' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'upiId' : IDL.Text,
+  'phone' : IDL.Text,
+  'amount' : IDL.Nat,
+  'approvedAmount' : IDL.Nat,
+  'requestType' : IDL.Text,
 });
-export const Tournament = IDL.Record({
+export const PaymentRequestStatus = IDL.Variant({
+  'pending' : IDL.Null,
+  'rejected' : IDL.Null,
+  'accepted' : IDL.Null,
+});
+export const PaymentRequestType = IDL.Variant({
+  'withdraw' : IDL.Null,
+  'deposit' : IDL.Null,
+});
+export const PaymentRequest = IDL.Record({
+  'id' : IDL.Nat,
+  'status' : PaymentRequestStatus,
+  'username' : IDL.Text,
+  'userId' : IDL.Principal,
+  'note' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'upiId' : IDL.Text,
+  'amount' : IDL.Nat,
+  'requestType' : PaymentRequestType,
+});
+export const PhoneUserView = IDL.Record({
+  'referralCode' : IDL.Text,
+  'username' : IDL.Text,
+  'winningCash' : IDL.Nat,
+  'ffName' : IDL.Text,
+  'phone' : IDL.Text,
+  'registeredAt' : IDL.Int,
+  'walletBalance' : IDL.Nat,
+});
+export const TournamentView = IDL.Record({
   'id' : IDL.Nat,
   'startTime' : IDL.Int,
   'status' : TournamentStatus,
   'title' : IDL.Text,
+  'minPlayers' : IDL.Nat,
   'playerCount' : IDL.Nat,
   'description' : IDL.Text,
   'gameMode' : IDL.Text,
   'entryFee' : IDL.Nat,
   'maxPlayers' : IDL.Nat,
-  'minPlayers' : IDL.Nat,
   'prizePool' : IDL.Nat,
 });
 export const UserProfile = IDL.Record({
@@ -55,11 +91,27 @@ export const UserProfile = IDL.Record({
   'walletBalance' : IDL.Nat,
   'ffUid' : IDL.Text,
 });
+export const LeaderboardEntry = IDL.Record({
+  'playerName' : IDL.Text,
+  'prize' : IDL.Nat,
+  'position' : IDL.Nat,
+});
+export const PhoneUser = IDL.Record({
+  'referralCode' : IDL.Text,
+  'username' : IDL.Text,
+  'winningCash' : IDL.Nat,
+  'passwordHash' : IDL.Text,
+  'ffName' : IDL.Text,
+  'phone' : IDL.Text,
+  'registeredAt' : IDL.Int,
+  'walletBalance' : IDL.Nat,
+});
 export const AppSettings = IDL.Record({
   'upiDetails' : IDL.Text,
   'announcementText' : IDL.Text,
   'refundPolicy' : IDL.Text,
   'privacyPolicy' : IDL.Text,
+  'minDeposit' : IDL.Nat,
   'appName' : IDL.Text,
   'minWithdraw' : IDL.Nat,
   'termsAndConditions' : IDL.Text,
@@ -98,9 +150,29 @@ export const idlService = IDL.Service({
       [],
     ),
   'getAllNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
-  'getAllTournaments' : IDL.Func([], [IDL.Vec(Tournament)], ['query']),
+  'getAllOpenPaymentRequests' : IDL.Func(
+      [],
+      [IDL.Vec(OpenPaymentRequest)],
+      ['query'],
+    ),
+  'getAllPaymentRequests' : IDL.Func([], [IDL.Vec(PaymentRequest)], ['query']),
+  'getAllPhoneUsers' : IDL.Func([], [IDL.Vec(PhoneUserView)], ['query']),
+  'getAllTournaments' : IDL.Func([], [IDL.Vec(TournamentView)], ['query']),
+  'getAllUsers' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
   'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getLeaderboard' : IDL.Func(
+      [IDL.Nat],
+      [IDL.Vec(LeaderboardEntry)],
+      ['query'],
+    ),
+  'getMyOpenPaymentRequests' : IDL.Func(
+      [IDL.Text],
+      [IDL.Vec(OpenPaymentRequest)],
+      ['query'],
+    ),
+  'getMyPaymentRequests' : IDL.Func([], [IDL.Vec(PaymentRequest)], ['query']),
+  'getPhoneUser' : IDL.Func([IDL.Text], [IDL.Opt(PhoneUser)], ['query']),
   'getSettings' : IDL.Func([], [IDL.Opt(AppSettings)], ['query']),
   'getTournamentParticipants' : IDL.Func(
       [IDL.Nat],
@@ -119,17 +191,47 @@ export const idlService = IDL.Service({
     ),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'joinTournament' : IDL.Func([IDL.Nat], [], []),
+  'phoneUserExists' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+  'registerPhoneUser' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+      [],
+      [],
+    ),
   'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'setLeaderboard' : IDL.Func(
+      [IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))],
+      [],
+      [],
+    ),
   'setTournamentResults' : IDL.Func(
       [IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Nat, IDL.Principal))],
       [],
       [],
     ),
+  'submitOpenPaymentRequest' : IDL.Func(
+      [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
+  'submitPaymentRequest' : IDL.Func(
+      [IDL.Nat, PaymentRequestType, IDL.Text, IDL.Text],
+      [IDL.Nat],
+      [],
+    ),
   'unblockUser' : IDL.Func([IDL.Principal], [], []),
+  'updateOpenPaymentStatus' : IDL.Func(
+      [IDL.Nat, IDL.Text, IDL.Nat],
+      [IDL.Nat],
+      [],
+    ),
+  'updatePaymentRequestStatus' : IDL.Func(
+      [IDL.Nat, PaymentRequestStatus],
+      [],
+      [],
+    ),
+  'updatePhoneUserBalance' : IDL.Func([IDL.Text, IDL.Nat], [], []),
+  'updatePhoneUserWinningCash' : IDL.Func([IDL.Text, IDL.Nat], [], []),
   'updateSettings' : IDL.Func([AppSettings], [], []),
-  'getLeaderboard' : IDL.Func([IDL.Nat], [IDL.Vec(LeaderboardEntry)], ['query']),
-  'setLeaderboard' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))], [], []),
-  'adminAdjustWallet' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Bool], [], []),
 });
 
 export const idlInitArgs = [];
@@ -156,22 +258,58 @@ export const idlFactory = ({ IDL }) => {
     'message' : IDL.Text,
     'timestamp' : IDL.Int,
   });
-  const LeaderboardEntry = IDL.Record({
-    'position' : IDL.Nat,
-    'playerName' : IDL.Text,
-    'prize' : IDL.Nat,
+  const OpenPaymentRequest = IDL.Record({
+    'id' : IDL.Nat,
+    'status' : IDL.Text,
+    'username' : IDL.Text,
+    'note' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'upiId' : IDL.Text,
+    'phone' : IDL.Text,
+    'amount' : IDL.Nat,
+    'approvedAmount' : IDL.Nat,
+    'requestType' : IDL.Text,
   });
-  const Tournament = IDL.Record({
+  const PaymentRequestStatus = IDL.Variant({
+    'pending' : IDL.Null,
+    'rejected' : IDL.Null,
+    'accepted' : IDL.Null,
+  });
+  const PaymentRequestType = IDL.Variant({
+    'withdraw' : IDL.Null,
+    'deposit' : IDL.Null,
+  });
+  const PaymentRequest = IDL.Record({
+    'id' : IDL.Nat,
+    'status' : PaymentRequestStatus,
+    'username' : IDL.Text,
+    'userId' : IDL.Principal,
+    'note' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'upiId' : IDL.Text,
+    'amount' : IDL.Nat,
+    'requestType' : PaymentRequestType,
+  });
+  const PhoneUserView = IDL.Record({
+    'referralCode' : IDL.Text,
+    'username' : IDL.Text,
+    'winningCash' : IDL.Nat,
+    'ffName' : IDL.Text,
+    'phone' : IDL.Text,
+    'registeredAt' : IDL.Int,
+    'walletBalance' : IDL.Nat,
+  });
+  const TournamentView = IDL.Record({
     'id' : IDL.Nat,
     'startTime' : IDL.Int,
     'status' : TournamentStatus,
     'title' : IDL.Text,
+    'minPlayers' : IDL.Nat,
     'playerCount' : IDL.Nat,
     'description' : IDL.Text,
     'gameMode' : IDL.Text,
     'entryFee' : IDL.Nat,
     'maxPlayers' : IDL.Nat,
-    'minPlayers' : IDL.Nat,
     'prizePool' : IDL.Nat,
   });
   const UserProfile = IDL.Record({
@@ -182,11 +320,27 @@ export const idlFactory = ({ IDL }) => {
     'walletBalance' : IDL.Nat,
     'ffUid' : IDL.Text,
   });
+  const LeaderboardEntry = IDL.Record({
+    'playerName' : IDL.Text,
+    'prize' : IDL.Nat,
+    'position' : IDL.Nat,
+  });
+  const PhoneUser = IDL.Record({
+    'referralCode' : IDL.Text,
+    'username' : IDL.Text,
+    'winningCash' : IDL.Nat,
+    'passwordHash' : IDL.Text,
+    'ffName' : IDL.Text,
+    'phone' : IDL.Text,
+    'registeredAt' : IDL.Int,
+    'walletBalance' : IDL.Nat,
+  });
   const AppSettings = IDL.Record({
     'upiDetails' : IDL.Text,
     'announcementText' : IDL.Text,
     'refundPolicy' : IDL.Text,
     'privacyPolicy' : IDL.Text,
+    'minDeposit' : IDL.Nat,
     'appName' : IDL.Text,
     'minWithdraw' : IDL.Nat,
     'termsAndConditions' : IDL.Text,
@@ -225,9 +379,33 @@ export const idlFactory = ({ IDL }) => {
         [],
       ),
     'getAllNotifications' : IDL.Func([], [IDL.Vec(Notification)], ['query']),
-    'getAllTournaments' : IDL.Func([], [IDL.Vec(Tournament)], ['query']),
+    'getAllOpenPaymentRequests' : IDL.Func(
+        [],
+        [IDL.Vec(OpenPaymentRequest)],
+        ['query'],
+      ),
+    'getAllPaymentRequests' : IDL.Func(
+        [],
+        [IDL.Vec(PaymentRequest)],
+        ['query'],
+      ),
+    'getAllPhoneUsers' : IDL.Func([], [IDL.Vec(PhoneUserView)], ['query']),
+    'getAllTournaments' : IDL.Func([], [IDL.Vec(TournamentView)], ['query']),
+    'getAllUsers' : IDL.Func([], [IDL.Vec(UserProfile)], ['query']),
     'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getLeaderboard' : IDL.Func(
+        [IDL.Nat],
+        [IDL.Vec(LeaderboardEntry)],
+        ['query'],
+      ),
+    'getMyOpenPaymentRequests' : IDL.Func(
+        [IDL.Text],
+        [IDL.Vec(OpenPaymentRequest)],
+        ['query'],
+      ),
+    'getMyPaymentRequests' : IDL.Func([], [IDL.Vec(PaymentRequest)], ['query']),
+    'getPhoneUser' : IDL.Func([IDL.Text], [IDL.Opt(PhoneUser)], ['query']),
     'getSettings' : IDL.Func([], [IDL.Opt(AppSettings)], ['query']),
     'getTournamentParticipants' : IDL.Func(
         [IDL.Nat],
@@ -246,17 +424,47 @@ export const idlFactory = ({ IDL }) => {
       ),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'joinTournament' : IDL.Func([IDL.Nat], [], []),
+    'phoneUserExists' : IDL.Func([IDL.Text], [IDL.Bool], ['query']),
+    'registerPhoneUser' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Text, IDL.Text],
+        [],
+        [],
+      ),
     'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'setLeaderboard' : IDL.Func(
+        [IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))],
+        [],
+        [],
+      ),
     'setTournamentResults' : IDL.Func(
         [IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Nat, IDL.Principal))],
         [],
         [],
       ),
+    'submitOpenPaymentRequest' : IDL.Func(
+        [IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Text, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
+    'submitPaymentRequest' : IDL.Func(
+        [IDL.Nat, PaymentRequestType, IDL.Text, IDL.Text],
+        [IDL.Nat],
+        [],
+      ),
     'unblockUser' : IDL.Func([IDL.Principal], [], []),
+    'updateOpenPaymentStatus' : IDL.Func(
+        [IDL.Nat, IDL.Text, IDL.Nat],
+        [IDL.Nat],
+        [],
+      ),
+    'updatePaymentRequestStatus' : IDL.Func(
+        [IDL.Nat, PaymentRequestStatus],
+        [],
+        [],
+      ),
+    'updatePhoneUserBalance' : IDL.Func([IDL.Text, IDL.Nat], [], []),
+    'updatePhoneUserWinningCash' : IDL.Func([IDL.Text, IDL.Nat], [], []),
     'updateSettings' : IDL.Func([AppSettings], [], []),
-    'getLeaderboard' : IDL.Func([IDL.Nat], [IDL.Vec(LeaderboardEntry)], ['query']),
-    'setLeaderboard' : IDL.Func([IDL.Nat, IDL.Vec(IDL.Tuple(IDL.Nat, IDL.Text, IDL.Nat))], [], []),
-    'adminAdjustWallet' : IDL.Func([IDL.Principal, IDL.Nat, IDL.Bool], [], []),
   });
 };
 

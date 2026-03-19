@@ -13,47 +13,28 @@ import {
 import {
   ChevronDown,
   ChevronUp,
-  Eye,
-  EyeOff,
   Loader2,
   MinusCircle,
   Phone,
   PlusCircle,
   Search,
   Users,
-  Wallet,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { UserProfile } from "../../backend.d";
-import { useAdminAdjustWallet, useAllUsers } from "../../hooks/useQueries";
-
-interface RegisteredPlayer {
-  name: string;
-  email: string;
-  phone: string;
-  passwordHash: string;
-}
-
-function getRegisteredPlayers(): RegisteredPlayer[] {
-  try {
-    return JSON.parse(localStorage.getItem("srff_users") || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function decodePassword(passwordHash: string): string {
-  try {
-    return atob(passwordHash);
-  } catch {
-    return passwordHash;
-  }
-}
+import type { PhoneUserView, UserProfile } from "../../backend.d";
+import {
+  useAdminAdjustWallet,
+  useAllPhoneUsers,
+  useAllUsers,
+} from "../../hooks/useQueries";
 
 function MobilePaySection({ users }: { users: UserProfile[] }) {
+  const { data: phoneUsers = [] } = useAllPhoneUsers();
   const [mobile, setMobile] = useState("");
-  const [foundPlayer, setFoundPlayer] = useState<RegisteredPlayer | null>(null);
+  const [foundPhoneUser, setFoundPhoneUser] = useState<PhoneUserView | null>(
+    null,
+  );
   const [matchedIcpUser, setMatchedIcpUser] = useState<UserProfile | null>(
     null,
   );
@@ -67,21 +48,48 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
       toast.error("Mobile number daalo");
       return;
     }
-    const players = getRegisteredPlayers();
-    const found = players.find((p) => p.phone === trimmed);
     setSearched(true);
-    if (!found) {
-      setFoundPlayer(null);
-      setMatchedIcpUser(null);
-      toast.error("Is mobile number ka koi user nahi mila");
+
+    // Search in backend phone users first
+    const foundPU = phoneUsers.find((p: PhoneUserView) => p.phone === trimmed);
+    if (foundPU) {
+      setFoundPhoneUser(foundPU);
+      // Try to find matching ICP user by username
+      const icpMatch = users.find(
+        (u) =>
+          u.username.toLowerCase() === (foundPU.username || "").toLowerCase(),
+      );
+      setMatchedIcpUser(icpMatch ?? null);
       return;
     }
-    setFoundPlayer(found);
-    // Match by name (username) in ICP users
-    const icpMatch = users.find(
-      (u) => u.username.toLowerCase() === (found.name || "").toLowerCase(),
-    );
-    setMatchedIcpUser(icpMatch ?? null);
+
+    // Fallback to localStorage
+    try {
+      const localUsers = JSON.parse(localStorage.getItem("srff_users") || "[]");
+      const localFound = localUsers.find((u: any) => u.phone === trimmed);
+      if (localFound) {
+        setFoundPhoneUser({
+          phone: localFound.phone,
+          username: localFound.username || localFound.name || "",
+          ffName: localFound.ffName || "",
+          walletBalance: BigInt(localFound.walletBalance || 0),
+          winningCash: BigInt(0),
+          referralCode: "",
+          registeredAt: BigInt(0),
+        });
+        const icpMatch = users.find(
+          (u) =>
+            u.username.toLowerCase() ===
+            (localFound.username || localFound.name || "").toLowerCase(),
+        );
+        setMatchedIcpUser(icpMatch ?? null);
+        return;
+      }
+    } catch {}
+
+    setFoundPhoneUser(null);
+    setMatchedIcpUser(null);
+    toast.error("Is mobile number ka koi user nahi mila");
   };
 
   const handleAdjust = async (isAdd: boolean) => {
@@ -130,7 +138,6 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
       </div>
 
       <div className="p-5 space-y-4">
-        {/* Mobile Search */}
         <div className="flex gap-2">
           <div className="flex-1">
             <Label className="text-xs text-cyan-300 mb-1 block">
@@ -141,7 +148,7 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
               onChange={(e) => {
                 setMobile(e.target.value);
                 setSearched(false);
-                setFoundPlayer(null);
+                setFoundPhoneUser(null);
                 setMatchedIcpUser(null);
               }}
               placeholder="User ka mobile number daalo..."
@@ -164,8 +171,7 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
           </div>
         </div>
 
-        {/* Found User Card */}
-        {searched && foundPlayer && (
+        {searched && foundPhoneUser && (
           <div
             className="bg-cyan-950/40 border border-cyan-500/30 rounded-xl p-4 space-y-3"
             data-ocid="admin-mobile-pay.found.card"
@@ -173,21 +179,24 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shrink-0">
                 <span className="font-bold text-white text-sm">
-                  {foundPlayer.name?.charAt(0)?.toUpperCase() ?? "?"}
+                  {foundPhoneUser.username?.charAt(0)?.toUpperCase() ?? "?"}
                 </span>
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-sm text-foreground">
-                  {foundPlayer.name || "—"}
+                  {foundPhoneUser.username || "—"}
                 </p>
                 <p className="text-xs text-cyan-400 font-mono">
-                  📱 {foundPlayer.phone}
+                  📱 {foundPhoneUser.phone}
                 </p>
-                {matchedIcpUser ? (
-                  <p className="text-xs text-green-400 font-bold mt-0.5">
-                    💰 Balance: ₹{Number(matchedIcpUser.walletBalance)}
-                  </p>
-                ) : (
+                <p className="text-xs text-orange-300">
+                  🎮 FF: {foundPhoneUser.ffName || "—"}
+                </p>
+                <p className="text-xs text-green-400 font-bold mt-0.5">
+                  💰 Wallet: ₹{Number(foundPhoneUser.walletBalance)} | Winning:
+                  ₹{Number(foundPhoneUser.winningCash)}
+                </p>
+                {!matchedIcpUser && (
                   <p className="text-xs text-yellow-400 mt-0.5">
                     ⚠️ ICP wallet nahi mila (user ne abhi login nahi kiya)
                   </p>
@@ -246,7 +255,7 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
           </div>
         )}
 
-        {searched && !foundPlayer && (
+        {searched && !foundPhoneUser && (
           <div
             className="text-center py-6 rounded-xl bg-red-950/20 border border-red-500/20"
             data-ocid="admin-mobile-pay.not-found.error_state"
@@ -266,34 +275,22 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
 
 export default function AdminUsers() {
   const { data: users = [] } = useAllUsers();
+  const { data: phoneUsers = [] } = useAllPhoneUsers();
 
   const [playersExpanded, setPlayersExpanded] = useState(true);
   const [playerSearch, setPlayerSearch] = useState("");
-  const [revealedPasswords, setRevealedPasswords] = useState<Set<number>>(
-    new Set(),
-  );
 
-  const registeredPlayers = getRegisteredPlayers();
-  const filteredPlayers = registeredPlayers.filter(
+  const filteredPlayers = (phoneUsers as PhoneUserView[]).filter(
     (p) =>
-      p.name?.toLowerCase().includes(playerSearch.toLowerCase()) ||
+      p.username?.toLowerCase().includes(playerSearch.toLowerCase()) ||
       p.phone?.includes(playerSearch),
   );
-
-  const togglePasswordReveal = (index: number) => {
-    setRevealedPasswords((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) next.delete(index);
-      else next.add(index);
-      return next;
-    });
-  };
 
   return (
     <div className="space-y-6">
       <h1 className="font-display font-bold text-2xl">Users</h1>
 
-      {/* Mobile Pay Section — TOP */}
+      {/* Mobile Pay Section */}
       <MobilePaySection users={users} />
 
       {/* Registered Players Section */}
@@ -314,7 +311,7 @@ export default function AdminUsers() {
           </div>
           <div className="flex items-center gap-2">
             <Badge className="bg-orange-500/20 text-orange-300 border border-orange-500/30 font-mono">
-              {registeredPlayers.length} Players
+              {(phoneUsers as PhoneUserView[]).length} Players
             </Badge>
             <Button
               type="button"
@@ -357,7 +354,7 @@ export default function AdminUsers() {
               >
                 <Users className="w-10 h-10 mx-auto mb-3 text-orange-400/20" />
                 <p className="text-muted-foreground text-sm">
-                  {registeredPlayers.length === 0
+                  {(phoneUsers as PhoneUserView[]).length === 0
                     ? "Abhi koi player registered nahi hai"
                     : "Koi player nahi mila"}
                 </p>
@@ -371,7 +368,7 @@ export default function AdminUsers() {
                         #
                       </TableHead>
                       <TableHead className="text-orange-300 font-bold text-xs">
-                        Naam
+                        Username
                       </TableHead>
                       <TableHead className="text-orange-300 font-bold text-xs">
                         Mobile
@@ -380,14 +377,17 @@ export default function AdminUsers() {
                         FF Name
                       </TableHead>
                       <TableHead className="text-orange-300 font-bold text-xs">
-                        Password
+                        Wallet Balance
+                      </TableHead>
+                      <TableHead className="text-orange-300 font-bold text-xs">
+                        Winning Cash
                       </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {filteredPlayers.map((player, i) => (
                       <TableRow
-                        key={player.phone || player.name || String(i)}
+                        key={player.phone || player.username || String(i)}
                         className="border-orange-500/10 hover:bg-orange-500/5"
                         data-ocid={`admin-players.item.${i + 1}`}
                       >
@@ -398,41 +398,32 @@ export default function AdminUsers() {
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-orange-500 to-yellow-500 flex items-center justify-center shrink-0">
                               <span className="text-xs font-bold text-white">
-                                {player.name?.charAt(0)?.toUpperCase() ?? "?"}
+                                {player.username?.charAt(0)?.toUpperCase() ??
+                                  "?"}
                               </span>
                             </div>
                             <span className="font-semibold text-sm">
-                              {player.name || "\u2014"}
+                              {player.username || "—"}
                             </span>
                           </div>
                         </TableCell>
                         <TableCell>
                           <span className="font-mono text-sm text-cyan-400">
-                            {player.phone || "\u2014"}
+                            {player.phone || "—"}
                           </span>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
-                          {player.email || "\u2014"}
+                          {player.ffName || "—"}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs text-yellow-300">
-                              {revealedPasswords.has(i)
-                                ? decodePassword(player.passwordHash)
-                                : "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => togglePasswordReveal(i)}
-                              className="text-muted-foreground hover:text-orange-300 transition-colors"
-                            >
-                              {revealedPasswords.has(i) ? (
-                                <EyeOff className="w-3.5 h-3.5" />
-                              ) : (
-                                <Eye className="w-3.5 h-3.5" />
-                              )}
-                            </button>
-                          </div>
+                          <span className="font-mono text-sm text-green-400">
+                            ₹{Number(player.walletBalance)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-mono text-sm text-yellow-400">
+                            ₹{Number(player.winningCash)}
+                          </span>
                         </TableCell>
                       </TableRow>
                     ))}

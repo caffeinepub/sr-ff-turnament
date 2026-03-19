@@ -1,17 +1,19 @@
 import Map "mo:core/Map";
-import Array "mo:core/Array";
+import List "mo:core/List";
 import Time "mo:core/Time";
 import Text "mo:core/Text";
-import List "mo:core/List";
 import Nat "mo:core/Nat";
 import Int "mo:core/Int";
+import Runtime "mo:core/Runtime";
+import Array "mo:core/Array";
 import Order "mo:core/Order";
 import Iter "mo:core/Iter";
-import Runtime "mo:core/Runtime";
 import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import Migration "migration";
 
+(with migration = Migration.run)
 actor {
   // ------------------- Types and Comparison Functions --------------------
 
@@ -59,25 +61,6 @@ actor {
     };
   };
 
-  public type UserProfile = {
-    username : Text;
-    ffUid : Text;
-    walletBalance : Nat;
-    referralCode : Text;
-    isBlocked : Bool;
-    principal : Principal;
-  };
-
-  module UserProfile {
-    public func compareByBalance(u1 : UserProfile, u2 : UserProfile) : Order.Order {
-      Nat.compare(u1.walletBalance, u2.walletBalance);
-    };
-
-    public func compare(u1 : UserProfile, u2 : UserProfile) : Order.Order {
-      Text.compare(u1.username, u2.username);
-    };
-  };
-
   public type TournamentResult = {
     position : Nat;
     prize : Nat;
@@ -112,6 +95,7 @@ actor {
     appName : Text;
     minWithdraw : Nat;
     referralBonus : Nat;
+    minDeposit : Nat;
     supportContact : Text;
     upiDetails : Text;
     privacyPolicy : Text;
@@ -133,6 +117,52 @@ actor {
     timestamp : Int;
     note : Text;
     upiId : Text;
+  };
+
+  public type UserProfile = {
+    username : Text;
+    ffUid : Text;
+    walletBalance : Nat;
+    referralCode : Text;
+    isBlocked : Bool;
+    principal : Principal;
+  };
+
+  // New PhoneUser type for mobile/phone-based users
+  public type PhoneUser = {
+    phone : Text;
+    username : Text;
+    ffName : Text;
+    passwordHash : Text;
+    walletBalance : Nat;
+    winningCash : Nat;
+    referralCode : Text;
+    registeredAt : Int;
+  };
+
+  // Public view of PhoneUser (without passwordHash)
+  public type PhoneUserView = {
+    phone : Text;
+    username : Text;
+    ffName : Text;
+    walletBalance : Nat;
+    winningCash : Nat;
+    referralCode : Text;
+    registeredAt : Int;
+  };
+
+  // New OpenPaymentRequest type for open payment requests (phone-based)
+  public type OpenPaymentRequest = {
+    id : Nat;
+    phone : Text;
+    username : Text;
+    amount : Nat;
+    requestType : Text; // "deposit" or "withdraw"
+    status : Text; // "pending", "accepted", "rejected"
+    note : Text; // UTR number for deposit
+    upiId : Text;
+    timestamp : Int;
+    approvedAmount : Nat;
   };
 
   // ------------------------ Persistent Storage ---------------------------
@@ -168,8 +198,14 @@ actor {
   let paymentRequests = Map.empty<Nat, PaymentRequest>();
   var nextPaymentRequestId = 0;
 
-  // App Settings
   var settings : ?AppSettings = null;
+
+  // Phone Users
+  let phoneUsers = Map.empty<Text, PhoneUser>();
+
+  // Open Payment Requests (for phone users)
+  let openPaymentRequests = Map.empty<Nat, OpenPaymentRequest>();
+  var nextOpenPaymentRequestId = 0;
 
   // ---------------------- Authorization (RBAC) ---------------------------
 
@@ -228,6 +264,182 @@ actor {
       Runtime.trap("Unauthorized: Only admins can view all users");
     };
     users.values().toArray();
+  };
+
+  // -------------------- Phone User Registration APIs ---------------------
+
+  // Public registration - anyone can register a new phone user
+  public shared ({ caller }) func registerPhoneUser(phone : Text, username : Text, ffName : Text, passwordHash : Text) : async () {
+    switch (phoneUsers.get(phone)) {
+      case (null) {
+        let newUser : PhoneUser = {
+          phone;
+          username;
+          ffName;
+          passwordHash;
+          walletBalance = 0;
+          winningCash = 0;
+          referralCode = "";
+          registeredAt = Time.now();
+        };
+        phoneUsers.add(phone, newUser);
+      };
+      case (?_) {
+        Runtime.trap("User already exists with this phone number");
+      };
+    };
+  };
+
+  // Admin-only: Get all phone users
+  public query ({ caller }) func getAllPhoneUsers() : async [PhoneUserView] {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view all phone users");
+    };
+    phoneUsers.values().toArray().map(func(user : PhoneUser) : PhoneUserView {
+      {
+        phone = user.phone;
+        username = user.username;
+        ffName = user.ffName;
+        walletBalance = user.walletBalance;
+        winningCash = user.winningCash;
+        referralCode = user.referralCode;
+        registeredAt = user.registeredAt;
+      }
+    });
+  };
+
+  // Public: Get phone user for login validation (returns full user including passwordHash)
+  // Note: Frontend should validate password client-side or use secure authentication flow
+  public query ({ caller }) func getPhoneUser(phone : Text) : async ?PhoneUser {
+    phoneUsers.get(phone);
+  };
+
+  // Public: Check if phone exists
+  public query ({ caller }) func phoneUserExists(phone : Text) : async Bool {
+    phoneUsers.containsKey(phone);
+  };
+
+  // Admin-only: Update phone user balance
+  public shared ({ caller }) func updatePhoneUserBalance(phone : Text, balance : Nat) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can update user balances");
+    };
+    switch (phoneUsers.get(phone)) {
+      case (null) { Runtime.trap("Phone user not found") };
+      case (?user) {
+        phoneUsers.add(phone, { user with walletBalance = balance });
+      };
+    };
+  };
+
+  // Admin-only: Update phone user winning cash
+  public shared ({ caller }) func updatePhoneUserWinningCash(phone : Text, amount : Nat) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can update winning cash");
+    };
+    switch (phoneUsers.get(phone)) {
+      case (null) { Runtime.trap("Phone user not found") };
+      case (?user) {
+        phoneUsers.add(phone, { user with winningCash = amount });
+      };
+    };
+  };
+
+  // Internal helper: Increment phone user balance (used by payment approval)
+  func incrementPhoneUserBalanceInternal(phone : Text, amount : Nat) : () {
+    switch (phoneUsers.get(phone)) {
+      case (null) { Runtime.trap("Phone user not found") };
+      case (?user) {
+        let newBalance = user.walletBalance + amount;
+        phoneUsers.add(phone, { user with walletBalance = newBalance });
+      };
+    };
+  };
+
+  // Internal helper: Decrement phone user balance
+  func decrementPhoneUserBalanceInternal(phone : Text, amount : Nat) : () {
+    switch (phoneUsers.get(phone)) {
+      case (null) { Runtime.trap("Phone user not found") };
+      case (?user) {
+        if (user.walletBalance < amount) {
+          Runtime.trap("Insufficient funds to decrement wallet");
+        };
+        let newBalance = user.walletBalance - amount;
+        phoneUsers.add(phone, { user with walletBalance = newBalance });
+      };
+    };
+  };
+
+  // ------------------ Open Payment Request APIs ----------------------
+
+  // Public: Submit payment request (anyone can submit for their phone number)
+  public shared ({ caller }) func submitOpenPaymentRequest(phone : Text, username : Text, amount : Nat, requestType : Text, note : Text, upiId : Text) : async Nat {
+    // Verify phone user exists
+    switch (phoneUsers.get(phone)) {
+      case (null) { Runtime.trap("Phone user not found") };
+      case (?_) { /* OK */ };
+    };
+
+    let newId = nextOpenPaymentRequestId;
+    let req : OpenPaymentRequest = {
+      id = newId;
+      phone;
+      username;
+      amount;
+      requestType;
+      status = "pending";
+      note;
+      upiId;
+      timestamp = Time.now();
+      approvedAmount = 0;
+    };
+
+    openPaymentRequests.add(newId, req);
+    nextOpenPaymentRequestId += 1;
+    newId;
+  };
+
+  // Admin-only: Get all open payment requests
+  public query ({ caller }) func getAllOpenPaymentRequests() : async [OpenPaymentRequest] {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can view all payment requests");
+    };
+    openPaymentRequests.values().toArray();
+  };
+
+  // Admin-only: Update payment request status and approve/reject
+  public shared ({ caller }) func updateOpenPaymentStatus(requestId : Nat, newStatus : Text, approvedAmount : Nat) : async Nat {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can update payment status");
+    };
+
+    let currentReq = switch (openPaymentRequests.get(requestId)) {
+      case (null) { Runtime.trap("Open Payment Request not found") };
+      case (?req) { req };
+    };
+
+    openPaymentRequests.add(requestId, {
+      currentReq with
+      status = newStatus;
+      approvedAmount;
+    });
+
+    // Auto-credit wallet for accepted deposits
+    if (currentReq.requestType == "deposit" and newStatus == "accepted") {
+      incrementPhoneUserBalanceInternal(currentReq.phone, approvedAmount);
+    };
+
+    // Return updated balance
+    switch (phoneUsers.get(currentReq.phone)) {
+      case (null) { 0 };
+      case (?user) { user.walletBalance };
+    };
+  };
+
+  // Public: Get payment requests for a specific phone number
+  public query ({ caller }) func getMyOpenPaymentRequests(phone : Text) : async [OpenPaymentRequest] {
+    let allValues = openPaymentRequests.values().toArray();
+    allValues.filter(func(req : OpenPaymentRequest) : Bool { req.phone == phone });
   };
 
   // ---------------------- Tournament APIs ---------------------------
@@ -532,26 +744,6 @@ actor {
 
   public query ({ caller }) func getSettings() : async ?AppSettings {
     settings;
-  };
-
-
-  // ---------------------- Admin Wallet Management -----------------------
-
-  public shared ({ caller }) func adminAdjustWallet(userId : Principal, amount : Nat, isAdd : Bool) : async () {
-    if (not isAdminInternal(caller)) {
-      Runtime.trap("Unauthorized: Only admins can adjust wallet");
-    };
-    switch (users.get(userId)) {
-      case (null) { Runtime.trap("User not found") };
-      case (?profile) {
-        let newBalance = if (isAdd) {
-          profile.walletBalance + amount;
-        } else {
-          if (profile.walletBalance >= amount) { profile.walletBalance - amount } else { Runtime.trap("Insufficient balance") };
-        };
-        users.add(userId, { profile with walletBalance = newBalance });
-      };
-    };
   };
 
   // ---------------------- Helper & State APIs ---------------------------

@@ -15,11 +15,17 @@ export interface AppSettings {
   'announcementText' : string,
   'refundPolicy' : string,
   'privacyPolicy' : string,
+  'minDeposit' : bigint,
   'appName' : string,
   'minWithdraw' : bigint,
   'termsAndConditions' : string,
   'supportContact' : string,
   'referralBonus' : bigint,
+}
+export interface LeaderboardEntry {
+  'playerName' : string,
+  'prize' : bigint,
+  'position' : bigint,
 }
 export interface Notification {
   'id' : bigint,
@@ -28,23 +34,52 @@ export interface Notification {
   'message' : string,
   'timestamp' : bigint,
 }
-export interface LeaderboardEntry {
-  'position' : bigint,
-  'playerName' : string,
-  'prize' : bigint,
-}
-export interface Tournament {
+export interface OpenPaymentRequest {
   'id' : bigint,
-  'startTime' : bigint,
-  'status' : TournamentStatus,
-  'title' : string,
-  'playerCount' : bigint,
-  'description' : string,
-  'gameMode' : string,
-  'entryFee' : bigint,
-  'maxPlayers' : bigint,
-  'minPlayers' : bigint,
-  'prizePool' : bigint,
+  'status' : string,
+  'username' : string,
+  'note' : string,
+  'timestamp' : bigint,
+  'upiId' : string,
+  'phone' : string,
+  'amount' : bigint,
+  'approvedAmount' : bigint,
+  'requestType' : string,
+}
+export interface PaymentRequest {
+  'id' : bigint,
+  'status' : PaymentRequestStatus,
+  'username' : string,
+  'userId' : Principal,
+  'note' : string,
+  'timestamp' : bigint,
+  'upiId' : string,
+  'amount' : bigint,
+  'requestType' : PaymentRequestType,
+}
+export type PaymentRequestStatus = { 'pending' : null } |
+  { 'rejected' : null } |
+  { 'accepted' : null };
+export type PaymentRequestType = { 'withdraw' : null } |
+  { 'deposit' : null };
+export interface PhoneUser {
+  'referralCode' : string,
+  'username' : string,
+  'winningCash' : bigint,
+  'passwordHash' : string,
+  'ffName' : string,
+  'phone' : string,
+  'registeredAt' : bigint,
+  'walletBalance' : bigint,
+}
+export interface PhoneUserView {
+  'referralCode' : string,
+  'username' : string,
+  'winningCash' : bigint,
+  'ffName' : string,
+  'phone' : string,
+  'registeredAt' : bigint,
+  'walletBalance' : bigint,
 }
 export interface TournamentResult {
   'playerId' : Principal,
@@ -54,6 +89,19 @@ export interface TournamentResult {
 export type TournamentStatus = { 'upcoming' : null } |
   { 'complete' : null } |
   { 'ongoing' : null };
+export interface TournamentView {
+  'id' : bigint,
+  'startTime' : bigint,
+  'status' : TournamentStatus,
+  'title' : string,
+  'minPlayers' : bigint,
+  'playerCount' : bigint,
+  'description' : string,
+  'gameMode' : string,
+  'entryFee' : bigint,
+  'maxPlayers' : bigint,
+  'prizePool' : bigint,
+}
 export type TransactionType = { 'deposit' : null } |
   { 'withdrawal' : null };
 export interface UserProfile {
@@ -73,7 +121,17 @@ export interface _SERVICE {
   'blockUser' : ActorMethod<[Principal], undefined>,
   'createNotification' : ActorMethod<[string, string, string], undefined>,
   'createTournament' : ActorMethod<
-    [string, string, bigint, bigint, bigint, bigint, bigint, TournamentStatus, string],
+    [
+      string,
+      string,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      bigint,
+      TournamentStatus,
+      string,
+    ],
     bigint
   >,
   'createWalletTransaction' : ActorMethod<
@@ -81,25 +139,54 @@ export interface _SERVICE {
     bigint
   >,
   'getAllNotifications' : ActorMethod<[], Array<Notification>>,
-  'getAllTournaments' : ActorMethod<[], Array<Tournament>>,
+  'getAllOpenPaymentRequests' : ActorMethod<[], Array<OpenPaymentRequest>>,
+  'getAllPaymentRequests' : ActorMethod<[], Array<PaymentRequest>>,
+  'getAllPhoneUsers' : ActorMethod<[], Array<PhoneUserView>>,
+  'getAllTournaments' : ActorMethod<[], Array<TournamentView>>,
+  'getAllUsers' : ActorMethod<[], Array<UserProfile>>,
   'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getLeaderboard' : ActorMethod<[bigint], Array<LeaderboardEntry>>,
+  'getMyOpenPaymentRequests' : ActorMethod<[string], Array<OpenPaymentRequest>>,
+  'getMyPaymentRequests' : ActorMethod<[], Array<PaymentRequest>>,
+  'getPhoneUser' : ActorMethod<[string], [] | [PhoneUser]>,
   'getSettings' : ActorMethod<[], [] | [AppSettings]>,
   'getTournamentParticipants' : ActorMethod<[bigint], Array<Principal>>,
   'getTournamentResults' : ActorMethod<[bigint], Array<TournamentResult>>,
   'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'joinTournament' : ActorMethod<[bigint], undefined>,
+  'phoneUserExists' : ActorMethod<[string], boolean>,
+  'registerPhoneUser' : ActorMethod<
+    [string, string, string, string],
+    undefined
+  >,
   'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'setLeaderboard' : ActorMethod<
+    [bigint, Array<[bigint, string, bigint]>],
+    undefined
+  >,
   'setTournamentResults' : ActorMethod<
     [bigint, Array<[bigint, bigint, Principal]>],
     undefined
   >,
+  'submitOpenPaymentRequest' : ActorMethod<
+    [string, string, bigint, string, string, string],
+    bigint
+  >,
+  'submitPaymentRequest' : ActorMethod<
+    [bigint, PaymentRequestType, string, string],
+    bigint
+  >,
   'unblockUser' : ActorMethod<[Principal], undefined>,
+  'updateOpenPaymentStatus' : ActorMethod<[bigint, string, bigint], bigint>,
+  'updatePaymentRequestStatus' : ActorMethod<
+    [bigint, PaymentRequestStatus],
+    undefined
+  >,
+  'updatePhoneUserBalance' : ActorMethod<[string, bigint], undefined>,
+  'updatePhoneUserWinningCash' : ActorMethod<[string, bigint], undefined>,
   'updateSettings' : ActorMethod<[AppSettings], undefined>,
-  'getLeaderboard' : ActorMethod<[bigint], Array<LeaderboardEntry>>,
-  'setLeaderboard' : ActorMethod<[bigint, Array<[bigint, string, bigint]>], undefined>,
-  'adminAdjustWallet' : ActorMethod<[Principal, bigint, boolean], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

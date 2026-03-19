@@ -62,11 +62,11 @@ const BANK_NAME_KEY = "srff_bank_name";
 function getMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 20;
+    if (raw === null) return 10;
     const val = Number(raw);
-    return Number.isNaN(val) ? 20 : val;
+    return Number.isNaN(val) ? 10 : val;
   } catch {
-    return 20;
+    return 10;
   }
 }
 
@@ -189,8 +189,6 @@ export default function Profile() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawUpi, setWithdrawUpi] = useState("");
   const [withdrawOpen, setWithdrawOpen] = useState(false);
-  const [convertOpen, setConvertOpen] = useState(false);
-  const [convertAmount, setConvertAmount] = useState("");
   const [rulesOpen, setRulesOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [matchHistoryOpen, setMatchHistoryOpen] = useState(false);
@@ -284,7 +282,6 @@ export default function Profile() {
   );
 
   // Listen for admin localStorage changes and sync instantly
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally runs once
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "srff_privacy_policy") setPrivacyText(e.newValue || "");
@@ -316,7 +313,10 @@ export default function Profile() {
   const gameRules = gameRulesText;
 
   const currentAvatar = AVATARS.find((a) => a.id === savedAvatarId) ?? null;
-  const minDeposit = getMinDeposit();
+  const minDeposit =
+    settings?.minDeposit !== undefined
+      ? Number(settings.minDeposit)
+      : getMinDeposit();
   const upiId = getLocalString(UPI_ID_KEY) || "sk190rihan@mvhdfc";
   const bankAccount = getLocalString(BANK_ACCOUNT_KEY) || "7477661867";
   const bankHolder = getLocalString(BANK_HOLDER_KEY) || "SK SAHIL";
@@ -408,7 +408,7 @@ export default function Profile() {
 
   const handleWithdrawSubmit = () => {
     const amt = Number(withdrawAmount);
-    const min = 100; // Minimum withdrawal fixed at Rs 100
+    const min = 50; // Minimum withdrawal fixed at Rs 50
     if (!amt || amt < min) {
       toast.error(`Minimum withdrawal \u20b9${min} hai`);
       return;
@@ -448,26 +448,6 @@ export default function Profile() {
     setDepositAmount("");
     setDepositNote("");
     setDepositDone(false);
-  };
-
-  const handleConvertSubmit = () => {
-    const amt = Number(convertAmount);
-    const walletBal = profile ? Number(profile.walletBalance) : 0;
-    const regularBalance = walletBal - winningCash;
-    if (!amt || amt <= 0) {
-      toast.error("Valid amount daalo");
-      return;
-    }
-    if (amt > regularBalance) {
-      toast.error(`Sirf \u20b9${regularBalance} regular balance available hai`);
-      return;
-    }
-    const newWinningCash = winningCash + amt;
-    localStorage.setItem(WINNING_CASH_KEY, String(newWinningCash));
-    setWinningCash(newWinningCash);
-    setConvertAmount("");
-    setConvertOpen(false);
-    toast.success(`\u20b9${amt} Winning Cash mein convert ho gaya!`);
   };
 
   if (!currentUser) {
@@ -699,56 +679,13 @@ export default function Profile() {
             <p className="text-sm text-primary/80 font-medium">
               Regular Balance
             </p>
-            <div className="flex items-center justify-between mt-1">
+            <div className="mt-1">
               <span className="font-display font-bold text-3xl text-foreground">
                 ₹{Math.max(0, getLocalWalletBalance() - winningCash)}
               </span>
-              <Dialog open={convertOpen} onOpenChange={setConvertOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    data-ocid="profile.convert.button"
-                  >
-                    <Trophy className="w-3.5 h-3.5" /> Convert to Winning Cash
-                  </Button>
-                </DialogTrigger>
-                <DialogContent data-ocid="profile.convert.dialog">
-                  <DialogHeader>
-                    <DialogTitle>Convert to Winning Cash</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-2">
-                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2">
-                      <p className="text-xs text-yellow-400 font-semibold">
-                        ℹ️ Sirf Winning Cash se withdrawal ho sakta hai
-                      </p>
-                    </div>
-                    <div>
-                      <Label>
-                        Amount (₹) — Available: ₹
-                        {Math.max(0, getLocalWalletBalance() - winningCash)}
-                      </Label>
-                      <Input
-                        value={convertAmount}
-                        onChange={(e) => setConvertAmount(e.target.value)}
-                        placeholder="Kitna convert karna hai?"
-                        type="number"
-                        className="mt-1"
-                        data-ocid="profile.convert.input"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      className="w-full"
-                      onClick={handleConvertSubmit}
-                      data-ocid="profile.convert.submit_button"
-                    >
-                      Convert Karo
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <p className="text-xs text-primary/60 mt-1">
+                Tournament join karne ke liye use hota hai
+              </p>
             </div>
           </div>
 
@@ -788,7 +725,8 @@ export default function Profile() {
                       >
                         <Trophy className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
                         <p className="text-sm text-yellow-400 font-semibold">
-                          Pehle balance ko Winning Cash mein convert karo
+                          Aapke paas abhi koi Winning Cash nahi hai. Tournament
+                          jeeto to automatically credit hoga!
                         </p>
                       </div>
                     ) : (
@@ -799,7 +737,7 @@ export default function Profile() {
                           </p>
                         </div>
                         <div>
-                          <Label>Amount (₹) — Min: ₹{100}</Label>
+                          <Label>Amount (₹) — Min: ₹50</Label>
                           <Input
                             value={withdrawAmount}
                             onChange={(e) => setWithdrawAmount(e.target.value)}

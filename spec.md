@@ -1,29 +1,36 @@
-# SR-FF-TURNAMENT
+# SR-FF-TOURNAMENT
 
 ## Current State
-Admin panel has: Tournaments (create only, edit/delete buttons non-functional), Users/Wallet, Payments, Banners, Theme, HomeContent, Notifications, Settings.
+All user registrations and deposit/withdraw requests are stored in device-local localStorage, making them invisible on other devices. Admin cannot see registrations or deposit requests submitted from user devices because each device has its own separate localStorage. The new backend now has phone-based user registration methods (`registerPhoneUser`, `getPhoneUser`, `phoneUserExists`) and open payment request methods (`submitOpenPaymentRequest`, `getAllOpenPaymentRequests`, `updateOpenPaymentStatus`) that work without ICP Identity.
+
+Minimum deposit is hardcoded/read from localStorage so different devices show different values.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Tournament Edit modal (pre-filled form, save updates tournament)
-- Tournament Delete with confirmation dialog
-- Admin Password Change section in Settings (old password verify + new password set, stored in localStorage key `srff_admin_password`)
-- Welcome Message Editor in HomeContent: editable lines for both New User welcome (7 lines) and Returning User welcome (5 lines), stored in localStorage `srff_welcome_new` and `srff_welcome_returning`
-- Footer text editor in Settings (stored in localStorage `srff_footer_text`)
-- WhatsApp support number editor already in Settings (supportContact) - highlight it clearly
+- `useAllPhoneUsers()` hook in useQueries.ts using `actor.getAllPhoneUsers()`
+- `useSubmitOpenPaymentRequest()` hook calling `actor.submitOpenPaymentRequest()`
+- `useAllOpenPaymentRequests()` hook calling `actor.getAllOpenPaymentRequests()` every 3s
+- `useUpdateOpenPaymentStatus()` hook calling `actor.updateOpenPaymentStatus()`
+- `useMyOpenPaymentRequests(phone)` hook calling `actor.getMyOpenPaymentRequests(phone)`
 
 ### Modify
-- AdminTournaments: wire the existing Edit button to open a pre-filled edit modal; wire Delete button to useDeleteTournament or local optimistic delete with confirm dialog
-- AdminSettings: add Password Change section and Footer Text field
-- AdminHomeContent: add Welcome Message editor section
+- `UserAuthContext.tsx`: Make `register()` and `login()` async. `register()` calls `actor.registerPhoneUser()` first to save to backend, then also saves to localStorage. `login()` tries `actor.getPhoneUser(phone)` first and verifies password hash, falls back to localStorage if backend fails (for backward compatibility with old users).
+- `Register.tsx`: `handleSubmit` becomes async, awaits `register()`
+- `Login.tsx`: `handleSubmit` becomes async, awaits `login()`
+- `AdminUsers.tsx`: Replace `getRegisteredPlayers()` (localStorage) with `useAllPhoneUsers()` backend hook. Show `walletBalance` and `winningCash` from backend. Also update MobilePaySection to search by phone in backend users.
+- `AdminPayments.tsx`: Use `useAllOpenPaymentRequests()` and `useUpdateOpenPaymentStatus()` instead of old localStorage-based hooks. Adapt OpenPaymentRequest (id: bigint, status: string, requestType: string) to fit existing PaymentCard UI.
+- Profile.tsx deposit page: Use `useSubmitOpenPaymentRequest()` instead of localStorage hook. Read `minDeposit` from `useSettings()` (backend). Min deposit = 10 rs (from settings).
+- `useSettings()` already reads from backend — ensure minDeposit is used everywhere deposit min is shown.
 
 ### Remove
-- Nothing
+- Old localStorage-only payment hooks: `useSubmitPaymentRequest`, `useAllPaymentRequests`, `useUpdatePaymentRequestStatus`, `useMyPaymentRequests` — replace with backend-based versions
 
 ## Implementation Plan
-1. In AdminTournaments.tsx: Add EditTournamentModal component (same fields as create, pre-filled), connect to edit button. Add delete confirm dialog connected to delete button. Use useUpdateTournament hook if available, else localStorage fallback.
-2. In AdminSettings.tsx: Add "Change Admin Password" card with current password verify + new password input. Add "Footer Text" input. Both saved to localStorage.
-3. In AdminHomeContent.tsx: Add "Welcome Messages" section with two sub-sections (New User / Returning User), each with editable text areas per line (or single textarea), saved to localStorage keys `srff_welcome_new` and `srff_welcome_returning`.
-4. In Home.tsx / Login.tsx (or wherever welcome modals are rendered): Read welcome text from localStorage instead of hardcoded strings.
-5. In AdminLayout.tsx or Layout.tsx footer: Read footer text from localStorage.
+1. Update `useQueries.ts`: add backend-based payment and phone-user hooks
+2. Update `UserAuthContext.tsx`: async register/login with backend
+3. Update `Register.tsx` and `Login.tsx`: async form submit handlers
+4. Update `AdminUsers.tsx`: use `useAllPhoneUsers()` from backend
+5. Update `AdminPayments.tsx`: use `useAllOpenPaymentRequests()` and `useUpdateOpenPaymentStatus()`
+6. Update Profile.tsx: deposit uses `useSubmitOpenPaymentRequest()` and shows minDeposit from backend settings
+7. Validate and fix any TypeScript errors

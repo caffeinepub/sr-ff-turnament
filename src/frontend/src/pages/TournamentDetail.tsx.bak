@@ -23,7 +23,13 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useAllTournaments, useLeaderboard } from "../hooks/useQueries";
+import { useInternetIdentity } from "../hooks/useInternetIdentity";
+import {
+  useAllTournaments,
+  useCallerProfile,
+  useJoinTournament,
+  useLeaderboard,
+} from "../hooks/useQueries";
 
 const RANK_COLORS = ["text-yellow-400", "text-slate-300", "text-amber-600"];
 
@@ -107,7 +113,10 @@ export default function TournamentDetail() {
   const id = (params as Record<string, string>).id ?? "";
   const navigate = useNavigate();
   const { data: tournaments = [], isLoading } = useAllTournaments();
+  const { data: profile } = useCallerProfile();
+  const { identity, login } = useInternetIdentity();
   const { currentUser } = useUserAuth();
+  const joinMutation = useJoinTournament();
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [joinGameName, setJoinGameName] = useState("");
 
@@ -197,88 +206,66 @@ export default function TournamentDetail() {
 
   const joinedPlayers = getTournamentPlayers(tournament.id.toString());
 
-  const handleJoin = (gameName?: string) => {
-    if (!currentUser) {
-      toast.error("Pehle login karo");
+  const handleJoin = async (gameName?: string) => {
+    if (!identity) {
+      login();
       return;
     }
-    const entryFee = Number(tournament.entryFee);
-    // Get regular balance = walletBalance - winningCash
-    const users: Array<{ phone: string; walletBalance?: number }> = (() => {
+    try {
+      await joinMutation.mutateAsync(tournament.id);
+      toast.success("Joined tournament!");
+
+      // Save to match history in localStorage
+      const userKey = profile?.principal?.toString() ?? "guest";
+      const JOINED_KEY = `srff_joined_matches_${userKey}`;
       try {
-        return JSON.parse(localStorage.getItem("srff_users") ?? "[]");
-      } catch {
-        return [];
-      }
-    })();
-    const userRecord = users.find((u) => u.phone === currentUser.phone);
-    const walletBalance = userRecord?.walletBalance ?? 0;
-    const winningCash =
-      Number(localStorage.getItem(`srff_winning_cash_${currentUser.phone}`)) ||
-      0;
-    const regularBalance = Math.max(0, walletBalance - winningCash);
-
-    if (regularBalance < entryFee) {
-      toast.error("Balance kam hai. Pehle deposit karo.");
-      return;
-    }
-
-    // Deduct entry fee from walletBalance in srff_users
-    try {
-      const updatedUsers = users.map((u) => {
-        if (u.phone === currentUser.phone) {
-          return { ...u, walletBalance: (u.walletBalance ?? 0) - entryFee };
-        }
-        return u;
-      });
-      localStorage.setItem("srff_users", JSON.stringify(updatedUsers));
-    } catch {}
-
-    // Save joined player to tournament players list
-    const tpKey = `srff_tp_${tournament.id.toString()}`;
-    try {
-      const players: TournamentPlayer[] = JSON.parse(
-        localStorage.getItem(tpKey) ?? "[]",
-      );
-      const alreadyJoined = players.find((p) => p.phone === currentUser.phone);
-      if (!alreadyJoined) {
-        const savedAvatarId = Number.parseInt(
-          localStorage.getItem("srff_avatar") || "0",
+        const existing = JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
+        const already = existing.find(
+          (m: { id: string }) => m.id === tournament.id.toString(),
         );
-        players.push({
-          phone: currentUser.phone,
-          username: currentUser.username,
-          avatarId: savedAvatarId,
-          joinedAt: new Date().toISOString(),
-          winningAmount: 0,
-          gameName: gameName ?? currentUser.username,
-        });
-        localStorage.setItem(tpKey, JSON.stringify(players));
-      }
-    } catch {}
+        if (!already) {
+          existing.push({
+            id: tournament.id.toString(),
+            title: tournament.title,
+            gameMode: tournament.gameMode,
+            entryFee: Number(tournament.entryFee),
+            prizePool: Number(tournament.prizePool),
+            joinedAt: new Date().toISOString(),
+            winningAmount: 0,
+          });
+          localStorage.setItem(JOINED_KEY, JSON.stringify(existing));
+        }
+      } catch {}
 
-    // Save to match history
-    const JOINED_KEY = `srff_joined_matches_${currentUser.phone}`;
-    try {
-      const existing = JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
-      const already = existing.find(
-        (m: { id: string }) => m.id === tournament.id.toString(),
-      );
-      if (!already) {
-        existing.push({
-          id: tournament.id.toString(),
-          title: tournament.title,
-          gameMode: tournament.gameMode,
-          entryFee: entryFee,
-          prizePool: Number(tournament.prizePool),
-          joinedAt: new Date().toISOString(),
-          winningAmount: 0,
-        });
-        localStorage.setItem(JOINED_KEY, JSON.stringify(existing));
+      // Save player to tournament players list
+      if (currentUser) {
+        const tpKey = `srff_tp_${tournament.id.toString()}`;
+        try {
+          const players: TournamentPlayer[] = JSON.parse(
+            localStorage.getItem(tpKey) ?? "[]",
+          );
+          const alreadyJoined = players.find(
+            (p) => p.phone === currentUser.phone,
+          );
+          if (!alreadyJoined) {
+            const savedAvatarId = Number.parseInt(
+              localStorage.getItem("srff_avatar") || "0",
+            );
+            players.push({
+              phone: currentUser.phone,
+              username: currentUser.username,
+              avatarId: savedAvatarId,
+              joinedAt: new Date().toISOString(),
+              winningAmount: 0,
+              gameName: gameName ?? currentUser.username,
+            });
+            localStorage.setItem(tpKey, JSON.stringify(players));
+          }
+        } catch {}
       }
-    } catch {}
-
-    toast.success(`Tournament join ho gaya! Entry fee ₹${entryFee} deducted.`);
+    } catch {
+      toast.error("Failed to join. Check wallet balance.");
+    }
   };
 
   return (
@@ -489,38 +476,18 @@ export default function TournamentDetail() {
           )}
         </div>
 
-        {/* Regular Balance */}
-        {currentUser &&
-          (() => {
-            const users: Array<{ phone: string; walletBalance?: number }> =
-              (() => {
-                try {
-                  return JSON.parse(localStorage.getItem("srff_users") ?? "[]");
-                } catch {
-                  return [];
-                }
-              })();
-            const userRecord = users.find((u) => u.phone === currentUser.phone);
-            const wb = userRecord?.walletBalance ?? 0;
-            const wc =
-              Number(
-                localStorage.getItem(`srff_winning_cash_${currentUser.phone}`),
-              ) || 0;
-            const regularBalance = Math.max(0, wb - wc);
-            return (
-              <div className="flex items-center gap-2 bg-card border border-border rounded-xl p-3">
-                <Shield className="w-4 h-4 text-success shrink-0" />
-                <div className="text-sm">
-                  <span className="text-muted-foreground">
-                    Regular Balance:{" "}
-                  </span>
-                  <span className="font-bold text-warning">
-                    ₹{regularBalance}
-                  </span>
-                </div>
-              </div>
-            );
-          })()}
+        {/* Wallet Balance */}
+        {profile && (
+          <div className="flex items-center gap-2 bg-card border border-border rounded-xl p-3">
+            <Shield className="w-4 h-4 text-success shrink-0" />
+            <div className="text-sm">
+              <span className="text-muted-foreground">Wallet Balance: </span>
+              <span className="font-bold text-warning">
+                \u20b9{Number(profile.walletBalance)}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Join Button */}
         {canJoin && (
@@ -528,18 +495,25 @@ export default function TournamentDetail() {
             <Button
               className="w-full h-12 text-base font-bold glow-orange"
               onClick={() => {
-                if (!currentUser) {
-                  toast.error("Pehle login karo");
+                if (!identity) {
+                  login();
                   return;
                 }
                 setJoinGameName("");
                 setShowJoinDialog(true);
               }}
+              disabled={joinMutation.isPending}
               data-ocid="tournament-detail.join.button"
             >
-              {currentUser
-                ? `Join for ₹${Number(tournament.entryFee)}`
-                : "Login to Join"}
+              {joinMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" /> Joining...
+                </>
+              ) : identity ? (
+                `Join for ₹${Number(tournament.entryFee)}`
+              ) : (
+                "Login to Join"
+              )}
             </Button>
             <Dialog open={showJoinDialog} onOpenChange={setShowJoinDialog}>
               <DialogContent data-ocid="tournament-detail.join-gamename.dialog">
@@ -572,7 +546,7 @@ export default function TournamentDetail() {
                     Cancel
                   </Button>
                   <Button
-                    disabled={!joinGameName.trim()}
+                    disabled={!joinGameName.trim() || joinMutation.isPending}
                     onClick={() => {
                       const gn = joinGameName.trim();
                       setShowJoinDialog(false);
@@ -580,6 +554,9 @@ export default function TournamentDetail() {
                     }}
                     data-ocid="tournament-detail.join-gamename.confirm_button"
                   >
+                    {joinMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    ) : null}
                     ✅ Confirm Join
                   </Button>
                 </DialogFooter>

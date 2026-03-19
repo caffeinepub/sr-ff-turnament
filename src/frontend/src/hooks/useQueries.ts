@@ -4,7 +4,7 @@ import type { TransactionType } from "../backend";
 import type {
   AppSettings,
   LeaderboardEntry,
-  Tournament,
+  TournamentView as Tournament,
   TournamentStatus,
   UserProfile,
 } from "../backend.d";
@@ -378,8 +378,31 @@ export function useCreateTransaction() {
   });
 }
 
-// Payment request hooks
+// ---- Payment request adapter ----
+function adaptOpenPayment(op: any): PaymentRequest {
+  return {
+    id: Number(op.id),
+    userPhone: op.phone,
+    username: op.username,
+    amount: Number(op.amount),
+    requestType:
+      op.requestType === "deposit" ? { deposit: null } : { withdraw: null },
+    status:
+      op.status === "pending"
+        ? { pending: null }
+        : op.status === "accepted"
+          ? { accepted: null }
+          : { rejected: null },
+    timestamp: Number(op.timestamp) / 1_000_000,
+    note: op.note,
+    upiId: op.upiId,
+  };
+}
+
+// ---- Payment request hooks — backend-first with localStorage fallback ----
+
 export function useSubmitPaymentRequest() {
+  const { actor } = useActor();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
@@ -392,6 +415,29 @@ export function useSubmitPaymentRequest() {
         localStorage.getItem("srff_current_user") || "null",
       );
       if (!currentUser?.phone) throw new Error("Not logged in");
+      const reqType = "deposit" in args.requestType ? "deposit" : "withdraw";
+
+      // Try backend first
+      if (actor) {
+        try {
+          const id = await actor.submitOpenPaymentRequest(
+            currentUser.phone,
+            currentUser.username || currentUser.phone,
+            BigInt(args.amount),
+            reqType,
+            args.note,
+            args.upiId,
+          );
+          return Number(id);
+        } catch (err) {
+          console.error(
+            "Backend submitPaymentRequest failed, falling back to localStorage:",
+            err,
+          );
+        }
+      }
+
+      // Fallback to localStorage
       const requests: PaymentRequest[] = JSON.parse(
         localStorage.getItem(PAYMENTS_KEY) || "[]",
       );
@@ -420,6 +466,7 @@ export function useSubmitPaymentRequest() {
 }
 
 export function useMyPaymentRequests() {
+  const { actor } = useActor();
   return useQuery<PaymentRequest[]>({
     queryKey: ["myPaymentRequests"],
     queryFn: async () => {
@@ -427,18 +474,46 @@ export function useMyPaymentRequests() {
         localStorage.getItem("srff_current_user") || "null",
       );
       if (!currentUser?.phone) return [];
+
+      // Try backend first
+      if (actor) {
+        try {
+          const requests = await actor.getMyOpenPaymentRequests(
+            currentUser.phone,
+          );
+          return requests.map(adaptOpenPayment);
+        } catch {
+          // Fall through to localStorage
+        }
+      }
+
+      // Fallback to localStorage
       const requests: PaymentRequest[] = JSON.parse(
         localStorage.getItem(PAYMENTS_KEY) || "[]",
       );
       return requests.filter((r) => r.userPhone === currentUser.phone);
     },
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 }
 
 export function useAllPaymentRequests() {
+  const { actor } = useActor();
   return useQuery<PaymentRequest[]>({
     queryKey: ["allPaymentRequests"],
     queryFn: async () => {
+      // Try backend first
+      if (actor) {
+        try {
+          const requests = await actor.getAllOpenPaymentRequests();
+          return requests.map(adaptOpenPayment);
+        } catch {
+          // Fall through to localStorage
+        }
+      }
+
+      // Fallback to localStorage
       return JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
     },
     staleTime: 0,
@@ -448,12 +523,33 @@ export function useAllPaymentRequests() {
 }
 
 export function useUpdatePaymentRequestStatus() {
+  const { actor } = useActor();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
       requestId: number;
       status: { accepted: null } | { rejected: null };
     }) => {
+      const newStatus = "accepted" in args.status ? "accepted" : "rejected";
+
+      // Try backend first
+      if (actor) {
+        try {
+          await actor.updateOpenPaymentStatus(
+            BigInt(args.requestId),
+            newStatus,
+            BigInt(0),
+          );
+          return;
+        } catch (err) {
+          console.error(
+            "Backend updatePaymentStatus failed, falling back to localStorage:",
+            err,
+          );
+        }
+      }
+
+      // Fallback to localStorage
       const requests: PaymentRequest[] = JSON.parse(
         localStorage.getItem(PAYMENTS_KEY) || "[]",
       );
@@ -463,7 +559,6 @@ export function useUpdatePaymentRequestStatus() {
       requests[idx] = { ...req, status: args.status };
       localStorage.setItem(PAYMENTS_KEY, JSON.stringify(requests));
 
-      // When deposit accepted: add to user walletBalance
       if ("accepted" in args.status && "deposit" in req.requestType) {
         const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
         const userIdx = users.findIndex((u: any) => u.phone === req.userPhone);
@@ -481,7 +576,6 @@ export function useUpdatePaymentRequestStatus() {
         }
       }
 
-      // When withdrawal accepted: deduct from winningCash
       if ("accepted" in args.status && "withdraw" in req.requestType) {
         const cashKey = `srff_winning_cash_${req.userPhone}`;
         const cur = Number(localStorage.getItem(cashKey) || "0");
@@ -492,6 +586,24 @@ export function useUpdatePaymentRequestStatus() {
       qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
       qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
     },
+  });
+}
+
+export function useAllPhoneUsers() {
+  const { actor, isFetching } = useActor();
+  return useQuery({
+    queryKey: ["allPhoneUsers"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        return await actor.getAllPhoneUsers();
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !isFetching,
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 }
 
