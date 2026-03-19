@@ -80,25 +80,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
   ): Promise<{ success: boolean; error?: string }> {
     const trimmedPhone = phone.trim();
 
-    // Check locally first
-    const users = getUsers();
-    if (users.find((u) => u.phone === trimmedPhone)) {
-      return {
-        success: false,
-        error: "An account already exists with this mobile number",
-      };
-    }
-
-    const newUser: UserRecord = {
-      username: username.trim(),
-      ffName: ffName.trim(),
-      phone: trimmedPhone,
-      passwordHash: hashPassword(password),
-      name: username.trim(),
-      email: "",
-    };
-
-    // Try backend first
+    // Registration MUST succeed on backend — no localStorage-only fallback
     try {
       const actor = await createActorWithConfig();
       const exists = await actor.phoneUserExists(trimmedPhone);
@@ -115,13 +97,24 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
         hashPassword(password),
       );
     } catch (err) {
-      console.error(
-        "Backend register failed, saving to localStorage only:",
-        err,
-      );
+      console.error("Backend register failed:", err);
+      return {
+        success: false,
+        error:
+          "Server se connect nahi ho saka. Internet check karo aur dobara try karo.",
+      };
     }
 
-    // Always save locally too (backward compat + offline support)
+    // Only save locally AFTER successful backend registration
+    const newUser: UserRecord = {
+      username: username.trim(),
+      ffName: ffName.trim(),
+      phone: trimmedPhone,
+      passwordHash: hashPassword(password),
+      name: username.trim(),
+      email: "",
+    };
+    const users = getUsers();
     saveUsers([...users, newUser]);
     setCurrentUser(newUser);
     return { success: true };
@@ -167,7 +160,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
       console.error("Backend login failed, trying localStorage:", err);
     }
 
-    // Fallback to localStorage
+    // Fallback to localStorage (login is safe to fallback — no cross-device write)
     const users = getUsers();
     const user = users.find(
       (u) => u.phone === trimmedPhone && u.passwordHash === hashed,

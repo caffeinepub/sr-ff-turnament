@@ -10,7 +10,6 @@ import type {
 } from "../backend.d";
 import { useActor } from "./useActor";
 
-const PAYMENTS_KEY = "srff_payment_requests";
 const NOTIFICATIONS_KEY = "srff_global_notifications";
 
 export interface PaymentRequest {
@@ -399,7 +398,7 @@ function adaptOpenPayment(op: any): PaymentRequest {
   };
 }
 
-// ---- Payment request hooks — backend-first with localStorage fallback ----
+// ---- Payment request hooks — backend ONLY (no localStorage fallback for writes) ----
 
 export function useSubmitPaymentRequest() {
   const { actor } = useActor();
@@ -415,48 +414,22 @@ export function useSubmitPaymentRequest() {
         localStorage.getItem("srff_current_user") || "null",
       );
       if (!currentUser?.phone) throw new Error("Not logged in");
-      const reqType = "deposit" in args.requestType ? "deposit" : "withdraw";
 
-      // Try backend first
-      if (actor) {
-        try {
-          const id = await actor.submitOpenPaymentRequest(
-            currentUser.phone,
-            currentUser.username || currentUser.phone,
-            BigInt(args.amount),
-            reqType,
-            args.note,
-            args.upiId,
-          );
-          return Number(id);
-        } catch (err) {
-          console.error(
-            "Backend submitPaymentRequest failed, falling back to localStorage:",
-            err,
-          );
-        }
+      // Backend is required — no localStorage fallback for payment requests
+      if (!actor) {
+        throw new Error("Server se connect nahi ho saka. Dobara try karo.");
       }
 
-      // Fallback to localStorage
-      const requests: PaymentRequest[] = JSON.parse(
-        localStorage.getItem(PAYMENTS_KEY) || "[]",
+      const reqType = "deposit" in args.requestType ? "deposit" : "withdraw";
+      const id = await actor.submitOpenPaymentRequest(
+        currentUser.phone,
+        currentUser.username || currentUser.phone,
+        BigInt(args.amount),
+        reqType,
+        args.note,
+        args.upiId,
       );
-      const newId =
-        requests.length > 0 ? Math.max(...requests.map((r) => r.id)) + 1 : 1;
-      const newReq: PaymentRequest = {
-        id: newId,
-        userPhone: currentUser.phone,
-        username: currentUser.username || currentUser.phone,
-        amount: args.amount,
-        requestType: args.requestType,
-        status: { pending: null },
-        timestamp: Date.now(),
-        note: args.note,
-        upiId: args.upiId,
-      };
-      requests.push(newReq);
-      localStorage.setItem(PAYMENTS_KEY, JSON.stringify(requests));
-      return newId;
+      return Number(id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
@@ -475,23 +448,15 @@ export function useMyPaymentRequests() {
       );
       if (!currentUser?.phone) return [];
 
-      // Try backend first
-      if (actor) {
-        try {
-          const requests = await actor.getMyOpenPaymentRequests(
-            currentUser.phone,
-          );
-          return requests.map(adaptOpenPayment);
-        } catch {
-          // Fall through to localStorage
-        }
+      if (!actor) return [];
+      try {
+        const requests = await actor.getMyOpenPaymentRequests(
+          currentUser.phone,
+        );
+        return requests.map(adaptOpenPayment);
+      } catch {
+        return [];
       }
-
-      // Fallback to localStorage
-      const requests: PaymentRequest[] = JSON.parse(
-        localStorage.getItem(PAYMENTS_KEY) || "[]",
-      );
-      return requests.filter((r) => r.userPhone === currentUser.phone);
     },
     staleTime: 0,
     refetchInterval: 5000,
@@ -503,18 +468,13 @@ export function useAllPaymentRequests() {
   return useQuery<PaymentRequest[]>({
     queryKey: ["allPaymentRequests"],
     queryFn: async () => {
-      // Try backend first
-      if (actor) {
-        try {
-          const requests = await actor.getAllOpenPaymentRequests();
-          return requests.map(adaptOpenPayment);
-        } catch {
-          // Fall through to localStorage
-        }
+      if (!actor) return [];
+      try {
+        const requests = await actor.getAllOpenPaymentRequests();
+        return requests.map(adaptOpenPayment);
+      } catch {
+        return [];
       }
-
-      // Fallback to localStorage
-      return JSON.parse(localStorage.getItem(PAYMENTS_KEY) || "[]");
     },
     staleTime: 0,
     refetchInterval: 3000,
@@ -532,55 +492,14 @@ export function useUpdatePaymentRequestStatus() {
     }) => {
       const newStatus = "accepted" in args.status ? "accepted" : "rejected";
 
-      // Try backend first
-      if (actor) {
-        try {
-          await actor.updateOpenPaymentStatus(
-            BigInt(args.requestId),
-            newStatus,
-            BigInt(0),
-          );
-          return;
-        } catch (err) {
-          console.error(
-            "Backend updatePaymentStatus failed, falling back to localStorage:",
-            err,
-          );
-        }
-      }
+      if (!actor)
+        throw new Error("Server se connect nahi ho saka. Dobara try karo.");
 
-      // Fallback to localStorage
-      const requests: PaymentRequest[] = JSON.parse(
-        localStorage.getItem(PAYMENTS_KEY) || "[]",
+      await actor.updateOpenPaymentStatus(
+        BigInt(args.requestId),
+        newStatus,
+        BigInt(0),
       );
-      const idx = requests.findIndex((r) => r.id === args.requestId);
-      if (idx === -1) throw new Error("Request not found");
-      const req = requests[idx];
-      requests[idx] = { ...req, status: args.status };
-      localStorage.setItem(PAYMENTS_KEY, JSON.stringify(requests));
-
-      if ("accepted" in args.status && "deposit" in req.requestType) {
-        const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
-        const userIdx = users.findIndex((u: any) => u.phone === req.userPhone);
-        if (userIdx !== -1) {
-          users[userIdx].walletBalance =
-            (users[userIdx].walletBalance || 0) + req.amount;
-          localStorage.setItem("srff_users", JSON.stringify(users));
-          const cu = JSON.parse(
-            localStorage.getItem("srff_current_user") || "null",
-          );
-          if (cu?.phone === req.userPhone) {
-            cu.walletBalance = users[userIdx].walletBalance;
-            localStorage.setItem("srff_current_user", JSON.stringify(cu));
-          }
-        }
-      }
-
-      if ("accepted" in args.status && "withdraw" in req.requestType) {
-        const cashKey = `srff_winning_cash_${req.userPhone}`;
-        const cur = Number(localStorage.getItem(cashKey) || "0");
-        localStorage.setItem(cashKey, String(Math.max(0, cur - req.amount)));
-      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
