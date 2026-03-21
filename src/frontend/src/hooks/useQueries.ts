@@ -472,12 +472,14 @@ export function useAllPaymentRequests() {
       try {
         const requests = await actor.getAllOpenPaymentRequests();
         return requests.map(adaptOpenPayment);
-      } catch {
+      } catch (e) {
+        console.error("getAllOpenPaymentRequests error:", e);
         return [];
       }
     },
+    enabled: !!actor,
     staleTime: 0,
-    refetchInterval: 3000,
+    refetchInterval: 2000,
     refetchOnWindowFocus: true,
   });
 }
@@ -509,20 +511,23 @@ export function useUpdatePaymentRequestStatus() {
 }
 
 export function useAllPhoneUsers() {
-  const { actor, isFetching } = useActor();
+  const { actor } = useActor();
   return useQuery({
     queryKey: ["allPhoneUsers"],
     queryFn: async () => {
       if (!actor) return [];
       try {
-        return await actor.getAllPhoneUsers();
-      } catch {
+        const result = await actor.getAllPhoneUsers();
+        return result;
+      } catch (e) {
+        console.error("getAllPhoneUsers error:", e);
         return [];
       }
     },
-    enabled: !!actor && !isFetching,
+    enabled: !!actor,
     staleTime: 0,
-    refetchInterval: 5000,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
   });
 }
 

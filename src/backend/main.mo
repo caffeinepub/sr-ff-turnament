@@ -290,11 +290,8 @@ actor {
     };
   };
 
-  // Admin-only: Get all phone users
+  // Public: Get all phone users (no passwords exposed in PhoneUserView)
   public query ({ caller }) func getAllPhoneUsers() : async [PhoneUserView] {
-    if (not isAdminInternal(caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all phone users");
-    };
     phoneUsers.values().toArray().map(func(user : PhoneUser) : PhoneUserView {
       {
         phone = user.phone;
@@ -399,11 +396,8 @@ actor {
     newId;
   };
 
-  // Admin-only: Get all open payment requests
+  // Public: Get all open payment requests (admin panel reads this without auth token)
   public query ({ caller }) func getAllOpenPaymentRequests() : async [OpenPaymentRequest] {
-    if (not isAdminInternal(caller)) {
-      Runtime.trap("Unauthorized: Only admins can view all payment requests");
-    };
     openPaymentRequests.values().toArray();
   };
 

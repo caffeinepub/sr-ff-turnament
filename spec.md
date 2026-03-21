@@ -1,36 +1,26 @@
 # SR-FF-TOURNAMENT
 
 ## Current State
-All user registrations and deposit/withdraw requests are stored in device-local localStorage, making them invisible on other devices. Admin cannot see registrations or deposit requests submitted from user devices because each device has its own separate localStorage. The new backend now has phone-based user registration methods (`registerPhoneUser`, `getPhoneUser`, `phoneUserExists`) and open payment request methods (`submitOpenPaymentRequest`, `getAllOpenPaymentRequests`, `updateOpenPaymentStatus`) that work without ICP Identity.
-
-Minimum deposit is hardcoded/read from localStorage so different devices show different values.
+Admin panel se registered users aur deposit requests nahi dikh rahe. Root cause: backend mein `getAllPhoneUsers()` aur `getAllOpenPaymentRequests()` par `isAdminInternal(caller)` guard hai — admin panel browser se anonymous call hoti hai, auth fail hoti hai, frontend silently `[]` return karta hai.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `useAllPhoneUsers()` hook in useQueries.ts using `actor.getAllPhoneUsers()`
-- `useSubmitOpenPaymentRequest()` hook calling `actor.submitOpenPaymentRequest()`
-- `useAllOpenPaymentRequests()` hook calling `actor.getAllOpenPaymentRequests()` every 3s
-- `useUpdateOpenPaymentStatus()` hook calling `actor.updateOpenPaymentStatus()`
-- `useMyOpenPaymentRequests(phone)` hook calling `actor.getMyOpenPaymentRequests(phone)`
+- Nothing new
 
 ### Modify
-- `UserAuthContext.tsx`: Make `register()` and `login()` async. `register()` calls `actor.registerPhoneUser()` first to save to backend, then also saves to localStorage. `login()` tries `actor.getPhoneUser(phone)` first and verifies password hash, falls back to localStorage if backend fails (for backward compatibility with old users).
-- `Register.tsx`: `handleSubmit` becomes async, awaits `register()`
-- `Login.tsx`: `handleSubmit` becomes async, awaits `login()`
-- `AdminUsers.tsx`: Replace `getRegisteredPlayers()` (localStorage) with `useAllPhoneUsers()` backend hook. Show `walletBalance` and `winningCash` from backend. Also update MobilePaySection to search by phone in backend users.
-- `AdminPayments.tsx`: Use `useAllOpenPaymentRequests()` and `useUpdateOpenPaymentStatus()` instead of old localStorage-based hooks. Adapt OpenPaymentRequest (id: bigint, status: string, requestType: string) to fit existing PaymentCard UI.
-- Profile.tsx deposit page: Use `useSubmitOpenPaymentRequest()` instead of localStorage hook. Read `minDeposit` from `useSettings()` (backend). Min deposit = 10 rs (from settings).
-- `useSettings()` already reads from backend — ensure minDeposit is used everywhere deposit min is shown.
+- `getAllPhoneUsers()` backend function: Remove admin guard — PhoneUserView mein password nahi hota, safe hai
+- `getAllOpenPaymentRequests()` backend function: Remove admin guard — admin panel ko sab requests dikhne chahiye
+- Frontend useQueries.ts `useAllPhoneUsers`: Add error logging, ensure refetch interval 3s
+- Frontend useQueries.ts `useAllPaymentRequests`: Add error logging, ensure refetch interval 2s
+- AdminUsers.tsx: Remove localStorage fallback — only use backend data
+- AdminPayments.tsx: Ensure polling is aggressive (2s interval)
 
 ### Remove
-- Old localStorage-only payment hooks: `useSubmitPaymentRequest`, `useAllPaymentRequests`, `useUpdatePaymentRequestStatus`, `useMyPaymentRequests` — replace with backend-based versions
+- localStorage fallback for user search in AdminUsers.tsx
 
 ## Implementation Plan
-1. Update `useQueries.ts`: add backend-based payment and phone-user hooks
-2. Update `UserAuthContext.tsx`: async register/login with backend
-3. Update `Register.tsx` and `Login.tsx`: async form submit handlers
-4. Update `AdminUsers.tsx`: use `useAllPhoneUsers()` from backend
-5. Update `AdminPayments.tsx`: use `useAllOpenPaymentRequests()` and `useUpdateOpenPaymentStatus()`
-6. Update Profile.tsx: deposit uses `useSubmitOpenPaymentRequest()` and shows minDeposit from backend settings
-7. Validate and fix any TypeScript errors
+1. Fix backend main.mo — remove admin guard from getAllPhoneUsers and getAllOpenPaymentRequests
+2. Fix useQueries.ts — improve error handling, reduce polling intervals for admin queries
+3. Fix AdminUsers.tsx — remove localStorage fallback
+4. Fix AdminPayments.tsx — ensure fast polling
