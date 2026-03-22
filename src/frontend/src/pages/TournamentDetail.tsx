@@ -23,7 +23,11 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useAllTournaments, useLeaderboard } from "../hooks/useQueries";
+import {
+  useAllTournamentBanners,
+  useAllTournaments,
+  useLeaderboard,
+} from "../hooks/useQueries";
 
 const RANK_COLORS = ["text-yellow-400", "text-slate-300", "text-amber-600"];
 
@@ -151,6 +155,7 @@ export default function TournamentDetail() {
   const { data: leaderboard = [] } = useLeaderboard(
     tournament?.id ?? BigInt(0),
   );
+  const { data: allBanners = {} } = useAllTournamentBanners();
 
   if (isLoading) {
     return (
@@ -176,16 +181,9 @@ export default function TournamentDetail() {
     );
   }
 
-  const bannerUrl = (() => {
-    try {
-      const banners = JSON.parse(
-        localStorage.getItem("srff_tournament_banners") ?? "{}",
-      ) as Record<string, string>;
-      return banners[tournament.id.toString()] ?? "";
-    } catch {
-      return "";
-    }
-  })();
+  const bannerUrl = tournament
+    ? (allBanners[tournament.id.toString()] ?? "")
+    : "";
 
   const start = new Date(Number(tournament.startTime) / 1_000_000);
   const canJoin = tournament.status !== "complete";

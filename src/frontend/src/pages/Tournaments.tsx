@@ -7,6 +7,7 @@ import {
   Clock,
   Coins,
   Filter,
+  Timer,
   Trophy,
   Users,
 } from "lucide-react";
@@ -69,6 +70,24 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function useCountdown(targetMs: number): string {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const diff = targetMs - now;
+  if (diff <= 0) return "";
+  const totalSec = Math.floor(diff / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const mins = Math.floor((totalSec % 3600) / 60);
+  const secs = totalSec % 60;
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m`;
+  return `${mins}m ${secs}s`;
+}
+
 function TournamentCard({ t, index }: { t: Tournament; index: number }) {
   const start = new Date(Number(t.startTime) / 1_000_000);
   const bannerUrl = (() => {
@@ -85,6 +104,7 @@ function TournamentCard({ t, index }: { t: Tournament; index: number }) {
       return "";
     }
   })();
+  const countdown = useCountdown(start.getTime());
   return (
     <Link
       to="/tournament/$id"
@@ -111,6 +131,12 @@ function TournamentCard({ t, index }: { t: Tournament; index: number }) {
           </div>
           <StatusBadge status={t.status as string} />
         </div>
+        {(t.status as string) === "upcoming" && countdown && (
+          <div className="flex items-center gap-1 text-xs text-warning font-semibold mt-1 mb-2">
+            <Timer className="w-3 h-3" />
+            Starts in: {countdown}
+          </div>
+        )}
         <div className="grid grid-cols-3 gap-2">
           <div className="text-center">
             <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">

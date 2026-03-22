@@ -17,7 +17,9 @@ import {
   MinusCircle,
   Phone,
   PlusCircle,
+  RefreshCw,
   Search,
+  Trash2,
   Users,
 } from "lucide-react";
 import { useState } from "react";
@@ -25,6 +27,7 @@ import { toast } from "sonner";
 import type { PhoneUserView, UserProfile } from "../../backend.d";
 import {
   useAdminAdjustWallet,
+  useAdminDeletePhoneUser,
   useAllPhoneUsers,
   useAllUsers,
 } from "../../hooks/useQueries";
@@ -41,6 +44,7 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
   const [amount, setAmount] = useState("");
   const [searched, setSearched] = useState(false);
   const adjustMutation = useAdminAdjustWallet();
+  const deleteMutation = useAdminDeletePhoneUser();
 
   const handleSearch = () => {
     const trimmed = mobile.trim();
@@ -118,6 +122,28 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
           ? "Insufficient balance"
           : "Wallet adjust nahi ho saka",
       );
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!foundPhoneUser) return;
+    if (
+      !window.confirm(
+        `"${foundPhoneUser.username}" (${foundPhoneUser.phone}) ko delete karna chahte ho? Yeh user dobara register kar sakega.`,
+      )
+    )
+      return;
+    try {
+      await deleteMutation.mutateAsync(foundPhoneUser.phone);
+      toast.success(
+        `User "${foundPhoneUser.username}" delete ho gaya — ab woh dobara register kar sakta hai!`,
+      );
+      setFoundPhoneUser(null);
+      setMatchedIcpUser(null);
+      setSearched(false);
+      setMobile("");
+    } catch (_e: unknown) {
+      toast.error("User delete nahi ho saka");
     }
   };
 
@@ -252,6 +278,23 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
                 </div>
               </div>
             )}
+            <div className="pt-3 mt-1">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                onClick={handleDelete}
+                disabled={deleteMutation.isPending}
+                data-ocid="admin-mobile-pay.delete.button"
+              >
+                {deleteMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Trash2 className="w-4 h-4" />
+                )}
+                🗑️ User Delete / Re-register Allow Karo
+              </Button>
+            </div>
           </div>
         )}
 

@@ -18,8 +18,11 @@ import {
 import { useEffect, useRef, useState } from "react";
 import UpdateModal from "../components/UpdateModal";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
-import { useAllNotifications, useAllTournaments } from "../hooks/useQueries";
-import type { PromoBanner } from "./admin/AdminBanners";
+import {
+  useAllNotifications,
+  useAllPromoBanners,
+  useAllTournaments,
+} from "../hooks/useQueries";
 import type { PromoLink } from "./admin/AdminHomeContent";
 
 const HEADER_COLORS_KEY = "srff_header_colors";
@@ -61,15 +64,6 @@ function loadPromoLinks(): PromoLink[] {
       localStorage.getItem("srff_promo_links") ?? "[]",
     ) as PromoLink[];
     return data.filter((p) => p.active);
-  } catch {
-    return [];
-  }
-}
-
-function loadPromoBanners(): PromoBanner[] {
-  try {
-    const data = JSON.parse(localStorage.getItem("srff_promo_banners") || "[]");
-    return (data as PromoBanner[]).filter((b) => b.active);
   } catch {
     return [];
   }
@@ -617,6 +611,7 @@ export default function Home() {
   const [contestTab, setContestTab] = useState("ongoing");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const { data: backendTournaments = [] } = useAllTournaments();
+  const { data: backendBanners = [] } = useAllPromoBanners();
 
   // Merge backend tournaments with any locally created ones (fallback for same-device display)
   const localCreated: Array<{
@@ -777,7 +772,7 @@ export default function Home() {
 
   const announcement = loadAnnouncement();
   const promoLinks = loadPromoLinks();
-  const promoBanners = loadPromoBanners();
+  const promoBanners = backendBanners.filter((b) => b.active);
   const activeBanner = promoBanners[bannerIdx] ?? null;
 
   const filtered = tournaments.filter((t) => {
@@ -1335,263 +1330,6 @@ export default function Home() {
           })()}
 
         {/* ── Tournament Category Buttons ── */}
-        <section data-ocid="home.category-filter.panel">
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("1 vs 1 Custom")}
-              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-orange-400/60 active:scale-95 transition-all"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(249,115,22,0.18), rgba(234,179,8,0.10))",
-                boxShadow: "0 0 12px rgba(249,115,22,0.15)",
-              }}
-              data-ocid="home.filter-1v1.button"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg, #f97316, #eab308)",
-                }}
-              >
-                <Swords className="w-5 h-5 text-white" />
-              </div>
-              <span
-                className="text-[10px] font-bold text-center leading-tight"
-                style={{ color: "#f97316" }}
-              >
-                1 vs 1 Custom
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("Squad")}
-              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-cyan-400/60 active:scale-95 transition-all"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(34,211,238,0.18), rgba(99,102,241,0.10))",
-                boxShadow: "0 0 12px rgba(34,211,238,0.15)",
-              }}
-              data-ocid="home.filter-squad.button"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg, #22d3ee, #6366f1)",
-                }}
-              >
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <span
-                className="text-[10px] font-bold text-center leading-tight"
-                style={{ color: "#22d3ee" }}
-              >
-                Full Map Squad
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("Solo")}
-              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-green-400/60 active:scale-95 transition-all"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(34,197,94,0.18), rgba(132,204,22,0.10))",
-                boxShadow: "0 0 12px rgba(34,197,94,0.15)",
-              }}
-              data-ocid="home.filter-solo.button"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg, #22c55e, #84cc16)",
-                }}
-              >
-                <Target className="w-5 h-5 text-white" />
-              </div>
-              <span
-                className="text-[10px] font-bold text-center leading-tight"
-                style={{ color: "#22c55e" }}
-              >
-                Full Map Solo
-              </span>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-2">
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("4 vs 4 Custom")}
-              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-violet-400/60 active:scale-95 transition-all"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(139,92,246,0.18), rgba(168,85,247,0.10))",
-                boxShadow: "0 0 12px rgba(139,92,246,0.15)",
-              }}
-              data-ocid="home.filter-4v4.button"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
-                }}
-              >
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <span
-                className="text-[10px] font-bold text-center leading-tight"
-                style={{ color: "#8b5cf6" }}
-              >
-                4 vs 4 Custom
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setCategoryFilter("Sunday")}
-              className="flex flex-col items-center gap-1.5 rounded-2xl p-3 border border-white/10 hover:border-yellow-400/60 active:scale-95 transition-all"
-              style={{
-                background:
-                  "linear-gradient(135deg, rgba(251,191,36,0.18), rgba(245,158,11,0.10))",
-                boxShadow: "0 0 12px rgba(251,191,36,0.15)",
-              }}
-              data-ocid="home.filter-sunday.button"
-            >
-              <div
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{
-                  background: "linear-gradient(135deg, #fbbf24, #f59e0b)",
-                }}
-              >
-                <Star className="w-5 h-5 text-white" />
-              </div>
-              <span
-                className="text-[10px] font-bold text-center leading-tight"
-                style={{ color: "#fbbf24" }}
-              >
-                Sunday Special
-              </span>
-            </button>
-          </div>
-        </section>
-
-        {/* ── Category Filter Modal ── */}
-        {categoryFilter !== null &&
-          (() => {
-            const modeMap: Record<string, string[]> = {
-              "1 vs 1 Custom": ["1 vs 1 Custom"],
-              Squad: ["Squad", "BR Squad"],
-              Solo: ["Solo", "BR Solo", "BR Per Kill"],
-              "4 vs 4 Custom": [
-                "4 vs 4 Custom",
-                "4v4 Clash Squad",
-                "Clash Squad 4v4",
-              ],
-              Sunday: ["Sunday Special"],
-            };
-            const matchModes = modeMap[categoryFilter] ?? [];
-            const catTournaments = tournaments.filter(
-              (t) =>
-                matchModes.some((m) =>
-                  (t.gameMode ?? "").toLowerCase().includes(m.toLowerCase()),
-                ) &&
-                (t.status === "ongoing" || t.status === "upcoming"),
-            );
-            const label =
-              categoryFilter === "1 vs 1 Custom"
-                ? "1 vs 1 Custom"
-                : categoryFilter === "Squad"
-                  ? "Full Map Squad"
-                  : categoryFilter === "Solo"
-                    ? "Full Map Solo"
-                    : categoryFilter === "4 vs 4 Custom"
-                      ? "4 vs 4 Custom"
-                      : "Sunday Special";
-            return (
-              <div
-                className="fixed inset-0 z-50 flex flex-col"
-                style={{
-                  background: "rgba(0,0,0,0.93)",
-                  backdropFilter: "blur(6px)",
-                }}
-                data-ocid="home.category-modal.modal"
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-primary" />
-                    <h2 className="font-display font-bold text-base text-white">
-                      {label} Tournaments
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setCategoryFilter(null)}
-                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                    data-ocid="home.category-modal.close_button"
-                  >
-                    <X className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {catTournaments.length === 0 ? (
-                    <div
-                      className="flex flex-col items-center justify-center h-48 text-muted-foreground"
-                      data-ocid="home.category-modal.empty_state"
-                    >
-                      <Trophy className="w-12 h-12 mb-3 opacity-20" />
-                      <p className="text-sm font-medium">
-                        Koi tournament nahi mila
-                      </p>
-                      <p className="text-xs opacity-60 mt-1">
-                        Live ya upcoming tournaments abhi available nahi hain
-                      </p>
-                    </div>
-                  ) : (
-                    catTournaments.map((t, i) => (
-                      <Link
-                        key={t.id.toString()}
-                        to="/tournament/$id"
-                        params={{ id: t.id.toString() }}
-                        onClick={() => setCategoryFilter(null)}
-                        className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-3 hover:border-primary/50 transition-colors"
-                        data-ocid={`home.category-modal.item.${i + 1}`}
-                      >
-                        <div
-                          className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                          style={{
-                            background:
-                              "linear-gradient(135deg, rgba(249,115,22,0.3), rgba(234,179,8,0.2))",
-                          }}
-                        >
-                          <Trophy className="w-5 h-5 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-sm text-white truncate">
-                            {t.title}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {t.gameMode}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${t.status === "ongoing" ? "bg-green-500/20 text-green-400" : "bg-yellow-500/20 text-yellow-400"}`}
-                            >
-                              {t.status === "ongoing"
-                                ? "🔴 LIVE"
-                                : "🕐 Upcoming"}
-                            </span>
-                            {t.entryFee !== undefined && (
-                              <span className="text-[10px] text-orange-400 font-semibold">
-                                Entry: ₹{String(t.entryFee)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                      </Link>
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })()}
 
         {/* Promo Photo Links row */}
         {promoLinks.length > 0 && (
@@ -1632,9 +1370,9 @@ export default function Home() {
             className="relative rounded-2xl overflow-hidden glow-fire"
             data-ocid="home.promo-banner.panel"
           >
-            {activeBanner.imageUrl ? (
+            {activeBanner.imageData ? (
               <img
-                src={activeBanner.imageUrl}
+                src={activeBanner.imageData}
                 alt={activeBanner.title}
                 className="w-full h-40 object-cover"
                 onError={(e) => {

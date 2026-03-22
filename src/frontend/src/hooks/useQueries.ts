@@ -552,3 +552,169 @@ export function useAdminAdjustWallet() {
     },
   });
 }
+
+export function useAdminDeletePhoneUser() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (phone: string) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).deletePhoneUser(phone) as Promise<void>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allPhoneUsers"] });
+      qc.invalidateQueries({ queryKey: ["allUsers"] });
+    },
+  });
+}
+
+// ---- Promo Banner hooks (backend-based, all devices) ----
+
+export interface BackendPromoBanner {
+  id: number;
+  title: string;
+  subtitle: string;
+  imageData: string; // base64
+  buttonText: string;
+  buttonLink: string;
+  active: boolean;
+  createdAt: number;
+}
+
+export function useAllPromoBanners() {
+  const { actor } = useActor();
+  return useQuery<BackendPromoBanner[]>({
+    queryKey: ["promoBanners"],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        const result = await (actor as any).getAllPromoBanners();
+        return result.map((b: any) => ({
+          id: Number(b.id),
+          title: b.title,
+          subtitle: b.subtitle,
+          imageData: b.imageData,
+          buttonText: b.buttonText,
+          buttonLink: b.buttonLink,
+          active: b.active,
+          createdAt: Number(b.createdAt),
+        }));
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 0,
+    refetchInterval: 5000,
+  });
+}
+
+export function useSavePromoBanner() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      title: string;
+      subtitle: string;
+      imageData: string;
+      buttonText: string;
+      buttonLink: string;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).savePromoBanner(
+        args.title,
+        args.subtitle,
+        args.imageData,
+        args.buttonText,
+        args.buttonLink,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+  });
+}
+
+export function useUpdatePromoBanner() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      id: number;
+      title: string;
+      subtitle: string;
+      imageData: string;
+      buttonText: string;
+      buttonLink: string;
+    }) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).updatePromoBanner(
+        BigInt(args.id),
+        args.title,
+        args.subtitle,
+        args.imageData,
+        args.buttonText,
+        args.buttonLink,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+  });
+}
+
+export function useTogglePromoBanner() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).togglePromoBanner(BigInt(id));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+  });
+}
+
+export function useDeletePromoBanner() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).deletePromoBanner(BigInt(id));
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+  });
+}
+
+export function useSaveTournamentBanner() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { tournamentId: string; imageData: string }) => {
+      if (!actor) throw new Error("Not connected");
+      return (actor as any).saveTournamentBanner(
+        args.tournamentId,
+        args.imageData,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["tournamentBanners"] }),
+  });
+}
+
+export function useAllTournamentBanners() {
+  const { actor } = useActor();
+  return useQuery<Record<string, string>>({
+    queryKey: ["tournamentBanners"],
+    queryFn: async () => {
+      if (!actor) return {};
+      try {
+        const result = (await (
+          actor as any
+        ).getAllTournamentBanners()) as Array<[string, string]>;
+        const map: Record<string, string> = {};
+        for (const [k, v] of result) map[k] = v;
+        return map;
+      } catch {
+        return {};
+      }
+    },
+    staleTime: 0,
+    refetchInterval: 5000,
+  });
+}

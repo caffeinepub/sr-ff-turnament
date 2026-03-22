@@ -43,9 +43,11 @@ import { toast } from "sonner";
 import type { TournamentStatus } from "../../backend";
 import type { TournamentView as Tournament } from "../../backend.d";
 import {
+  useAllTournamentBanners,
   useAllTournaments,
   useCreateTournament,
   useLeaderboard,
+  useSaveTournamentBanner,
   useSetLeaderboard,
 } from "../../hooks/useQueries";
 
@@ -68,6 +70,16 @@ const GAME_MODES = [
 
 const DELETED_KEY = "srff_deleted_tournaments";
 const OVERRIDES_KEY = "srff_tournament_overrides";
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 const CREATED_KEY = "srff_created_tournaments";
 
 const AVATARS = [
@@ -303,24 +315,6 @@ interface TournamentForm {
   bannerUrl: string;
 }
 
-const TOURNAMENT_BANNERS_KEY = "srff_tournament_banners";
-
-function getTournamentBanners(): Record<string, string> {
-  try {
-    return JSON.parse(
-      localStorage.getItem(TOURNAMENT_BANNERS_KEY) ?? "{}",
-    ) as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
-
-function saveTournamentBanner(id: string, url: string) {
-  const banners = getTournamentBanners();
-  banners[id] = url;
-  localStorage.setItem(TOURNAMENT_BANNERS_KEY, JSON.stringify(banners));
-}
-
 const EMPTY_FORM: TournamentForm = {
   title: "",
   gameMode: "Squad",
@@ -338,15 +332,38 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<TournamentForm>(EMPTY_FORM);
   const createMutation = useCreateTournament();
+  const saveBannerMutation = useSaveTournamentBanner();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate required fields
+    if (!form.title.trim()) {
+      toast.error("Tournament title required hai");
+      return;
+    }
+    if (!form.startTime) {
+      toast.error("Start time required hai - date aur time select karo");
+      return;
+    }
+    const startMs = new Date(form.startTime).getTime();
+    if (Number.isNaN(startMs)) {
+      toast.error("Start time invalid hai - sahi date select karo");
+      return;
+    }
+    if (!form.entryFee || Number(form.entryFee) < 0) {
+      toast.error("Entry fee required hai");
+      return;
+    }
+    if (!form.prizePool || Number(form.prizePool) < 0) {
+      toast.error("Prize pool required hai");
+      return;
+    }
     // Save to backend first — this makes tournament visible to ALL users on ALL devices
     try {
       await createMutation.mutateAsync({
         title: form.title,
         gameMode: form.gameMode,
-        startTime: BigInt(new Date(form.startTime).getTime() * 1_000_000),
+        startTime: BigInt(startMs * 1_000_000),
         entryFee: BigInt(Number(form.entryFee)),
         prizePool: BigInt(Number(form.prizePool)),
         maxPlayers: BigInt(Number(form.maxPlayers)),
@@ -372,7 +389,12 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
       };
       saveLocalTournament(localT);
       if (form.bannerUrl) {
-        saveTournamentBanner(localId, form.bannerUrl);
+        try {
+          await saveBannerMutation.mutateAsync({
+            tournamentId: localId,
+            imageData: form.bannerUrl,
+          });
+        } catch {}
       }
       window.dispatchEvent(new Event("srff_tournament_updated"));
       toast.success(
@@ -535,19 +557,24 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
             />
           </div>
           <div>
-            <Label>Tournament Banner Image URL</Label>
-            <Input
-              value={form.bannerUrl}
-              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-              placeholder="https://...image.jpg"
-              className="mt-1"
-              data-ocid="admin-tournaments.banner.input"
+            <Label>Tournament Banner Photo (Upload)</Label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const base64 = await fileToBase64(file);
+                setForm({ ...form, bannerUrl: base64 });
+              }}
+              className="mt-1 block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+              data-ocid="admin-tournaments.banner.upload_button"
             />
             {form.bannerUrl && (
               <img
                 src={form.bannerUrl}
                 alt="banner preview"
-                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+                className="mt-2 w-full h-24 rounded object-cover border border-border"
               />
             )}
           </div>
@@ -577,6 +604,7 @@ function EditTournamentModal({
   onSaved: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const saveBannerMutation = useSaveTournamentBanner();
 
   const override = getOverride(tournament.id.toString());
 
@@ -590,7 +618,7 @@ function EditTournamentModal({
     minPlayers: override?.minPlayers ?? String(Number(tournament.minPlayers)),
     status: override?.status ?? (tournament.status as string),
     description: override?.description ?? tournament.description,
-    bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
+    bannerUrl: "",
   });
 
   const handleOpen = () => {
@@ -605,12 +633,12 @@ function EditTournamentModal({
       minPlayers: ov?.minPlayers ?? String(Number(tournament.minPlayers)),
       status: ov?.status ?? (tournament.status as string),
       description: ov?.description ?? tournament.description,
-      bannerUrl: getTournamentBanners()[tournament.id.toString()] ?? "",
+      bannerUrl: "",
     });
     setOpen(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     saveOverride(tournament.id.toString(), {
       title: form.title,
@@ -622,7 +650,14 @@ function EditTournamentModal({
       status: form.status,
       description: form.description,
     });
-    saveTournamentBanner(tournament.id.toString(), form.bannerUrl);
+    if (form.bannerUrl) {
+      try {
+        await saveBannerMutation.mutateAsync({
+          tournamentId: tournament.id.toString(),
+          imageData: form.bannerUrl,
+        });
+      } catch {}
+    }
     toast.success("Tournament updated!");
     setOpen(false);
     onSaved();
@@ -763,19 +798,24 @@ function EditTournamentModal({
             />
           </div>
           <div>
-            <Label>Tournament Banner Image URL</Label>
-            <Input
-              value={form.bannerUrl}
-              onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
-              placeholder="https://...image.jpg"
-              className="mt-1"
-              data-ocid="admin-tournaments.edit.banner.input"
+            <Label>Tournament Banner Photo (Upload)</Label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const base64 = await fileToBase64(file);
+                setForm({ ...form, bannerUrl: base64 });
+              }}
+              className="mt-1 block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+              data-ocid="admin-tournaments.edit.banner.upload_button"
             />
             {form.bannerUrl && (
               <img
                 src={form.bannerUrl}
                 alt="banner preview"
-                className="mt-2 w-8 h-8 rounded object-cover border border-border"
+                className="mt-2 w-full h-24 rounded object-cover border border-border"
               />
             )}
           </div>
@@ -1168,6 +1208,7 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
 
 export default function AdminTournaments() {
   const { data: allTournaments = [], refetch } = useAllTournaments();
+  const { data: allBanners = {} } = useAllTournamentBanners();
   const [localDeleted, setLocalDeleted] = useState<string[]>(getDeleted);
   const [, forceUpdate] = useState(0);
   const [localCreated, setLocalCreated] =
@@ -1258,16 +1299,13 @@ export default function AdminTournaments() {
             >
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div className="flex items-center gap-2">
-                  {(() => {
-                    const b = getTournamentBanners()[t.id.toString()];
-                    return b ? (
-                      <img
-                        src={b}
-                        alt="banner"
-                        className="w-8 h-8 rounded object-cover border border-border shrink-0"
-                      />
-                    ) : null;
-                  })()}
+                  {allBanners[t.id.toString()] ? (
+                    <img
+                      src={allBanners[t.id.toString()]}
+                      alt="banner"
+                      className="w-8 h-8 rounded object-cover border border-border shrink-0"
+                    />
+                  ) : null}
                   <div>
                     <h3 className="font-display font-bold text-sm">
                       {t.title}

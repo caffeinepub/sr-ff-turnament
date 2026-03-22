@@ -91,6 +91,18 @@ actor {
     timestamp : Int;
   };
 
+
+  public type PromoBanner = {
+    id : Nat;
+    title : Text;
+    subtitle : Text;
+    imageData : Text; // base64 image data
+    buttonText : Text;
+    buttonLink : Text;
+    active : Bool;
+    createdAt : Int;
+  };
+
   public type AppSettings = {
     appName : Text;
     minWithdraw : Nat;
@@ -206,6 +218,13 @@ actor {
   // Open Payment Requests (for phone users)
   let openPaymentRequests = Map.empty<Nat, OpenPaymentRequest>();
   var nextOpenPaymentRequestId = 0;
+
+  // Promo Banners (stored in backend so all users see them)
+  let promoBanners = Map.empty<Nat, PromoBanner>();
+  var nextPromoBannerId = 0;
+
+  // Tournament Banners (tournamentId as Text -> base64 imageData)
+  let tournamentBanners = Map.empty<Text, Text>();
 
   // ---------------------- Authorization (RBAC) ---------------------------
 
@@ -342,6 +361,14 @@ actor {
     };
   };
 
+
+  // Admin-only: Delete phone user (reset/re-register)
+  public shared ({ caller }) func deletePhoneUser(phone : Text) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete users");
+    };
+    phoneUsers.remove(phone);
+  };
   // Internal helper: Increment phone user balance (used by payment approval)
   func incrementPhoneUserBalanceInternal(phone : Text, amount : Nat) : () {
     switch (phoneUsers.get(phone)) {
@@ -774,6 +801,87 @@ actor {
       case (null) { Runtime.trap("Tournament not found") };
       case (?players) { players.toArray() };
     };
+  };
+
+
+  // ---------------------- Promo Banner APIs --------------------------
+
+  // Admin: Save promo banner (with base64 image)
+  public shared ({ caller }) func savePromoBanner(title : Text, subtitle : Text, imageData : Text, buttonText : Text, buttonLink : Text) : async Nat {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can save banners");
+    };
+    let id = nextPromoBannerId;
+    let banner : PromoBanner = {
+      id;
+      title;
+      subtitle;
+      imageData;
+      buttonText;
+      buttonLink;
+      active = true;
+      createdAt = Time.now();
+    };
+    promoBanners.add(id, banner);
+    nextPromoBannerId += 1;
+    id;
+  };
+
+  // Admin: Update promo banner
+  public shared ({ caller }) func updatePromoBanner(id : Nat, title : Text, subtitle : Text, imageData : Text, buttonText : Text, buttonLink : Text) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can update banners");
+    };
+    switch (promoBanners.get(id)) {
+      case (null) { Runtime.trap("Banner not found") };
+      case (?b) {
+        promoBanners.add(id, { b with title; subtitle; imageData; buttonText; buttonLink });
+      };
+    };
+  };
+
+  // Admin: Toggle promo banner active/inactive
+  public shared ({ caller }) func togglePromoBanner(id : Nat) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can toggle banners");
+    };
+    switch (promoBanners.get(id)) {
+      case (null) { Runtime.trap("Banner not found") };
+      case (?b) {
+        promoBanners.add(id, { b with active = not b.active });
+      };
+    };
+  };
+
+  // Admin: Delete promo banner
+  public shared ({ caller }) func deletePromoBanner(id : Nat) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can delete banners");
+    };
+    promoBanners.remove(id);
+  };
+
+  // Public: Get all promo banners (all users can see)
+  public query ({ caller }) func getAllPromoBanners() : async [PromoBanner] {
+    promoBanners.values().toArray();
+  };
+
+  // Admin: Save tournament banner (base64 image)
+  public shared ({ caller }) func saveTournamentBanner(tournamentId : Text, imageData : Text) : async () {
+    if (not isAdminInternal(caller)) {
+      Runtime.trap("Unauthorized: Only admins can save tournament banners");
+    };
+    tournamentBanners.add(tournamentId, imageData);
+  };
+
+  // Public: Get tournament banner
+  public query ({ caller }) func getTournamentBanner(tournamentId : Text) : async ?Text {
+    tournamentBanners.get(tournamentId);
+  };
+
+  // Public: Get all tournament banners as key-value pairs
+  public query ({ caller }) func getAllTournamentBanners() : async [(Text, Text)] {
+    tournamentBanners.entries().toArray();
   };
 
   public query ({ caller }) func getTournamentResults(tournamentId : Nat) : async [TournamentResult] {
