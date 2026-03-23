@@ -13,7 +13,10 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { TournamentView as Tournament } from "../backend.d";
-import { useAllTournaments } from "../hooks/useQueries";
+import {
+  useAllTournamentBanners,
+  useAllTournaments,
+} from "../hooks/useQueries";
 
 function parseLocalTournaments(): Tournament[] {
   try {
@@ -88,22 +91,16 @@ function useCountdown(targetMs: number): string {
   return `${mins}m ${secs}s`;
 }
 
-function TournamentCard({ t, index }: { t: Tournament; index: number }) {
+function TournamentCard({
+  t,
+  index,
+  banners,
+}: { t: Tournament; index: number; banners: Record<string, string> }) {
   const start = new Date(Number(t.startTime) / 1_000_000);
-  const bannerUrl = (() => {
-    try {
-      const banners = JSON.parse(
-        localStorage.getItem("srff_tournament_banners") ?? "{}",
-      ) as Record<string, string>;
-      return (
-        banners[t.id.toString()] ??
-        banners[`${t.title}_${Number(t.startTime) / 1_000_000}`] ??
-        ""
-      );
-    } catch {
-      return "";
-    }
-  })();
+  const bannerUrl =
+    banners[t.id.toString()] ??
+    banners[`${t.title}_${Number(t.startTime) / 1_000_000}`] ??
+    "";
   const countdown = useCountdown(start.getTime());
   return (
     <Link
@@ -187,6 +184,7 @@ function TournamentCard({ t, index }: { t: Tournament; index: number }) {
 export default function Tournaments() {
   const [tab, setTab] = useState("all");
   const { data: tournaments = [], isLoading } = useAllTournaments();
+  const { data: allBanners = {} } = useAllTournamentBanners();
 
   const [localCreated, setLocalCreated] = useState<Tournament[]>(
     parseLocalTournaments,
@@ -277,7 +275,12 @@ export default function Tournaments() {
         ) : (
           <div className="space-y-3">
             {filtered.map((t, i) => (
-              <TournamentCard key={t.id.toString()} t={t} index={i + 1} />
+              <TournamentCard
+                key={t.id.toString()}
+                t={t}
+                index={i + 1}
+                banners={allBanners}
+              />
             ))}
           </div>
         )}

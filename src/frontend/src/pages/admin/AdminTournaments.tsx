@@ -49,6 +49,7 @@ import {
   useLeaderboard,
   useSaveTournamentBanner,
   useSetLeaderboard,
+  useUpdatePhoneUserWinningCash,
 } from "../../hooks/useQueries";
 
 const GAME_MODES = [
@@ -243,12 +244,6 @@ function getLocalTournaments(): LocalTournament[] {
   }
 }
 
-function saveLocalTournament(t: LocalTournament) {
-  const arr = getLocalTournaments();
-  arr.unshift(t);
-  localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
-}
-
 function deleteLocalTournament(id: string) {
   const arr = getLocalTournaments().filter((t) => t.id !== id);
   localStorage.setItem(CREATED_KEY, JSON.stringify(arr));
@@ -371,27 +366,11 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
         status: form.status as TournamentStatus,
         description: form.description,
       });
-      // Backend succeeded — also save locally for instant local display
-      const localId = `local_${Date.now()}`;
-      const localT: LocalTournament = {
-        id: localId,
-        title: form.title,
-        gameMode: form.gameMode,
-        entryFee: Number(form.entryFee),
-        prizePool: Number(form.prizePool),
-        maxPlayers: Number(form.maxPlayers),
-        minPlayers: Number(form.minPlayers),
-        status: form.status,
-        description: form.description,
-        startTime: new Date(form.startTime).getTime(),
-        playerCount: 0,
-        bannerUrl: form.bannerUrl,
-      };
-      saveLocalTournament(localT);
       if (form.bannerUrl) {
         try {
+          const tempId = `banner_${Date.now()}`;
           await saveBannerMutation.mutateAsync({
-            tournamentId: localId,
+            tournamentId: tempId,
             imageData: form.bannerUrl,
           });
         } catch {}
@@ -843,6 +822,7 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
   const [open, setOpen] = useState(false);
   const { data: leaderboard = [], refetch } = useLeaderboard(tournament.id);
   const setLeaderboardMutation = useSetLeaderboard();
+  const updateWinningCashMutation = useUpdatePhoneUserWinningCash();
   const [creditedCount, setCreditedCount] = useState(0);
 
   // Player-based prizes (when players have joined)
@@ -941,6 +921,18 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
           if (!credited.includes(tournamentId)) {
             creditWinningCash(p.phone, amount, tournamentId, tournamentTitle);
             newlyCredited++;
+            // Also sync to backend
+            try {
+              const currentWinning = Number(
+                localStorage.getItem(`srff_winning_cash_${p.phone}`) ?? "0",
+              );
+              await updateWinningCashMutation.mutateAsync({
+                phone: p.phone,
+                amount: BigInt(currentWinning),
+              });
+            } catch {
+              // localStorage credit still happened, backend sync failed silently
+            }
           }
         }
       }
@@ -1206,6 +1198,75 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
   );
 }
 
+function PlayersModal({ tournament }: { tournament: Tournament }) {
+  const [open, setOpen] = useState(false);
+  const joinedPlayers = getTournamentPlayers(tournament.id.toString());
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1 gap-1 text-xs"
+          data-ocid="admin-tournaments.players.open_modal_button"
+        >
+          <Users className="w-3 h-3" /> Players
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-sm max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Joined Players — {tournament.title}</DialogTitle>
+        </DialogHeader>
+        {joinedPlayers.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            Abhi koi player join nahi kiya
+          </p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {joinedPlayers.length} players ne join kiya
+            </p>
+            {joinedPlayers.map((p, i) => {
+              const av = getAvatarById(p.avatarId);
+              return (
+                <div
+                  key={p.phone}
+                  className="flex items-center gap-3 bg-muted/30 rounded-xl px-3 py-2"
+                >
+                  <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+                    <img
+                      src={av.image}
+                      alt={av.label ?? "Avatar"}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {p.gameName && (
+                      <p className="font-bold text-xs truncate text-orange-400">
+                        🎮 {p.gameName}
+                      </p>
+                    )}
+                    <p className="font-medium text-sm truncate">
+                      👤 {p.username}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {maskPhone(p.phone)}
+                    </p>
+                  </div>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    #{i + 1}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function AdminTournaments() {
   const { data: allTournaments = [], refetch } = useAllTournaments();
   const { data: allBanners = {} } = useAllTournamentBanners();
@@ -1354,14 +1415,7 @@ export default function AdminTournaments() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1 gap-1 text-xs"
-                  data-ocid={`admin-tournaments.verify.button.${i + 1}`}
-                >
-                  <Users className="w-3 h-3" /> Players
-                </Button>
+                <PlayersModal tournament={t} />
                 <ResultsModal tournament={t} />
                 <EditTournamentModal
                   tournament={t}

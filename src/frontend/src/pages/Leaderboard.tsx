@@ -7,7 +7,11 @@ import {
   TabsTrigger,
 } from "../components/ui/tabs";
 import { useUserAuth } from "../context/UserAuthContext";
-import { useAllTournaments, useLeaderboard } from "../hooks/useQueries";
+import {
+  useAllPhoneUsers,
+  useAllTournaments,
+  useLeaderboard,
+} from "../hooks/useQueries";
 
 interface MatchEntry {
   id: string;
@@ -196,26 +200,53 @@ function TournamentLeaderboard({ tournamentId }: { tournamentId: bigint }) {
 export default function Leaderboard() {
   const { currentUser } = useUserAuth();
   const { data: tournaments = [] } = useAllTournaments();
+  const { data: allPhoneUsers = [] } = useAllPhoneUsers();
   const [selectedTournamentId, setSelectedTournamentId] = useState<string>("");
 
   const leaderboard = buildLeaderboard();
+
+  // Backend leaderboard (overall) — shows all users with winning cash from backend
+  const backendLeaderboard = (allPhoneUsers as any[])
+    .map((u) => ({
+      phone: u.phone,
+      username: u.username,
+      ffName: u.ffName,
+      totalMatches: 0,
+      totalWinnings: Number(u.winningCash ?? 0),
+      totalEntryFee: 0,
+      lastMatchAt: "",
+    }))
+    .filter((u) => u.totalWinnings > 0)
+    .sort((a, b) => b.totalWinnings - a.totalWinnings);
+
+  // Merge: backend takes priority, fallback to localStorage leaderboard
+  const mergedLeaderboard =
+    backendLeaderboard.length > 0 ? backendLeaderboard : leaderboard;
   const completedTournaments = tournaments.filter(
     (t) => t.status === "complete",
   );
 
   const lastUpdated =
-    leaderboard.length > 0
-      ? leaderboard.reduce(
+    mergedLeaderboard.length > 0
+      ? mergedLeaderboard.reduce(
           (latest, p) => (p.lastMatchAt > latest ? p.lastMatchAt : latest),
           "",
         )
       : null;
 
-  const selectedId = selectedTournamentId
-    ? BigInt(selectedTournamentId)
-    : completedTournaments.length > 0
-      ? completedTournaments[0].id
-      : null;
+  const selectedId = (() => {
+    if (!selectedTournamentId)
+      return completedTournaments.length > 0
+        ? completedTournaments[0].id
+        : null;
+    try {
+      return BigInt(selectedTournamentId);
+    } catch {
+      return completedTournaments.length > 0
+        ? completedTournaments[0].id
+        : null;
+    }
+  })();
 
   return (
     <div
@@ -261,7 +292,7 @@ export default function Leaderboard() {
 
           {/* Overall Tab */}
           <TabsContent value="overall">
-            {leaderboard.length === 0 ? (
+            {mergedLeaderboard.length === 0 ? (
               <div
                 data-ocid="leaderboard.empty_state"
                 className="text-center py-16"
@@ -276,7 +307,7 @@ export default function Leaderboard() {
               </div>
             ) : (
               <div data-ocid="leaderboard.overall.list" className="space-y-2">
-                {leaderboard.map((player, idx) => {
+                {mergedLeaderboard.map((player, idx) => {
                   const rank = idx + 1;
                   const rankStyle = rank <= 3 ? RANK_STYLES[rank] : null;
                   const isCurrentUser = currentUser?.phone === player.phone;

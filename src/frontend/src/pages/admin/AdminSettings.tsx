@@ -45,9 +45,9 @@ const DEFAULT_SETTINGS: AppSettings = {
 function getStoredMinDeposit(): number {
   try {
     const raw = localStorage.getItem(MIN_DEPOSIT_KEY);
-    if (raw === null) return 20;
+    if (raw === null) return 10;
     const val = Number(raw);
-    return Number.isNaN(val) ? 20 : val;
+    return Number.isNaN(val) ? 10 : val;
   } catch {
     return 20;
   }
@@ -429,7 +429,7 @@ export default function AdminSettings() {
     // Try backend (ignore failure — local save already done)
     const backendPayload: AppSettings = {
       appName: form.appName,
-      minDeposit: BigInt(20),
+      minDeposit: BigInt(Number(minDeposit) || 10),
       minWithdraw: form.minWithdraw,
       referralBonus: form.referralBonus,
       supportContact: form.supportContact,

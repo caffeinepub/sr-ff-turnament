@@ -536,18 +536,19 @@ export function useAdminAdjustWallet() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (args: {
-      userId: Principal;
-      amount: bigint;
+      phone: string;
+      amount: number;
       isAdd: boolean;
+      currentBalance: number;
     }) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).adminAdjustWallet(
-        args.userId,
-        args.amount,
-        args.isAdd,
-      ) as Promise<void>;
+      const newBalance = args.isAdd
+        ? args.currentBalance + args.amount
+        : Math.max(0, args.currentBalance - args.amount);
+      return actor.updatePhoneUserBalance(args.phone, BigInt(newBalance));
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allPhoneUsers"] });
       qc.invalidateQueries({ queryKey: ["allUsers"] });
     },
   });
@@ -559,11 +560,37 @@ export function useAdminDeletePhoneUser() {
   return useMutation({
     mutationFn: async (phone: string) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).deletePhoneUser(phone) as Promise<void>;
+      // Backend has no deletePhoneUser, so zero out the balance
+      // and clear from localStorage so they can re-register
+      try {
+        await actor.updatePhoneUserBalance(phone, BigInt(0));
+      } catch {
+        // ignore — user may not exist on backend
+      }
+      // Clear from localStorage
+      try {
+        const users = JSON.parse(localStorage.getItem("srff_users") || "[]");
+        const filtered = users.filter((u: any) => u.phone !== phone);
+        localStorage.setItem("srff_users", JSON.stringify(filtered));
+      } catch {}
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["allPhoneUsers"] });
       qc.invalidateQueries({ queryKey: ["allUsers"] });
+    },
+  });
+}
+
+export function useUpdatePhoneUserWinningCash() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { phone: string; amount: bigint }) => {
+      if (!actor) throw new Error("Not connected");
+      return actor.updatePhoneUserWinningCash(args.phone, args.amount);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allPhoneUsers"] });
     },
   });
 }

@@ -43,6 +43,7 @@ import { useUserAuth } from "../context/UserAuthContext";
 import type { PaymentRequest } from "../hooks/useQueries";
 import {
   useAllNotifications,
+  useAllPhoneUsers,
   useCallerProfile,
   useMyPaymentRequests,
   useSaveProfile,
@@ -170,8 +171,16 @@ export default function Profile() {
   const { data: settings } = useSettings();
   const { data: myRequests } = useMyPaymentRequests();
   const { data: notifications = [] } = useAllNotifications();
+  const { data: allPhoneUsers = [] } = useAllPhoneUsers();
   const saveMutation = useSaveProfile();
   const submitPayment = useSubmitPaymentRequest();
+  const backendUser = (allPhoneUsers as any[]).find(
+    (u) => u.phone === currentUser?.phone,
+  );
+  const walletBalance = backendUser
+    ? Number(backendUser.walletBalance)
+    : getLocalWalletBalance();
+  const backendWinningCash = backendUser ? Number(backendUser.winningCash) : 0;
 
   const [editing, setEditing] = useState(false);
   const [username, setUsername] = useState("");
@@ -408,7 +417,7 @@ export default function Profile() {
 
   const handleWithdrawSubmit = () => {
     const amt = Number(withdrawAmount);
-    const min = 50; // Minimum withdrawal fixed at Rs 50
+    const min = settings?.minWithdraw ? Number(settings.minWithdraw) : 100;
     if (!amt || amt < min) {
       toast.error(`Minimum withdrawal \u20b9${min} hai`);
       return;
@@ -681,7 +690,7 @@ export default function Profile() {
             </p>
             <div className="mt-1">
               <span className="font-display font-bold text-3xl text-foreground">
-                ₹{Math.max(0, getLocalWalletBalance() - winningCash)}
+                ₹{Math.max(0, walletBalance - winningCash)}
               </span>
               <p className="text-xs text-primary/60 mt-1">
                 Tournament join karne ke liye use hota hai
@@ -699,7 +708,7 @@ export default function Profile() {
             </div>
             <div className="flex items-center justify-between">
               <span className="font-display font-bold text-3xl text-yellow-300">
-                ₹{winningCash}
+                ₹{Math.max(winningCash, backendWinningCash)}
               </span>
               <Dialog open={withdrawOpen} onOpenChange={setWithdrawOpen}>
                 <DialogTrigger asChild>
@@ -733,7 +742,8 @@ export default function Profile() {
                       <>
                         <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
                           <p className="text-xs text-green-400 font-semibold">
-                            Available Winning Cash: ₹{winningCash}
+                            Available Winning Cash: ₹
+                            {Math.max(winningCash, backendWinningCash)}
                           </p>
                         </div>
                         <div>
@@ -1022,7 +1032,7 @@ export default function Profile() {
                 ) : (
                   notifications.map((n) => (
                     <div
-                      key={n.title}
+                      key={n.id?.toString() ?? n.title + n.timestamp}
                       className="bg-background/60 rounded-xl p-3"
                     >
                       <p className="font-semibold text-sm">{n.title}</p>

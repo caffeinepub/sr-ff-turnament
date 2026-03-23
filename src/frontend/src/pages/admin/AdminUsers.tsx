@@ -24,23 +24,20 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { PhoneUserView, UserProfile } from "../../backend.d";
+import type { PhoneUserView } from "../../backend.d";
 import {
   useAdminAdjustWallet,
   useAdminDeletePhoneUser,
   useAllPhoneUsers,
-  useAllUsers,
 } from "../../hooks/useQueries";
 
-function MobilePaySection({ users }: { users: UserProfile[] }) {
+function MobilePaySection() {
   const { data: phoneUsers = [] } = useAllPhoneUsers();
   const [mobile, setMobile] = useState("");
   const [foundPhoneUser, setFoundPhoneUser] = useState<PhoneUserView | null>(
     null,
   );
-  const [matchedIcpUser, setMatchedIcpUser] = useState<UserProfile | null>(
-    null,
-  );
+
   const [amount, setAmount] = useState("");
   const [searched, setSearched] = useState(false);
   const adjustMutation = useAdminAdjustWallet();
@@ -58,12 +55,6 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
     const foundPU = phoneUsers.find((p: PhoneUserView) => p.phone === trimmed);
     if (foundPU) {
       setFoundPhoneUser(foundPU);
-      // Try to find matching ICP user by username
-      const icpMatch = users.find(
-        (u) =>
-          u.username.toLowerCase() === (foundPU.username || "").toLowerCase(),
-      );
-      setMatchedIcpUser(icpMatch ?? null);
       return;
     }
 
@@ -81,18 +72,11 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
           referralCode: "",
           registeredAt: BigInt(0),
         });
-        const icpMatch = users.find(
-          (u) =>
-            u.username.toLowerCase() ===
-            (localFound.username || localFound.name || "").toLowerCase(),
-        );
-        setMatchedIcpUser(icpMatch ?? null);
         return;
       }
     } catch {}
 
     setFoundPhoneUser(null);
-    setMatchedIcpUser(null);
     toast.error("Is mobile number ka koi user nahi mila");
   };
 
@@ -102,18 +86,19 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
       toast.error("Valid amount daalo");
       return;
     }
-    if (!matchedIcpUser) {
-      toast.error("ICP user nahi mila — wallet adjust nahi ho sakta");
+    if (!foundPhoneUser) {
+      toast.error("Pehle user search karo");
       return;
     }
     try {
       await adjustMutation.mutateAsync({
-        userId: matchedIcpUser.principal,
-        amount: BigInt(amt),
+        phone: foundPhoneUser.phone,
+        amount: amt,
         isAdd,
+        currentBalance: Number(foundPhoneUser.walletBalance),
       });
       toast.success(
-        `\u20b9${amt} ${isAdd ? "add" : "cut"} ho gaya — ${matchedIcpUser.username} ke wallet mein!`,
+        `₹${amt} ${isAdd ? "add" : "cut"} ho gaya — ${foundPhoneUser.username} ke wallet mein!`,
       );
       setAmount("");
     } catch (e: any) {
@@ -139,7 +124,6 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
         `User "${foundPhoneUser.username}" delete ho gaya — ab woh dobara register kar sakta hai!`,
       );
       setFoundPhoneUser(null);
-      setMatchedIcpUser(null);
       setSearched(false);
       setMobile("");
     } catch (_e: unknown) {
@@ -175,7 +159,6 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
                 setMobile(e.target.value);
                 setSearched(false);
                 setFoundPhoneUser(null);
-                setMatchedIcpUser(null);
               }}
               placeholder="User ka mobile number daalo..."
               type="tel"
@@ -222,15 +205,10 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
                   💰 Wallet: ₹{Number(foundPhoneUser.walletBalance)} | Winning:
                   ₹{Number(foundPhoneUser.winningCash)}
                 </p>
-                {!matchedIcpUser && (
-                  <p className="text-xs text-yellow-400 mt-0.5">
-                    ⚠️ ICP wallet nahi mila (user ne abhi login nahi kiya)
-                  </p>
-                )}
               </div>
             </div>
 
-            {matchedIcpUser && (
+            {foundPhoneUser && (
               <div className="space-y-3 pt-1 border-t border-cyan-500/20">
                 <div>
                   <Label className="text-xs text-cyan-300 mb-1 block">
@@ -317,7 +295,6 @@ function MobilePaySection({ users }: { users: UserProfile[] }) {
 }
 
 export default function AdminUsers() {
-  const { data: users = [] } = useAllUsers();
   const { data: phoneUsers = [] } = useAllPhoneUsers();
 
   const [playersExpanded, setPlayersExpanded] = useState(true);
@@ -334,7 +311,7 @@ export default function AdminUsers() {
       <h1 className="font-display font-bold text-2xl">Users</h1>
 
       {/* Mobile Pay Section */}
-      <MobilePaySection users={users} />
+      <MobilePaySection />
 
       {/* Registered Players Section */}
       <div className="rounded-2xl border border-orange-500/30 bg-gradient-to-br from-orange-950/30 via-card to-yellow-950/20 overflow-hidden">

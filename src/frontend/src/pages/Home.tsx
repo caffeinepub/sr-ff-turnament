@@ -20,6 +20,7 @@ import UpdateModal from "../components/UpdateModal";
 import { useInternetIdentity } from "../hooks/useInternetIdentity";
 import {
   useAllNotifications,
+  useAllPhoneUsers,
   useAllPromoBanners,
   useAllTournaments,
 } from "../hooks/useQueries";
@@ -658,6 +659,13 @@ export default function Home() {
   const tournaments = [...backendTournaments, ...localOnly];
   const { identity } = useInternetIdentity();
   const { data: notifications = [] } = useAllNotifications();
+  const { data: allPhoneUsers = [] } = useAllPhoneUsers();
+  const _currentUser = JSON.parse(
+    localStorage.getItem("srff_current_user") || "null",
+  );
+  const backendPhoneUser = allPhoneUsers.find(
+    (u: any) => u.phone === _currentUser?.phone,
+  );
 
   const [headerColors, setHeaderColors] = useState(getHeaderColors);
   const [bannerIdx, setBannerIdx] = useState(0);
@@ -717,18 +725,22 @@ export default function Home() {
     // New user registration welcome
     const flag = localStorage.getItem("srff_new_user_welcome");
     if (flag) {
-      const data = JSON.parse(flag);
-      setWelcomeUsername(data.username || "");
-      setShowWelcome(true);
+      try {
+        const data = JSON.parse(flag);
+        setWelcomeUsername(data.username || "");
+        setShowWelcome(true);
+      } catch {}
       localStorage.removeItem("srff_new_user_welcome");
       return;
     }
     // Returning user login welcome
     const loginFlag = localStorage.getItem("srff_login_welcome");
     if (loginFlag) {
-      const data = JSON.parse(loginFlag);
-      setWelcomeBackUsername(data.username || "");
-      setShowWelcomeBack(true);
+      try {
+        const data = JSON.parse(loginFlag);
+        setWelcomeBackUsername(data.username || "");
+        setShowWelcomeBack(true);
+      } catch {}
       localStorage.removeItem("srff_login_welcome");
     }
   }, []);
@@ -868,7 +880,10 @@ export default function Home() {
             >
               <span>🪙</span>
               <span style={{ color: "white", fontWeight: 700 }}>
-                ₹{getLocalWalletBalance()}
+                ₹
+                {backendPhoneUser
+                  ? Number(backendPhoneUser.walletBalance)
+                  : getLocalWalletBalance()}
               </span>
             </button>
           </div>

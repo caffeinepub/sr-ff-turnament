@@ -201,6 +201,25 @@ export default function TournamentDetail() {
       return;
     }
     const entryFee = Number(tournament.entryFee);
+
+    // Check duplicate BEFORE deducting fee
+    const tpKey = `srff_tp_${tournament.id.toString()}`;
+    const existingPlayers: TournamentPlayer[] = (() => {
+      try {
+        return JSON.parse(localStorage.getItem(tpKey) ?? "[]");
+      } catch {
+        return [];
+      }
+    })();
+    const alreadyJoined = existingPlayers.some(
+      (p) => p.phone === currentUser.phone,
+    );
+    if (alreadyJoined) {
+      toast.error("Aap already is tournament mein join kar chuke hain!");
+      setShowJoinDialog(false);
+      return;
+    }
+
     // Get regular balance = walletBalance - winningCash
     const users: Array<{ phone: string; walletBalance?: number }> = (() => {
       try {
@@ -233,26 +252,19 @@ export default function TournamentDetail() {
     } catch {}
 
     // Save joined player to tournament players list
-    const tpKey = `srff_tp_${tournament.id.toString()}`;
     try {
-      const players: TournamentPlayer[] = JSON.parse(
-        localStorage.getItem(tpKey) ?? "[]",
+      const savedAvatarId = Number.parseInt(
+        localStorage.getItem("srff_avatar") || "0",
       );
-      const alreadyJoined = players.find((p) => p.phone === currentUser.phone);
-      if (!alreadyJoined) {
-        const savedAvatarId = Number.parseInt(
-          localStorage.getItem("srff_avatar") || "0",
-        );
-        players.push({
-          phone: currentUser.phone,
-          username: currentUser.username,
-          avatarId: savedAvatarId,
-          joinedAt: new Date().toISOString(),
-          winningAmount: 0,
-          gameName: gameName ?? currentUser.username,
-        });
-        localStorage.setItem(tpKey, JSON.stringify(players));
-      }
+      existingPlayers.push({
+        phone: currentUser.phone,
+        username: currentUser.username,
+        avatarId: savedAvatarId,
+        joinedAt: new Date().toISOString(),
+        winningAmount: 0,
+        gameName: gameName ?? currentUser.username,
+      });
+      localStorage.setItem(tpKey, JSON.stringify(existingPlayers));
     } catch {}
 
     // Save to match history
