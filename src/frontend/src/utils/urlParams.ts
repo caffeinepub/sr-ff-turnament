@@ -41,7 +41,7 @@ export function getUrlParameter(paramName: string): string | null {
  */
 export function storeSessionParameter(key: string, value: string): void {
   try {
-    sessionStorage.setItem(key, value);
+    localStorage.setItem(key, value);
   } catch (error) {
     console.warn(`Failed to store session parameter ${key}:`, error);
   }
@@ -55,7 +55,7 @@ export function storeSessionParameter(key: string, value: string): void {
  */
 export function getSessionParameter(key: string): string | null {
   try {
-    return sessionStorage.getItem(key);
+    return localStorage.getItem(key);
   } catch (error) {
     console.warn(`Failed to retrieve session parameter ${key}:`, error);
     return null;
@@ -95,7 +95,7 @@ export function getPersistedUrlParameter(
  */
 export function clearSessionParameter(key: string): void {
   try {
-    sessionStorage.removeItem(key);
+    localStorage.removeItem(key);
   } catch (error) {
     console.warn(`Failed to clear session parameter ${key}:`, error);
   }

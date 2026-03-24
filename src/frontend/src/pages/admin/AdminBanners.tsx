@@ -16,7 +16,7 @@ export interface PromoBanner {
   id: string;
   title: string;
   subtitle: string;
-  imageUrl: string; // kept for compatibility with Home.tsx display
+  imageUrl: string;
   buttonText: string;
   buttonLink: string;
   active: boolean;
@@ -26,6 +26,7 @@ const EMPTY = {
   title: "",
   subtitle: "",
   imageData: "",
+  imageUrl: "",
   buttonText: "Join Now",
   buttonLink: "/tournaments",
 };
@@ -49,16 +50,25 @@ export default function AdminBanners() {
   const [form, setForm] = useState({ ...EMPTY });
   const [editId, setEditId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [sizeWarning, setSizeWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setSizeWarning(file.size > 500 * 1024);
     const base64 = await fileToBase64(file);
-    setForm((prev) => ({ ...prev, imageData: base64 }));
+    setForm((prev) => ({ ...prev, imageData: base64, imageUrl: "" }));
   };
+
+  const handleUrlChange = (url: string) => {
+    setForm((prev) => ({
+      ...prev,
+      imageUrl: url,
+      imageData: url ? url : prev.imageData,
+    }));
+  };
+
+  // The effective imageData is the URL if set, else the base64 upload
+  const effectiveImageData = form.imageUrl || form.imageData;
 
   const handleSave = async () => {
     if (!form.title.trim()) {
@@ -71,7 +81,7 @@ export default function AdminBanners() {
           id: editId,
           title: form.title,
           subtitle: form.subtitle,
-          imageData: form.imageData,
+          imageData: effectiveImageData,
           buttonText: form.buttonText,
           buttonLink: form.buttonLink,
         });
@@ -80,7 +90,7 @@ export default function AdminBanners() {
         await saveMutation.mutateAsync({
           title: form.title,
           subtitle: form.subtitle,
-          imageData: form.imageData,
+          imageData: effectiveImageData,
           buttonText: form.buttonText,
           buttonLink: form.buttonLink,
         });
@@ -89,23 +99,34 @@ export default function AdminBanners() {
       setForm({ ...EMPTY });
       setEditId(null);
       setShowForm(false);
-      setSizeWarning(false);
-    } catch {
-      toast.error("Save failed — try again");
+    } catch (err: any) {
+      if (
+        err?.message?.includes("Unauthorized") ||
+        err?.message?.includes("Not connected")
+      ) {
+        toast.error(
+          "Admin token expire ho gaya. Page reload karo aur dobara try karo.",
+        );
+      } else {
+        toast.error(
+          `Banner save nahi hua: ${err?.message || "dobara try karo"}`,
+        );
+      }
     }
   };
 
   const handleEdit = (b: (typeof backendBanners)[0]) => {
+    const isUrl = b.imageData && !b.imageData.startsWith("data:");
     setForm({
       title: b.title,
       subtitle: b.subtitle,
-      imageData: b.imageData,
+      imageData: isUrl ? "" : b.imageData,
+      imageUrl: isUrl ? b.imageData : "",
       buttonText: b.buttonText,
       buttonLink: b.buttonLink,
     });
     setEditId(b.id);
     setShowForm(true);
-    setSizeWarning(false);
   };
 
   const handleDelete = async (id: number) => {
@@ -117,7 +138,6 @@ export default function AdminBanners() {
     setForm({ ...EMPTY });
     setEditId(null);
     setShowForm(false);
-    setSizeWarning(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -175,31 +195,51 @@ export default function AdminBanners() {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="b-image">
+          <div className="space-y-3">
+            <Label>
               <ImageIcon className="inline w-3.5 h-3.5 mr-1" />
-              Banner Photo (Upload)
+              Banner Image
             </Label>
-            <input
-              ref={fileInputRef}
-              id="b-image"
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
-              data-ocid="banners.upload_button"
-            />
-            {sizeWarning && (
-              <p className="text-xs text-yellow-500">
-                ⚠️ Image is larger than 500KB. Consider compressing it for faster
-                loading.
+
+            {/* URL input */}
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                Option 1: Enter Image URL
               </p>
-            )}
-            {form.imageData && (
+              <Input
+                placeholder="https://example.com/banner.jpg"
+                value={form.imageUrl}
+                onChange={(e) => handleUrlChange(e.target.value)}
+                data-ocid="banners.image-url.input"
+              />
+            </div>
+
+            {/* File upload */}
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">
+                Option 2: Upload Photo from Device
+              </p>
+              <input
+                ref={fileInputRef}
+                id="b-image"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+                data-ocid="banners.upload_button"
+              />
+            </div>
+
+            {/* Preview */}
+            {effectiveImageData && (
               <img
-                src={form.imageData}
+                src={effectiveImageData}
                 alt="Preview"
-                className="mt-2 h-24 w-full object-cover rounded-lg border border-border"
+                className="mt-2 w-full rounded-lg border border-border"
+                style={{ maxHeight: "none" }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.opacity = "0.3";
+                }}
               />
             )}
           </div>
@@ -284,7 +324,8 @@ export default function AdminBanners() {
                   <img
                     src={b.imageData}
                     alt={b.title}
-                    className="w-24 h-20 object-cover shrink-0"
+                    className="w-24 shrink-0 object-cover"
+                    style={{ minHeight: 80 }}
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                     }}

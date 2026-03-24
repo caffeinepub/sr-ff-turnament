@@ -45,6 +45,7 @@ import {
   useAllNotifications,
   useAllPhoneUsers,
   useCallerProfile,
+  useExtSettings,
   useMyPaymentRequests,
   useSaveProfile,
   useSettings,
@@ -267,6 +268,8 @@ export default function Profile() {
     localStorage.setItem(NOTIF_READ_KEY, JSON.stringify(ids));
   };
 
+  const extSettings = useExtSettings();
+
   // Reactive localStorage state for admin-editable policy texts
   const [privacyText, setPrivacyText] = useState(
     () => localStorage.getItem("srff_privacy_policy") || "",
@@ -278,17 +281,25 @@ export default function Profile() {
     () => localStorage.getItem("srff_refund_policy") || "",
   );
   const [contactText, setContactText] = useState(
-    () => localStorage.getItem(CONTACT_US_KEY) || "",
+    () => extSettings.cu || localStorage.getItem(CONTACT_US_KEY) || "",
   );
   const [fairPlayText, setFairPlayText] = useState(
-    () => localStorage.getItem(FAIR_PLAY_KEY) || "",
+    () => extSettings.fp || localStorage.getItem(FAIR_PLAY_KEY) || "",
   );
   const [gameRulesText, setGameRulesText] = useState(
-    () => localStorage.getItem(GAME_RULES_KEY) || "",
+    () => extSettings.gr || localStorage.getItem(GAME_RULES_KEY) || "",
   );
   const [referEarnText, setReferEarnText] = useState(
-    () => localStorage.getItem("srff_refer_earn") || "",
+    () => extSettings.re || localStorage.getItem("srff_refer_earn") || "",
   );
+
+  // Sync extSettings from backend when it loads (overrides localStorage defaults)
+  useEffect(() => {
+    if (extSettings.fp) setFairPlayText(extSettings.fp);
+    if (extSettings.gr) setGameRulesText(extSettings.gr);
+    if (extSettings.re) setReferEarnText(extSettings.re);
+    if (extSettings.cu) setContactText(extSettings.cu);
+  }, [extSettings.fp, extSettings.gr, extSettings.re, extSettings.cu]);
 
   // Listen for admin localStorage changes and sync instantly
   useEffect(() => {

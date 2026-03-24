@@ -382,9 +382,20 @@ function TournamentFormModal({ onCreated }: { onCreated: () => void }) {
       setForm(EMPTY_FORM);
       setOpen(false);
       onCreated();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Tournament create failed:", err);
-      toast.error("Tournament create nahi hua — dobara try karo.");
+      if (
+        err?.message?.includes("Unauthorized") ||
+        err?.message?.includes("Not connected")
+      ) {
+        toast.error(
+          "Admin token expire ho gaya. Page reload karo — token automatically restore hoga.",
+        );
+      } else {
+        toast.error(
+          `Tournament create nahi hua: ${err?.message || "dobara try karo"}`,
+        );
+      }
     }
   };
 

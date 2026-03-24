@@ -595,44 +595,73 @@ export function useUpdatePhoneUserWinningCash() {
   });
 }
 
-// ---- Promo Banner hooks (backend-based, all devices) ----
+// ---- Extended settings helpers ----
+export function parseAnnouncement(raw: string) {
+  try {
+    const p = JSON.parse(raw);
+    if (p && typeof p === "object" && ("tick" in p || "banners" in p)) {
+      return {
+        tick: (p.tick as string) || "",
+        banners: (p.banners as BackendPromoBanner[]) || [],
+        tb: (p.tb as Record<string, string>) || {},
+        fp: (p.fp as string) || "",
+        gr: (p.gr as string) || "",
+        re: (p.re as string) || "",
+        cu: (p.cu as string) || "",
+      };
+    }
+  } catch {}
+  return {
+    tick: raw || "",
+    banners: [] as BackendPromoBanner[],
+    tb: {} as Record<string, string>,
+    fp: "",
+    gr: "",
+    re: "",
+    cu: "",
+  };
+}
+
+function serializeAnnouncement(
+  ext: ReturnType<typeof parseAnnouncement>,
+): string {
+  return JSON.stringify(ext);
+}
 
 export interface BackendPromoBanner {
   id: number;
   title: string;
   subtitle: string;
-  imageData: string; // base64
+  imageData: string; // URL or base64
   buttonText: string;
   buttonLink: string;
   active: boolean;
   createdAt: number;
 }
 
+export function useExtSettings() {
+  const { data: settings } = useSettings();
+  if (!settings)
+    return {
+      tick: "",
+      banners: [] as BackendPromoBanner[],
+      tb: {} as Record<string, string>,
+      fp: "",
+      gr: "",
+      re: "",
+      cu: "",
+    };
+  return parseAnnouncement(settings.announcementText);
+}
+
 export function useAllPromoBanners() {
-  const { actor } = useActor();
-  return useQuery<BackendPromoBanner[]>({
-    queryKey: ["promoBanners"],
-    queryFn: async () => {
-      if (!actor) return [];
-      try {
-        const result = await (actor as any).getAllPromoBanners();
-        return result.map((b: any) => ({
-          id: Number(b.id),
-          title: b.title,
-          subtitle: b.subtitle,
-          imageData: b.imageData,
-          buttonText: b.buttonText,
-          buttonLink: b.buttonLink,
-          active: b.active,
-          createdAt: Number(b.createdAt),
-        }));
-      } catch {
-        return [];
-      }
-    },
-    staleTime: 0,
-    refetchInterval: 5000,
-  });
+  const { data: settings } = useSettings();
+  return {
+    data: settings
+      ? parseAnnouncement(settings.announcementText).banners
+      : ([] as BackendPromoBanner[]),
+    isLoading: !settings,
+  };
 }
 
 export function useSavePromoBanner() {
@@ -647,15 +676,36 @@ export function useSavePromoBanner() {
       buttonLink: string;
     }) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).savePromoBanner(
-        args.title,
-        args.subtitle,
-        args.imageData,
-        args.buttonText,
-        args.buttonLink,
-      );
+      const current = await actor.getSettings();
+      const ext = parseAnnouncement(current?.announcementText || "");
+      const newBanner: BackendPromoBanner = {
+        id: Date.now(),
+        title: args.title,
+        subtitle: args.subtitle,
+        imageData: args.imageData,
+        buttonText: args.buttonText,
+        buttonLink: args.buttonLink,
+        active: true,
+        createdAt: Date.now(),
+      };
+      ext.banners.push(newBanner);
+      const updated = {
+        ...(current ?? {
+          appName: "SR-FF-TOURNAMENT",
+          minDeposit: BigInt(10),
+          minWithdraw: BigInt(100),
+          referralBonus: BigInt(50),
+          supportContact: "9104414372",
+          upiDetails: "",
+          privacyPolicy: "",
+          termsAndConditions: "",
+          refundPolicy: "",
+        }),
+        announcementText: serializeAnnouncement(ext),
+      };
+      await actor.updateSettings(updated);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 }
 
@@ -672,16 +722,17 @@ export function useUpdatePromoBanner() {
       buttonLink: string;
     }) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).updatePromoBanner(
-        BigInt(args.id),
-        args.title,
-        args.subtitle,
-        args.imageData,
-        args.buttonText,
-        args.buttonLink,
+      const current = await actor.getSettings();
+      const ext = parseAnnouncement(current?.announcementText || "");
+      ext.banners = ext.banners.map((b) =>
+        b.id === args.id ? { ...b, ...args } : b,
       );
+      await actor.updateSettings({
+        ...current!,
+        announcementText: serializeAnnouncement(ext),
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 }
 
@@ -691,9 +742,17 @@ export function useTogglePromoBanner() {
   return useMutation({
     mutationFn: async (id: number) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).togglePromoBanner(BigInt(id));
+      const current = await actor.getSettings();
+      const ext = parseAnnouncement(current?.announcementText || "");
+      ext.banners = ext.banners.map((b) =>
+        b.id === id ? { ...b, active: !b.active } : b,
+      );
+      await actor.updateSettings({
+        ...current!,
+        announcementText: serializeAnnouncement(ext),
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 }
 
@@ -703,9 +762,15 @@ export function useDeletePromoBanner() {
   return useMutation({
     mutationFn: async (id: number) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).deletePromoBanner(BigInt(id));
+      const current = await actor.getSettings();
+      const ext = parseAnnouncement(current?.announcementText || "");
+      ext.banners = ext.banners.filter((b) => b.id !== id);
+      await actor.updateSettings({
+        ...current!,
+        announcementText: serializeAnnouncement(ext),
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["promoBanners"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 }
 
@@ -715,33 +780,24 @@ export function useSaveTournamentBanner() {
   return useMutation({
     mutationFn: async (args: { tournamentId: string; imageData: string }) => {
       if (!actor) throw new Error("Not connected");
-      return (actor as any).saveTournamentBanner(
-        args.tournamentId,
-        args.imageData,
-      );
+      const current = await actor.getSettings();
+      const ext = parseAnnouncement(current?.announcementText || "");
+      ext.tb[args.tournamentId] = args.imageData;
+      await actor.updateSettings({
+        ...current!,
+        announcementText: serializeAnnouncement(ext),
+      });
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tournamentBanners"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["settings"] }),
   });
 }
 
 export function useAllTournamentBanners() {
-  const { actor } = useActor();
-  return useQuery<Record<string, string>>({
-    queryKey: ["tournamentBanners"],
-    queryFn: async () => {
-      if (!actor) return {};
-      try {
-        const result = (await (
-          actor as any
-        ).getAllTournamentBanners()) as Array<[string, string]>;
-        const map: Record<string, string> = {};
-        for (const [k, v] of result) map[k] = v;
-        return map;
-      } catch {
-        return {};
-      }
-    },
-    staleTime: 0,
-    refetchInterval: 5000,
-  });
+  const { data: settings } = useSettings();
+  return {
+    data: settings
+      ? parseAnnouncement(settings.announcementText).tb
+      : ({} as Record<string, string>),
+    isLoading: !settings,
+  };
 }

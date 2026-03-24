@@ -13,7 +13,11 @@ import { Eye, EyeOff, KeyRound, Loader2, Save, Settings2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { AppSettings } from "../../backend.d";
-import { useSettings, useUpdateSettings } from "../../hooks/useQueries";
+import {
+  parseAnnouncement,
+  useSettings,
+  useUpdateSettings,
+} from "../../hooks/useQueries";
 
 const MIN_DEPOSIT_KEY = "srff_min_deposit";
 const ADMIN_PASSWORD_KEY = "srff_admin_password";
@@ -402,7 +406,15 @@ export default function AdminSettings() {
   );
 
   useEffect(() => {
-    if (settings) setForm(settings);
+    if (settings) {
+      const ext = parseAnnouncement(settings.announcementText);
+      setForm({ ...settings, announcementText: ext.tick });
+      // Populate ext policy fields from backend if they have values
+      if (ext.fp) setFairPlayPolicy(ext.fp);
+      if (ext.gr) setGameRules(ext.gr);
+      if (ext.re) setReferEarn(ext.re);
+      if (ext.cu) setContactUs(ext.cu);
+    }
   }, [settings]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -426,7 +438,13 @@ export default function AdminSettings() {
         form.supportContact.replace(/\D/g, ""),
       );
     }
-    // Try backend (ignore failure — local save already done)
+    // Build extended announcementText JSON (stores policies + tick + banners)
+    const currentExt = parseAnnouncement(settings?.announcementText || "");
+    currentExt.tick = form.announcementText; // plain text ticker
+    currentExt.fp = fairPlayPolicy;
+    currentExt.gr = gameRules;
+    currentExt.re = referEarn;
+    currentExt.cu = contactUs;
     const backendPayload: AppSettings = {
       appName: form.appName,
       minDeposit: BigInt(Number(minDeposit) || 10),
@@ -437,7 +455,7 @@ export default function AdminSettings() {
       privacyPolicy: form.privacyPolicy,
       termsAndConditions: form.termsAndConditions,
       refundPolicy: form.refundPolicy,
-      announcementText: form.announcementText,
+      announcementText: JSON.stringify(currentExt),
     };
     try {
       await updateMutation.mutateAsync(backendPayload);
