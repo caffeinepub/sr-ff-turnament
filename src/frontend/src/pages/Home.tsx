@@ -26,7 +26,6 @@ import {
   useAllTournaments,
   useSettings,
 } from "../hooks/useQueries";
-import type { PromoLink } from "./admin/AdminHomeContent";
 
 const HEADER_COLORS_KEY = "srff_header_colors";
 
@@ -59,17 +58,6 @@ const DEFAULT_ANNOUNCEMENT =
 
 function loadAnnouncement(): string {
   return localStorage.getItem("srff_announcement") ?? DEFAULT_ANNOUNCEMENT;
-}
-
-function loadPromoLinks(): PromoLink[] {
-  try {
-    const data = JSON.parse(
-      localStorage.getItem("srff_promo_links") ?? "[]",
-    ) as PromoLink[];
-    return data.filter((p) => p.active);
-  } catch {
-    return [];
-  }
 }
 
 // Gradients for welcome lines (cycles if more lines added)
@@ -798,7 +786,6 @@ export default function Home() {
   const announcement = settings
     ? parseAnnouncement(settings.announcementText).tick || loadAnnouncement()
     : loadAnnouncement();
-  const promoLinks = loadPromoLinks();
   const promoBanners = backendBanners.filter((b) => b.active);
   const activeBanner = promoBanners[bannerIdx] ?? null;
 
@@ -1193,39 +1180,6 @@ export default function Home() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Promo Photo Links row */}
-        {promoLinks.length > 0 && (
-          <section data-ocid="home.promo-links.panel">
-            <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-none">
-              {promoLinks.map((item, i) => (
-                <a
-                  key={item.id}
-                  href={item.link}
-                  target={item.link.startsWith("http") ? "_blank" : undefined}
-                  rel="noopener noreferrer"
-                  className="shrink-0 rounded-xl overflow-hidden border border-border hover:border-primary/60 transition-all hover:scale-105 block"
-                  style={{ width: 140 }}
-                  data-ocid={`home.promo-link.item.${i + 1}`}
-                >
-                  <img
-                    src={item.photoUrl}
-                    alt={item.label}
-                    className="w-full h-24 object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.opacity = "0.3";
-                    }}
-                  />
-                  <div className="bg-card px-2 py-1">
-                    <p className="text-xs font-semibold truncate text-foreground">
-                      {item.label}
-                    </p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </section>
         )}
 
         <section>
