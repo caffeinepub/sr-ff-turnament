@@ -40,7 +40,7 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminAuth");
+    localStorage.removeItem("adminAuth");
     navigate({ to: "/admin" });
   };
 

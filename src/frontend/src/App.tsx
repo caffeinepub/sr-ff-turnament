@@ -32,7 +32,8 @@ import AdminTournaments from "./pages/admin/AdminTournaments";
 import AdminUsers from "./pages/admin/AdminUsers";
 
 function isAdminAuthenticated() {
-  return sessionStorage.getItem("adminAuth") === "true";
+  // Use localStorage so auth persists when Android app is backgrounded
+  return localStorage.getItem("adminAuth") === "true";
 }
 
 function isUserAuthenticated() {

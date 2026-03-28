@@ -19,7 +19,8 @@ export default function AdminLogin() {
     const storedPw =
       localStorage.getItem("srff_admin_password") || "7477661867Ss";
     if (password === storedPw) {
-      sessionStorage.setItem("adminAuth", "true");
+      // Use localStorage (not sessionStorage) so auth persists when Android app is backgrounded
+      localStorage.setItem("adminAuth", "true");
       navigate({ to: "/admin/dashboard" });
     } else {
       toast.error("Invalid password");
