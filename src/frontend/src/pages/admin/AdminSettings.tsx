@@ -459,8 +459,10 @@ export default function AdminSettings() {
     };
     try {
       await updateMutation.mutateAsync(backendPayload);
-    } catch {
-      // Backend failed but local save already succeeded — that's fine
+    } catch (err: any) {
+      toast.warning(
+        `Settings locally saved. Backend sync failed: ${err?.message || "retry later"}`,
+      );
     }
     toast.success("Settings saved!");
     // Dispatch event so user panel picks up changes immediately

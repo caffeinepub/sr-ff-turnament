@@ -801,3 +801,95 @@ export function useAllTournamentBanners() {
     isLoading: !settings,
   };
 }
+
+// Hook for joining a tournament and syncing to backend
+export function useJoinTournamentWithFee() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      tournamentId: string;
+      phone: string;
+      username: string;
+      entryFee: number;
+      gameName: string;
+      avatarId: number;
+    }) => {
+      if (!actor) throw new Error("Server se connect nahi ho saka");
+
+      // Get current balance from backend
+      const userData = await actor.getPhoneUser(args.phone);
+      if (!userData) {
+        throw new Error("User account nahi mila. Dobara login karo.");
+      }
+      const user = userData;
+      const walletBalance = Number(user.walletBalance);
+      const winningCash = Number(user.winningCash);
+      const regularBalance = Math.max(0, walletBalance - winningCash);
+
+      if (regularBalance < args.entryFee) {
+        throw new Error(
+          `Balance kam hai. Aapke paas ₹${regularBalance} hai, ₹${args.entryFee} chahiye.`,
+        );
+      }
+
+      // Deduct entry fee on backend
+      const newBalance = walletBalance - args.entryFee;
+      await actor.updatePhoneUserBalance(args.phone, BigInt(newBalance));
+
+      // Store tournament join record via submitOpenPaymentRequest
+      const note = `tournament_join:${args.tournamentId}:${args.gameName}:${args.username}:${args.avatarId}`;
+      await actor.submitOpenPaymentRequest(
+        args.phone,
+        args.username,
+        BigInt(args.entryFee),
+        "entry",
+        note,
+        args.tournamentId,
+      );
+
+      return { newBalance };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["allPaymentRequests"] });
+      qc.invalidateQueries({ queryKey: ["myPaymentRequests"] });
+      qc.invalidateQueries({ queryKey: ["allPhoneUsers"] });
+    },
+  });
+}
+
+// Hook to get players who joined a specific tournament from backend
+export function useTournamentJoinedPlayers(tournamentId: string) {
+  const { actor } = useActor();
+  return useQuery({
+    queryKey: ["tournamentPlayers", tournamentId],
+    queryFn: async () => {
+      if (!actor) return [];
+      try {
+        const all = await actor.getAllOpenPaymentRequests();
+        return all
+          .filter((r: any) =>
+            r.note.startsWith(`tournament_join:${tournamentId}:`),
+          )
+          .map((r: any) => {
+            const parts = r.note.split(":");
+            return {
+              phone: r.phone,
+              username: r.username,
+              gameName: parts[2] || r.username,
+              displayName: parts[3] || r.username,
+              avatarId: Number(parts[4]) || 1,
+              joinedAt: new Date(Number(r.timestamp) / 1_000_000).toISOString(),
+              entryFee: Number(r.amount),
+              winningAmount: 0,
+            };
+          });
+      } catch {
+        return [];
+      }
+    },
+    enabled: !!actor && !!tournamentId,
+    staleTime: 0,
+    refetchInterval: 3000,
+  });
+}

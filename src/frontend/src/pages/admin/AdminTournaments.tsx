@@ -49,6 +49,7 @@ import {
   useLeaderboard,
   useSaveTournamentBanner,
   useSetLeaderboard,
+  useTournamentJoinedPlayers,
   useUpdatePhoneUserWinningCash,
 } from "../../hooks/useQueries";
 
@@ -846,9 +847,27 @@ function ResultsModal({ tournament }: { tournament: Tournament }) {
   ]);
 
   const [joinedPlayers, setJoinedPlayers] = useState<TournamentPlayer[]>([]);
+  const { data: backendPlayers = [] } = useTournamentJoinedPlayers(
+    tournament.id.toString(),
+  );
 
   const handleOpen = () => {
-    const players = getTournamentPlayers(tournament.id.toString());
+    const localPlayers = getTournamentPlayers(tournament.id.toString());
+    // Merge backend and local players (deduplicate by phone)
+    const merged = [...localPlayers];
+    for (const bp of backendPlayers) {
+      if (!merged.some((p) => p.phone === bp.phone)) {
+        merged.push({
+          phone: bp.phone,
+          username: bp.username,
+          avatarId: bp.avatarId,
+          joinedAt: bp.joinedAt,
+          winningAmount: bp.winningAmount,
+          gameName: bp.gameName,
+        });
+      }
+    }
+    const players = merged;
     setJoinedPlayers(players);
     setCreditedCount(0);
 

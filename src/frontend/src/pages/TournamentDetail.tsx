@@ -26,6 +26,7 @@ import { useUserAuth } from "../context/UserAuthContext";
 import {
   useAllTournamentBanners,
   useAllTournaments,
+  useJoinTournamentWithFee,
   useLeaderboard,
 } from "../hooks/useQueries";
 
@@ -114,6 +115,7 @@ export default function TournamentDetail() {
   const { currentUser } = useUserAuth();
   const [showJoinDialog, setShowJoinDialog] = useState(false);
   const [joinGameName, setJoinGameName] = useState("");
+  const joinWithFeeMutation = useJoinTournamentWithFee();
 
   const localTournaments: typeof tournaments = (() => {
     try {
@@ -195,100 +197,107 @@ export default function TournamentDetail() {
 
   const joinedPlayers = getTournamentPlayers(tournament.id.toString());
 
-  const handleJoin = (gameName?: string) => {
+  const handleJoin = async (gameName?: string) => {
     if (!currentUser) {
       toast.error("Pehle login karo");
       return;
     }
     const entryFee = Number(tournament.entryFee);
+    const finalGameName = gameName?.trim() || currentUser.username;
 
-    // Check duplicate BEFORE deducting fee
+    setShowJoinDialog(false);
+
+    // Check local duplicate first (fast check)
     const tpKey = `srff_tp_${tournament.id.toString()}`;
-    const existingPlayers: TournamentPlayer[] = (() => {
-      try {
-        return JSON.parse(localStorage.getItem(tpKey) ?? "[]");
-      } catch {
-        return [];
-      }
-    })();
-    const alreadyJoined = existingPlayers.some(
-      (p) => p.phone === currentUser.phone,
-    );
-    if (alreadyJoined) {
-      toast.error("Aap already is tournament mein join kar chuke hain!");
-      setShowJoinDialog(false);
-      return;
-    }
-
-    // Get regular balance = walletBalance - winningCash
-    const users: Array<{ phone: string; walletBalance?: number }> = (() => {
-      try {
-        return JSON.parse(localStorage.getItem("srff_users") ?? "[]");
-      } catch {
-        return [];
-      }
-    })();
-    const userRecord = users.find((u) => u.phone === currentUser.phone);
-    const walletBalance = userRecord?.walletBalance ?? 0;
-    const winningCash =
-      Number(localStorage.getItem(`srff_winning_cash_${currentUser.phone}`)) ||
-      0;
-    const regularBalance = Math.max(0, walletBalance - winningCash);
-
-    if (regularBalance < entryFee) {
-      toast.error("Balance kam hai. Pehle deposit karo.");
-      return;
-    }
-
-    // Deduct entry fee from walletBalance in srff_users
     try {
-      const updatedUsers = users.map((u) => {
-        if (u.phone === currentUser.phone) {
-          return { ...u, walletBalance: (u.walletBalance ?? 0) - entryFee };
-        }
-        return u;
-      });
-      localStorage.setItem("srff_users", JSON.stringify(updatedUsers));
+      const existingCheck = JSON.parse(localStorage.getItem(tpKey) ?? "[]") as {
+        phone: string;
+      }[];
+      if (existingCheck.some((p) => p.phone === currentUser.phone)) {
+        toast.error("Aap already is tournament mein join kar chuke hain!");
+        return;
+      }
     } catch {}
 
-    // Save joined player to tournament players list
     try {
-      const savedAvatarId = Number.parseInt(
-        localStorage.getItem("srff_avatar") || "0",
-      );
-      existingPlayers.push({
+      const result = await joinWithFeeMutation.mutateAsync({
+        tournamentId: tournament.id.toString(),
         phone: currentUser.phone,
         username: currentUser.username,
-        avatarId: savedAvatarId,
-        joinedAt: new Date().toISOString(),
-        winningAmount: 0,
-        gameName: gameName ?? currentUser.username,
+        entryFee,
+        gameName: finalGameName,
+        avatarId: Number(localStorage.getItem("srff_avatar") || "1"),
       });
-      localStorage.setItem(tpKey, JSON.stringify(existingPlayers));
-    } catch {}
 
-    // Save to match history
-    const JOINED_KEY = `srff_joined_matches_${currentUser.phone}`;
-    try {
-      const existing = JSON.parse(localStorage.getItem(JOINED_KEY) || "[]");
-      const already = existing.find(
-        (m: { id: string }) => m.id === tournament.id.toString(),
-      );
-      if (!already) {
-        existing.push({
-          id: tournament.id.toString(),
-          title: tournament.title,
-          gameMode: tournament.gameMode,
-          entryFee: entryFee,
-          prizePool: Number(tournament.prizePool),
+      // Also save locally for instant UI update
+      try {
+        const existingPlayers = JSON.parse(
+          localStorage.getItem(tpKey) ?? "[]",
+        ) as Array<{
+          phone: string;
+          username?: string;
+          avatarId?: number;
+          joinedAt?: string;
+          winningAmount?: number;
+          gameName?: string;
+        }>;
+        existingPlayers.push({
+          phone: currentUser.phone,
+          username: currentUser.username,
+          avatarId: Number(localStorage.getItem("srff_avatar") || "1"),
           joinedAt: new Date().toISOString(),
           winningAmount: 0,
+          gameName: finalGameName,
         });
-        localStorage.setItem(JOINED_KEY, JSON.stringify(existing));
-      }
-    } catch {}
+        localStorage.setItem(tpKey, JSON.stringify(existingPlayers));
+      } catch {}
 
-    toast.success(`Tournament join ho gaya! Entry fee ₹${entryFee} deducted.`);
+      // Update local user balance for UI
+      try {
+        const users = JSON.parse(
+          localStorage.getItem("srff_users") ?? "[]",
+        ) as Array<{ phone: string; walletBalance?: number }>;
+        const updated = users.map((u) =>
+          u.phone === currentUser.phone
+            ? { ...u, walletBalance: result.newBalance }
+            : u,
+        );
+        localStorage.setItem("srff_users", JSON.stringify(updated));
+      } catch {}
+
+      // Save to match history
+      const JOINED_KEY = `srff_joined_matches_${currentUser.phone}`;
+      try {
+        const historyExisting = JSON.parse(
+          localStorage.getItem(JOINED_KEY) || "[]",
+        );
+        const alreadyJoined = historyExisting.find(
+          (m: { id: string }) => m.id === tournament.id.toString(),
+        );
+        if (!alreadyJoined) {
+          historyExisting.push({
+            id: tournament.id.toString(),
+            title: tournament.title,
+            gameMode: tournament.gameMode,
+            entryFee,
+            prizePool: Number(tournament.prizePool),
+            joinedAt: new Date().toISOString(),
+            winningAmount: 0,
+          });
+          localStorage.setItem(JOINED_KEY, JSON.stringify(historyExisting));
+        }
+      } catch {}
+
+      toast.success(
+        `\uD83C\uDFAE Tournament join ho gaya! Entry fee \u20B9${entryFee} deducted.`,
+      );
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : "Tournament join nahi hua. Dobara try karo.";
+      toast.error(msg);
+    }
   };
 
   return (
